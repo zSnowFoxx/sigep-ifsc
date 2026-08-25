@@ -2,19 +2,19 @@ import { AlertTriangle, UserCheck, ExternalLink } from "lucide-react";
 import type { StudentRisk, NivelRisco } from "../../types/dashboard";
 import { riscoConfig } from "../../data/mockData";
 
-interface RiskTableProps {
+interface TabelaRiscoProps {
   filteredStudents: StudentRisk[];
   totalRiskStudents: number;
   selectedPeriod: string;
   onStartAttendance: (student: { matricula: string; nome: string; turma: string }) => void;
 }
 
-export default function RiskTable({
+export default function PainelRisco({
   filteredStudents,
   totalRiskStudents,
   selectedPeriod,
   onStartAttendance,
-}: RiskTableProps) {
+}: TabelaRiscoProps) {
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <div className="px-5 py-4 border-b border-border flex items-center justify-between">
@@ -24,9 +24,6 @@ export default function RiskTable({
             <h2 className="text-sm font-semibold text-foreground">
               Painel de Monitoramento de Risco Acadêmico
             </h2>
-            <span className="text-xs bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full font-medium">
-              RF06
-            </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {filteredStudents.length} aluno{filteredStudents.length !== 1 ? "s" : ""} em situação de alerta — período {selectedPeriod}

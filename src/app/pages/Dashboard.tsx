@@ -1,6 +1,6 @@
-import KpiCards from "../components/Dashboard/KpiCards";
-import FilterBank from "../components/Dashboard/FilterBank";
-import RiskTable from "../components/Dashboard/RiskTable";
+import Cards from "../components/Dashboard/Cards";
+import Filtros from "../components/Dashboard/Filtros";
+import PainelRisco from "../components/Dashboard/PainelRisco";
 import type { StudentRisk } from "../types/dashboard";
 
 interface DashboardProps {
@@ -41,9 +41,9 @@ export default function Dashboard({
         <p className="text-xs text-muted-foreground mt-0.5">Visão geral do período letivo {selectedPeriod}</p>
       </div>
 
-      <KpiCards />
+      <Cards />
 
-      <FilterBank
+      <Filtros
         filterCurso={filterCurso}
         setFilterCurso={setFilterCurso}
         filterFase={filterFase}
@@ -54,7 +54,7 @@ export default function Dashboard({
         setFilterDisciplina={setFilterDisciplina}
       />
 
-      <RiskTable
+      <PainelRisco
         filteredStudents={filteredStudents}
         totalRiskStudents={totalRiskStudents}
         selectedPeriod={selectedPeriod}

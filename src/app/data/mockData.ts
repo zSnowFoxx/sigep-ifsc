@@ -6,9 +6,9 @@ import {
   Upload,
   Settings,
 } from "lucide-react";
-
 import type { NavItem, StudentRisk, NivelRisco, RiscoConfig } from "../types/dashboard";
 
+// Mantém apenas itens visuais de navegação
 export const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", active: true },
   { icon: ClipboardList, label: "Conselhos de Classe", active: false },
@@ -18,63 +18,7 @@ export const navItems: NavItem[] = [
   { icon: Settings, label: "Configurações", active: false },
 ];
 
-export const riskStudents: StudentRisk[] = [
-  {
-    matricula: "202110806528",
-    nome: "João Silva",
-    turma: "TDS - 2ª Fase",
-    media: 5.2,
-    infrequencia: 12,
-    fatores: ["Baixo Rendimento Cognitivo"],
-    risco: "medio",
-  },
-  {
-    matricula: "202210809911",
-    nome: "Maria Oliveira",
-    turma: "TDS - 1ª Fase",
-    media: 7.5,
-    infrequencia: 28,
-    fatores: ["Frequência Crítica (LDB Limit)"],
-    risco: "alto",
-  },
-  {
-    matricula: "202310804422",
-    nome: "Carlos Souza",
-    turma: "Mecatrônica - 4ª Fase",
-    media: 4.8,
-    infrequencia: 26,
-    fatores: ["Rendimento + Frequência", "Risco Evasão"],
-    risco: "critico",
-  },
-  {
-    matricula: "202110801345",
-    nome: "Ana Beatriz Ferreira",
-    turma: "TDS - 3ª Fase",
-    media: 5.8,
-    infrequencia: 18,
-    fatores: ["Baixo Rendimento Cognitivo"],
-    risco: "medio",
-  },
-  {
-    matricula: "202210812788",
-    nome: "Lucas Mendes",
-    turma: "Mecatrônica - 2ª Fase",
-    media: 4.1,
-    infrequencia: 31,
-    fatores: ["Rendimento + Frequência", "Risco Evasão"],
-    risco: "critico",
-  },
-  {
-    matricula: "202310807654",
-    nome: "Fernanda Costa",
-    turma: "Administração - 1ª Fase",
-    media: 6.9,
-    infrequencia: 22,
-    fatores: ["Frequência Crítica (LDB Limit)"],
-    risco: "alto",
-  },
-];
-
+// Mantém configurações estéticas da interface
 export const riscoConfig: Record<NivelRisco, RiscoConfig> = {
   medio: {
     label: "Médio",
@@ -92,3 +36,10 @@ export const riscoConfig: Record<NivelRisco, RiscoConfig> = {
     rowClass: "hover:bg-red-50/50",
   },
 };
+
+// Função para buscar os dados de alunos em risco via API REST
+export async function fetchRiskStudents(): Promise<StudentRisk[]> {
+  const response = await fetch("http://localhost:3001/api/students/risk");
+  if (!response.ok) throw new Error("Falha ao buscar dados de alunos em risco.");
+  return response.json();
+}

@@ -1,15 +1,12 @@
 import { useState } from "react";
-
-// import Login from "./pages/Login";
-// import ConselhoFinal from "./pages/ConselhoFinal";
-// import ConselhosLista from "./pages/ConselhosLista";
-// import Atendimentos from "./pages/Atendimentos";
-// import Encaminhamentos from "./pages/Encaminhamentos";
-// import ImportarDados from "./pages/ImportarDados";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import { riskStudents } from "./data/mockData";
+import type { UserProfile } from "./types/auth";
+import { fetchRiskStudents } from "./data/mockData";
+import { useEffect } from "react";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -18,6 +15,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [importarOpen, setImportarOpen] = useState(false);
   const [naeStudent, setNaeStudent] = useState<{ matricula: string; nome: string; turma: string } | null>(null);
+  const [riskStudents, setRiskStudents] = useState<Array<any>>([]);
   const [selectedPeriod, setSelectedPeriod] = useState("2026.1");
   const [filterCurso, setFilterCurso] = useState("");
   const [filterFase, setFilterFase] = useState("");
@@ -25,6 +23,28 @@ export default function App() {
   const [filterDisciplina, setFilterDisciplina] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
+
+  // Estado para controlar a exibição da tela do Perfil
+  const [showPerfil, setShowPerfil] = useState(false);
+
+  // Perfil mock para exibição
+  const [userProfile] = useState<UserProfile>({
+    name: "Ana Maria Souza",
+    email: "ana.souza@ifsc.edu.br",
+    role: "Professor",
+    siape: "1982374",
+    disciplines: ["Algoritmos", "Estrutura de Dados"],
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    fetchRiskStudents().then((data) => {
+      if (mounted) setRiskStudents(data as any[]);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredStudents = riskStudents.filter((s) => {
     if (searchQuery) {
@@ -38,9 +58,9 @@ export default function App() {
     return true;
   });
 
-  // if (!authenticated) {
-  //   return <Login onLogin={() => setAuthenticated(true)} />;
-  // }
+  if (!authenticated) {
+    return <Login onLogin={() => setAuthenticated(true)} />;
+  }
 
   return (
     <div
@@ -54,6 +74,9 @@ export default function App() {
         setActiveNav={setActiveNav}
         setImportarOpen={setImportarOpen}
         setConselhoMode={setConselhoMode}
+        userProfile={userProfile}
+        showPerfil={showPerfil}
+        setShowPerfil={setShowPerfil}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -64,51 +87,38 @@ export default function App() {
           setNotifOpen={setNotifOpen}
           selectedPeriod={selectedPeriod}
           setSelectedPeriod={setSelectedPeriod}
-          hidden={activeNav === 1 && conselhoMode === "workspace"}
+          hidden={showPerfil || (activeNav === 1 && conselhoMode === "workspace")}
         />
 
-        {/* {activeNav === 1 ? (
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {conselhoMode === "list" ? (
-              <ConselhosLista onEnterConselho={() => setConselhoMode("workspace")} />
-            ) : (
-              <ConselhoFinal onNavigate={setActiveNav} onBack={() => setConselhoMode("list")} />
-            )}
-          </div>
-        ) : activeNav === 2 ? (
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <Atendimentos
-              initialStudent={naeStudent}
-              onClearInitialStudent={() => setNaeStudent(null)}
-            />
-          </div>
-        ) : activeNav === 3 ? (
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <Encaminhamentos />
-          </div>
-        ) : null} */}
-
-        <Dashboard
-          selectedPeriod={selectedPeriod}
-          filterCurso={filterCurso}
-          setFilterCurso={setFilterCurso}
-          filterFase={filterFase}
-          setFilterFase={setFilterFase}
-          filterTurma={filterTurma}
-          setFilterTurma={setFilterTurma}
-          filterDisciplina={filterDisciplina}
-          setFilterDisciplina={setFilterDisciplina}
-          filteredStudents={filteredStudents}
-          totalRiskStudents={riskStudents.length}
-          onStartAttendance={(student) => {
-            setNaeStudent(student);
-            setActiveNav(2);
-          }}
-          hidden={activeNav !== 0}
-        />
+        {showPerfil ? (
+          <Profile
+            profile={userProfile}
+            onLogout={() => {
+              setAuthenticated(false);
+              setShowPerfil(false);
+            }}
+          />
+        ) : (
+          <Dashboard
+            selectedPeriod={selectedPeriod}
+            filterCurso={filterCurso}
+            setFilterCurso={setFilterCurso}
+            filterFase={filterFase}
+            setFilterFase={setFilterFase}
+            filterTurma={filterTurma}
+            setFilterTurma={setFilterTurma}
+            filterDisciplina={filterDisciplina}
+            setFilterDisciplina={setFilterDisciplina}
+            filteredStudents={filteredStudents}
+            totalRiskStudents={fetchRiskStudents.length}
+            onStartAttendance={(student) => {
+              setNaeStudent(student);
+              setActiveNav(2);
+            }}
+            hidden={activeNav !== 0}
+          />
+        )}
       </div>
-
-      {/* {importarOpen && <ImportarDados onClose={() => setImportarOpen(false)} />} */}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { BookOpen, Users, AlertTriangle, TrendingDown } from "lucide-react";
 
-export default function KpiCards() {
+export default function Cards() {
   const cards = [
     {
       label: "Total de Turmas",

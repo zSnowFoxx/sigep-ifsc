@@ -1,6 +1,6 @@
 import { Filter, X, ChevronDown } from "lucide-react";
 
-interface FilterBankProps {
+interface FiltrosProps {
   filterCurso: string;
   setFilterCurso: (val: string) => void;
   filterFase: string;
@@ -11,7 +11,7 @@ interface FilterBankProps {
   setFilterDisciplina: (val: string) => void;
 }
 
-export default function FilterBank({
+export default function Filtros({
   filterCurso,
   setFilterCurso,
   filterFase,
@@ -20,7 +20,7 @@ export default function FilterBank({
   setFilterTurma,
   filterDisciplina,
   setFilterDisciplina,
-}: FilterBankProps) {
+}: FiltrosProps) {
   const hasFilter = filterCurso || filterFase || filterTurma || filterDisciplina;
 
   const filters = [

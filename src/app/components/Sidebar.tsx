@@ -1,5 +1,6 @@
 import { GraduationCap, ChevronLeft } from "lucide-react";
 import { navItems } from "../data/mockData";
+import type { UserProfile } from "../types/auth";
 
 interface SidebarProps {
   sidebarCollapsed: boolean;
@@ -8,6 +9,9 @@ interface SidebarProps {
   setActiveNav: (index: number) => void;
   setImportarOpen: (open: boolean) => void;
   setConselhoMode: (mode: "list" | "workspace") => void;
+  userProfile: UserProfile | null;
+  showPerfil: boolean;
+  setShowPerfil: (show: boolean) => void;
 }
 
 export default function Sidebar({
@@ -17,6 +21,9 @@ export default function Sidebar({
   setActiveNav,
   setImportarOpen,
   setConselhoMode,
+  userProfile,
+  showPerfil,
+  setShowPerfil,
 }: SidebarProps) {
   return (
     <aside
@@ -44,10 +51,16 @@ export default function Sidebar({
           </div>
           {!sidebarCollapsed && (
             <div className="min-w-0">
-              <p className="text-sm font-bold tracking-wide whitespace-nowrap" style={{ color: "var(--sidebar-foreground)" }}>
+              <p
+                className="text-sm font-bold tracking-wide whitespace-nowrap"
+                style={{ color: "var(--sidebar-foreground)" }}
+              >
                 SIGEP
               </p>
-              <p className="text-xs leading-tight whitespace-nowrap" style={{ color: "rgba(232,240,235,0.55)" }}>
+              <p
+                className="text-xs leading-tight whitespace-nowrap"
+                style={{ color: "rgba(232,240,235,0.55)" }}
+              >
                 Sistema de Gestão Pedagógica
               </p>
             </div>
@@ -70,7 +83,10 @@ export default function Sidebar({
         <button
           onClick={() => setSidebarCollapsed(false)}
           className="w-full flex items-center justify-center py-2 transition-colors hover:bg-white/10"
-          style={{ color: "rgba(232,240,235,0.6)", borderBottom: "1px solid var(--sidebar-border)" }}
+          style={{
+            color: "rgba(232,240,235,0.6)",
+            borderBottom: "1px solid var(--sidebar-border)",
+          }}
           title="Expandir menu"
         >
           <ChevronLeft size={15} style={{ transform: "rotate(180deg)" }} />
@@ -82,11 +98,12 @@ export default function Sidebar({
         style={{ padding: sidebarCollapsed ? "12px 0" : "16px 12px" }}
       >
         {navItems.map((item, i) => {
-          const isActive = activeNav === i;
+          const isActive = !showPerfil && activeNav === i;
           return (
             <button
               key={i}
               onClick={() => {
+                setShowPerfil(false);
                 if (i === 4) {
                   setImportarOpen(true);
                 } else {
@@ -101,7 +118,9 @@ export default function Sidebar({
                 padding: sidebarCollapsed ? "10px 0" : "10px 12px",
                 justifyContent: sidebarCollapsed ? "center" : "flex-start",
                 background: isActive ? "var(--sidebar-accent)" : "transparent",
-                color: isActive ? "var(--sidebar-foreground)" : "rgba(232,240,235,0.65)",
+                color: isActive
+                  ? "var(--sidebar-foreground)"
+                  : "rgba(232,240,235,0.65)",
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
@@ -118,46 +137,97 @@ export default function Sidebar({
             >
               <item.icon size={17} className="shrink-0" />
               {!sidebarCollapsed && (
-                <span className="text-sm font-medium leading-tight">{item.label}</span>
+                <span className="text-sm font-medium leading-tight">
+                  {item.label}
+                </span>
               )}
             </button>
           );
         })}
       </nav>
 
-      <div
-        className="border-t shrink-0"
-        style={{
-          borderColor: "var(--sidebar-border)",
-          padding: sidebarCollapsed ? "12px 0" : "12px 16px",
-        }}
-      >
-        <div
-          className="flex items-center"
-          style={{
-            gap: sidebarCollapsed ? "0" : "12px",
-            justifyContent: sidebarCollapsed ? "center" : "flex-start",
-          }}
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-            style={{ background: "var(--sidebar-primary)", color: "white" }}
-            title={sidebarCollapsed ? "Servidor — Equipe Pedagógica" : undefined}
+      {userProfile && (() => {
+        const initials = userProfile.name
+          .split(" ")
+          .filter(Boolean)
+          .map((n) => n[0].toUpperCase())
+          .slice(0, 2)
+          .join("");
+
+        const roleShort = (() => {
+          if (userProfile.role === "Professor") {
+            const first = userProfile.disciplines?.[0];
+            return first
+              ? `Prof. — ${first.length > 16 ? first.slice(0, 14) + "…" : first}`
+              : "Professor";
+          }
+          if (userProfile.role === "Coordenador de Curso") return "Coordenador de Curso";
+          if (userProfile.role === "Equipe Pedagógica/NAE") return "Equipe Pedagógica";
+          return userProfile.role;
+        })();
+
+        const displayName = userProfile.name.split(" ").slice(0, 2).join(" ");
+
+        return (
+          <button
+            type="button"
+            onClick={() => setShowPerfil(true)}
+            className="border-t shrink-0 w-full text-left transition-colors"
+            style={{
+              borderColor: "var(--sidebar-border)",
+              padding: sidebarCollapsed ? "12px 0" : "12px 16px",
+              background: showPerfil ? "rgba(255,255,255,0.08)" : "transparent",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = showPerfil
+                ? "rgba(255,255,255,0.08)"
+                : "transparent";
+            }}
+            title={
+              sidebarCollapsed
+                ? `${userProfile.name} — ${roleShort}`
+                : "Meu Perfil"
+            }
           >
-            EP
-          </div>
-          {!sidebarCollapsed && (
-            <div className="min-w-0">
-              <p className="text-xs font-semibold truncate" style={{ color: "var(--sidebar-foreground)" }}>
-                Servidor
-              </p>
-              <p className="text-xs truncate" style={{ color: "rgba(232,240,235,0.5)" }}>
-                Equipe Pedagógica
-              </p>
+            <div
+              className="flex items-center"
+              style={{
+                gap: sidebarCollapsed ? "0" : "10px",
+                justifyContent: sidebarCollapsed ? "center" : "flex-start",
+              }}
+            >
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                style={{
+                  background: "var(--sidebar-primary)",
+                  color: "white",
+                }}
+              >
+                {initials}
+              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="text-xs font-semibold truncate leading-tight"
+                    style={{ color: "var(--sidebar-foreground)" }}
+                  >
+                    {displayName}
+                  </p>
+                  <p
+                    className="text-xs truncate leading-tight mt-0.5"
+                    style={{ color: "rgba(232,240,235,0.55)" }}
+                  >
+                    {roleShort}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </button>
+        );
+      })()}
     </aside>
   );
 }
