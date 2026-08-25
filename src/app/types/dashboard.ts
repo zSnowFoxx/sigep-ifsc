@@ -2,10 +2,22 @@ import type { LucideIcon } from "lucide-react";
 
 export type NivelRisco = "medio" | "alto" | "critico";
 
-export interface NavItem {
-  icon: LucideIcon;
+export interface DashboardStats {
+  totalTurmas: number;
+  totalAlunos: number;
+  atencaoPedagogica: number;
+  percentualAtencao: string;
+  encaminhamentosAtivos: number;
+}
+
+export interface CardItem {
   label: string;
-  active: boolean;
+  value: number;
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+  sub: string;
+  highlight: false | "red" | "amber";
 }
 
 export interface StudentRisk {
@@ -22,4 +34,15 @@ export interface RiscoConfig {
   label: string;
   badgeClass: string;
   rowClass: string;
+}
+
+export interface CourseOption {
+  nome: string;
+  fases: number;
+}
+
+export interface FilterOptions {
+  courses: CourseOption[];
+  turmas: string[];
+  disciplines: string[];
 }

@@ -1,4 +1,8 @@
-import { Filter, X, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Filter, X } from "lucide-react";
+import { fetchFilterOptions } from "../../data/dashData";
+import type { FilterOptions } from "../../types/dashboard";
+import FilterSelect from "./FilterSelect";
 
 interface FiltrosProps {
   filterCurso: string;
@@ -21,33 +25,51 @@ export default function Filtros({
   filterDisciplina,
   setFilterDisciplina,
 }: FiltrosProps) {
-  const hasFilter = filterCurso || filterFase || filterTurma || filterDisciplina;
+  const [options, setOptions] = useState<FilterOptions>({
+    courses: [],
+    turmas: [],
+    disciplines: [],
+  });
 
-  const filters = [
-    {
-      label: "Curso",
-      value: filterCurso,
-      setter: setFilterCurso,
-      options: ["", "Técnico Integrado", "Ensino Superior"],
-    },
-    {
-      label: "Fase",
-      value: filterFase,
-      setter: setFilterFase,
-      options: ["", "1ª Fase", "2ª Fase", "3ª Fase", "4ª Fase", "5ª Fase", "6ª Fase", "7ª Fase", "8ª Fase"],
-    },
-    {
-      label: "Turma",
-      value: filterTurma,
-      setter: setFilterTurma,
-      options: ["", "TDS 2026/1", "Mecatrônica 2026/1", "Administração 2026/1", "Informática 2026/1"],
-    },
-    {
-      label: "Componente Curricular / Disciplina",
-      value: filterDisciplina,
-      setter: setFilterDisciplina,
-      options: ["", "Algoritmos e Programação", "Matemática", "Física", "Inglês Técnico", "Eletrônica Digital"],
-    },
+  useEffect(() => {
+    fetchFilterOptions()
+      .then(setOptions)
+      .catch((err) => console.error("Erro ao carregar opções de filtros:", err));
+  }, []);
+
+  const maxFases = useMemo(() => {
+    const selected = options.courses.find((c) => c.nome === filterCurso);
+    return selected
+      ? selected.fases
+      : options.courses.reduce((max, c) => Math.max(max, c.fases), 0);
+  }, [options.courses, filterCurso]);
+
+  useEffect(() => {
+    const numFase = parseInt(filterFase, 10);
+    if (filterFase && !isNaN(numFase) && numFase > maxFases) {
+      setFilterFase("");
+    }
+  }, [maxFases, filterFase, setFilterFase]);
+
+  const fasesOptions = useMemo(
+    () => ["", ...Array.from({ length: maxFases }, (_, i) => `${i + 1}ª Fase`)],
+    [maxFases]
+  );
+
+  const hasFilter = Boolean(filterCurso || filterFase || filterTurma || filterDisciplina);
+
+  const handleClear = () => {
+    setFilterCurso("");
+    setFilterFase("");
+    setFilterTurma("");
+    setFilterDisciplina("");
+  };
+
+  const filterList = [
+    { label: "Curso", value: filterCurso, setter: setFilterCurso, options: ["", ...options.courses.map((c) => c.nome)] },
+    { label: "Fase", value: filterFase, setter: setFilterFase, options: fasesOptions },
+    { label: "Turma", value: filterTurma, setter: setFilterTurma, options: ["", ...options.turmas] },
+    { label: "Componente Curricular / Disciplina", value: filterDisciplina, setter: setFilterDisciplina, options: ["", ...options.disciplines] },
   ];
 
   return (
@@ -58,37 +80,22 @@ export default function Filtros({
         {hasFilter && (
           <button
             className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            onClick={() => {
-              setFilterCurso("");
-              setFilterFase("");
-              setFilterTurma("");
-              setFilterDisciplina("");
-            }}
+            onClick={handleClear}
           >
             <X size={11} /> Limpar filtros
           </button>
         )}
       </div>
+
       <div className="grid grid-cols-4 gap-3">
-        {filters.map((f, i) => (
-          <div key={i} className="relative">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">{f.label}</label>
-            <div className="relative">
-              <select
-                value={f.value}
-                onChange={(e) => f.setter(e.target.value)}
-                className="w-full appearance-none pl-3 pr-8 py-2 text-sm rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 cursor-pointer transition-all"
-                style={{ color: f.value ? "var(--foreground)" : "var(--muted-foreground)" }}
-              >
-                {f.options.map((o, j) => (
-                  <option key={j} value={o}>
-                    {o || `Todos os ${f.label.split(" ")[0].toLowerCase()}s`}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
-          </div>
+        {filterList.map((f) => (
+          <FilterSelect
+            key={f.label}
+            label={f.label}
+            value={f.value}
+            options={f.options}
+            onChange={f.setter}
+          />
         ))}
       </div>
     </div>

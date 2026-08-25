@@ -1,44 +1,29 @@
-import { BookOpen, Users, AlertTriangle, TrendingDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+
+import type { DashboardStats } from "../../types/dashboard";
+import { fetchDashboardStats, getDashboardCards } from "../../data/dashData";
 
 export default function Cards() {
-  const cards = [
-    {
-      label: "Total de Turmas",
-      value: 24,
-      icon: BookOpen,
-      iconBg: "bg-[#e8f0eb]",
-      iconColor: "text-[#15622f]",
-      sub: "+2 em relação ao período anterior",
-      highlight: false,
-    },
-    {
-      label: "Alunos Cadastrados",
-      value: 620,
-      icon: Users,
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-      sub: "distribuídos em 24 turmas",
-      highlight: false,
-    },
-    {
-      label: "Atenção Pedagógica",
-      value: 42,
-      icon: AlertTriangle,
-      iconBg: "bg-red-50",
-      iconColor: "text-red-600",
-      sub: "6.8% do total de alunos",
-      highlight: "red",
-    },
-    {
-      label: "Encaminhamentos Ativos",
-      value: 15,
-      icon: TrendingDown,
-      iconBg: "bg-amber-50",
-      iconColor: "text-amber-600",
-      sub: "8 aguardando resposta",
-      highlight: "amber",
-    },
-  ];
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats()
+      .then(setStats)
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="animate-spin text-gray-500" size={24} />
+      </div>
+    );
+  }
+
+  const cards = getDashboardCards(stats);
 
   return (
     <div className="grid grid-cols-4 gap-4">

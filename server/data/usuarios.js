@@ -3,9 +3,9 @@ module.exports = [
     id: 1,
     email: "servidor@ifsc.edu.br",
     password: "teste",
-    nome: "Ana Clara Souza",
-    siape: "1234567",
-    perfil_id: 3,
+    nome: "Silvio Wienieski",
+    siape: "3386303",
+    perfil_id: 4,
     curso_id: null,
     disciplinas_ids: []
   },

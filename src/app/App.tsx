@@ -1,15 +1,20 @@
 import { useState } from "react";
+import { useEffect } from "react";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
+
 import type { UserProfile } from "./types/auth";
-import { fetchRiskStudents } from "./data/mockData";
-import { useEffect } from "react";
+import { fetchRiskStudents } from "./data/dashData";
+import { fetchCurrentUser } from "./data/authData";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState(0);
   const [conselhoMode, setConselhoMode] = useState<"list" | "workspace">("list");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -24,17 +29,30 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
 
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const user = await fetchCurrentUser();
+        if (user) {
+          setUserProfile(user);
+          setAuthenticated(true);
+        } else {
+          setAuthenticated(false);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar perfil do usuário:", err);
+        setUserProfile(null);
+        setAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
+
   // Estado para controlar a exibição da tela do Perfil
   const [showPerfil, setShowPerfil] = useState(false);
-
-  // Perfil mock para exibição
-  const [userProfile] = useState<UserProfile>({
-    name: "Ana Maria Souza",
-    email: "ana.souza@ifsc.edu.br",
-    role: "Professor",
-    siape: "1982374",
-    disciplines: ["Algoritmos", "Estrutura de Dados"],
-  });
 
   useEffect(() => {
     let mounted = true;
@@ -58,8 +76,16 @@ export default function App() {
     return true;
   });
 
+  // Verifica se o usuário está autenticado antes de renderizar o conteúdo principal
   if (!authenticated) {
-    return <Login onLogin={() => setAuthenticated(true)} />;
+    return (
+      <Login 
+        onLogin={(user) => {
+          setUserProfile(user);
+          setAuthenticated(true);
+        }} 
+      />
+    );
   }
 
   return (
@@ -90,11 +116,14 @@ export default function App() {
           hidden={showPerfil || (activeNav === 1 && conselhoMode === "workspace")}
         />
 
-        {showPerfil ? (
+        {showPerfil && userProfile ? (
           <Profile
             profile={userProfile}
             onLogout={() => {
+              localStorage.removeItem("userEmail");
+              sessionStorage.removeItem("userEmail");
               setAuthenticated(false);
+              setUserProfile(null);
               setShowPerfil(false);
             }}
           />

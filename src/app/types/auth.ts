@@ -9,8 +9,8 @@ export interface UserProfile {
   name: string;
   siape: string;
   role: Role;
-  disciplines?: string[];
   course?: string;
+  disciplines?: string[];
 }
 
 export type StoredUser = UserProfile & { password: string };

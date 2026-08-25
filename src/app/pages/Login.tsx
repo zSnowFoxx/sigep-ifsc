@@ -1,7 +1,7 @@
 import { useState, type SetStateAction } from "react";
 import type { LoginProps } from "../types/auth";
 
-// Importações com default export (padrão do seu projeto)
+// Importações com default export
 import LoginBackground from "../components/Login/LoginBackground";
 import LoginHeader from "../components/Login/LoginHeader";
 import LoginError from "../components/Login/LoginError";

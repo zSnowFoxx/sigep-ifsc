@@ -5,12 +5,14 @@ import { passwordMeetsRules } from "../utils/authUtils";
 import { Card } from "../components/Profile/Card";
 import { InfoTile } from "../components/Profile/InfoTile";
 import { PwInput } from "../components/Profile/PwInput";
-import { StrengthRule } from "../components/Profile/StrengthRule";interface Props {
+import { StrengthRule } from "../components/Profile/StrengthRule";
+
+interface Props {
   profile: UserProfile;
   onLogout: () => void;
 }
 
-export default function MeuPerfil({ profile, onLogout }: Props) {
+export default function Profile({ profile, onLogout }: Props) {
   const initials = profile.name
     .split(" ")
     .filter(Boolean)

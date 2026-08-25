@@ -1,8 +1,8 @@
 import { AlertTriangle, UserCheck, ExternalLink } from "lucide-react";
 import type { StudentRisk, NivelRisco } from "../../types/dashboard";
-import { riscoConfig } from "../../data/mockData";
+import { riscoConfig } from "../../data/dashData";
 
-interface TabelaRiscoProps {
+interface PainelRiscoProps {
   filteredStudents: StudentRisk[];
   totalRiskStudents: number;
   selectedPeriod: string;
@@ -14,7 +14,7 @@ export default function PainelRisco({
   totalRiskStudents,
   selectedPeriod,
   onStartAttendance,
-}: TabelaRiscoProps) {
+}: PainelRiscoProps) {
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <div className="px-5 py-4 border-b border-border flex items-center justify-between">

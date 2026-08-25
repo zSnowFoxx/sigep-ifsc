@@ -1,4 +1,4 @@
-import type { Role, StoredUser } from "../types/auth";
+import type { Role, StoredUser, UserProfile } from "../types/auth";
 
 const API_URL = "http://localhost:3001/api";
 
@@ -63,7 +63,7 @@ export async function registerUser(userData: Omit<StoredUser, "id">): Promise<{ 
 }
 
 // 6. Autentica o Usuário (Login)
-export async function loginUser(email: string, password: string): Promise<{ message: string; user: StoredUser }> {
+export async function loginUser(email: string, password: string): Promise<{ message: string; user: UserProfile }> {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -88,4 +88,28 @@ export async function changePassword(
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Erro ao alterar a senha.");
   return data;
+}
+
+// 8. Busca os dados do Usuário Logado (Perfil)
+export async function fetchCurrentUser(): Promise<UserProfile | null> {
+  const userEmail = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
+
+  if (!userEmail) {
+    return null;
+  }
+
+  const response = await fetch(`${API_URL}/auth/me?email=${encodeURIComponent(userEmail)}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  // Trata erro HTTP antes de tentar ler como JSON
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Sessão inválida ou expirada.");
+  }
+
+  return response.json();
 }

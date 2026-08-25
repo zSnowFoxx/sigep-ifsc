@@ -20,8 +20,8 @@ export default function LoginForm({
   onErrorStateChange,
   clearError,
 }: LoginFormProps) {
-  const [email, setEmail] = useState("servidor@ifsc.edu.br");
-  const [password, setPassword] = useState("teste");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,18 @@ export default function LoginForm({
 
     try {
       const response = await loginUser(email.trim(), password);
-      onLoginSuccess(response.user as UserProfile);
+
+      // Se "Permanecer Conectado" estiver ativo, salva no localStorage
+      // Se não estiver ativo, salva no sessionStorage
+      if (remember) {
+        localStorage.setItem("userEmail", response.user.email);
+        sessionStorage.removeItem("userEmail");
+      } else {
+        sessionStorage.setItem("userEmail", response.user.email);
+        localStorage.removeItem("userEmail");
+      }
+
+      onLoginSuccess(response.user as unknown as UserProfile);
     } catch (err: unknown) {
       const errorMsg =
         err instanceof Error
