@@ -27,7 +27,22 @@ Acompanhamento em tempo real de estudantes em situação de vulnerabilidade ou r
 * **Fatores de Alerta:** Exibição detalhada dos motivos que geraram a sinalização.
 * **Fluxo de Atendimento:** Ação direta para iniciar o atendimento pedagógico/NAE com o aluno.
 
-### 2. Cadastros Institucionais
+### 2. Autenticação e Controle de Acesso
+
+Fluxo completo de segurança para entrada e gerenciamento de contas de usuários na plataforma.
+
+* **Login de Usuários:** Autenticação segura para acesso aos módulos restritos do sistema.
+* **Cadastro de Usuário:** Registro e criação de novas contas no sistema.
+* **Recuperação de Acesso:** Fluxo de "Esqueci a senha" para redefinição e recuperação da conta.
+
+### 3. Visualização do Perfil do Usuário
+
+Painel individual para consulta de credenciais e gestão de segurança pessoal.
+
+* **Visualização de Perfil:** Exibição detalhada das informações institucionais e dados de identificação do usuário conectado.
+* **Alteração de Senha:** Interface dedicada para atualização segura e substituição de senha de acesso.
+
+### 4. Cadastros Institucionais
 
 Módulo centralizado em abas para gerenciamento completo (CRUD) de dados da instituição:
 
