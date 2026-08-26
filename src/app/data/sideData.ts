@@ -4,9 +4,9 @@ import {
   ClipboardList,
   Send,
   Upload,
-  Settings,
+  Database,
 } from "lucide-react";
-import type { NavItem } from "../types/nav";
+import type { NavItem } from "../types/sidebar";
 
 // Mantém apenas itens visuais de navegação
 export const navItems: NavItem[] = [
@@ -15,5 +15,5 @@ export const navItems: NavItem[] = [
   { icon: Users, label: "Atendimentos (NAE)", active: false },
   { icon: Send, label: "Encaminhamentos", active: false },
   { icon: Upload, label: "Importar Dados (SIGAA/Planilha)", active: false },
-  { icon: Settings, label: "Configurações", active: false },
+  { icon: Database, label: "Cadastros", active: false },
 ];

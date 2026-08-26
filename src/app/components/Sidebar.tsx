@@ -1,5 +1,5 @@
 import { GraduationCap, ChevronLeft } from "lucide-react";
-import { navItems } from "../data/mockData";
+import { navItems } from "../data/sideData";
 import type { UserProfile } from "../types/auth";
 
 interface SidebarProps {

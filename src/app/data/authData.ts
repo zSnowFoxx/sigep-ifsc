@@ -50,13 +50,14 @@ export async function verifyOtp(email: string, code: string): Promise<{ message:
   return data;
 }
 
-// 5. Cadastra o novo usuário no servidor
+// 5. Cadastra o novo usuário no servidor (espera a propriedade passwordHash na interface StoredUser)
 export async function registerUser(userData: Omit<StoredUser, "id">): Promise<{ message: string }> {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });
+  
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Erro ao cadastrar usuário.");
   return data;
@@ -64,11 +65,16 @@ export async function registerUser(userData: Omit<StoredUser, "id">): Promise<{ 
 
 // 6. Autentica o Usuário (Login)
 export async function loginUser(email: string, password: string): Promise<{ message: string; user: UserProfile }> {
+  if (!email || !password) {
+    throw new Error("E-mail e senha são obrigatórios.");
+  }
+
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
+
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Credenciais inválidas.");
   return data;
@@ -85,6 +91,7 @@ export async function changePassword(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, currentPassword, newPassword }),
   });
+
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Erro ao alterar a senha.");
   return data;

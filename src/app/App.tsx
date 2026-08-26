@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import Cadastros from "./pages/Cadastros";
+import Atendimentos from "./pages/Atendimentos";
+import ConselhosLista from "./pages/ConselhosLista";
+import ImportarDados from "./pages/ImportarDados";
+import Encaminhamentos from "./pages/Encaminhamentos";
+
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
@@ -14,7 +19,7 @@ import { fetchCurrentUser } from "./data/authData";
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState(0);
   const [conselhoMode, setConselhoMode] = useState<"list" | "workspace">("list");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -26,8 +31,8 @@ export default function App() {
   const [filterFase, setFilterFase] = useState("");
   const [filterTurma, setFilterTurma] = useState("");
   const [filterDisciplina, setFilterDisciplina] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [showPerfil, setShowPerfil] = useState(false);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -44,15 +49,12 @@ export default function App() {
         setUserProfile(null);
         setAuthenticated(false);
       } finally {
-        setLoading(false);
+        // setLoading(false);
       }
     };
 
     loadUserProfile();
   }, []);
-
-  // Estado para controlar a exibição da tela do Perfil
-  const [showPerfil, setShowPerfil] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -64,19 +66,6 @@ export default function App() {
     };
   }, []);
 
-  const filteredStudents = riskStudents.filter((s) => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        s.nome.toLowerCase().includes(q) ||
-        s.matricula.includes(q) ||
-        s.turma.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
-
-  // Verifica se o usuário está autenticado antes de renderizar o conteúdo principal
   if (!authenticated) {
     return (
       <Login 
@@ -97,7 +86,11 @@ export default function App() {
         sidebarCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
         activeNav={activeNav}
-        setActiveNav={setActiveNav}
+        setActiveNav={(nav) => {
+          setActiveNav(nav);
+          // Reseta para visualização em lista ao mudar de aba
+          if (nav === 1) setConselhoMode("list");
+        }}
         setImportarOpen={setImportarOpen}
         setConselhoMode={setConselhoMode}
         userProfile={userProfile}
@@ -107,12 +100,14 @@ export default function App() {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           notifOpen={notifOpen}
           setNotifOpen={setNotifOpen}
           selectedPeriod={selectedPeriod}
           setSelectedPeriod={setSelectedPeriod}
+          setActiveNav={setActiveNav}
+          setConselhoMode={setConselhoMode}
+          setImportarOpen={setImportarOpen}
+          setShowPerfil={setShowPerfil}
           hidden={showPerfil || (activeNav === 1 && conselhoMode === "workspace")}
         />
 
@@ -128,24 +123,67 @@ export default function App() {
             }}
           />
         ) : (
-          <Dashboard
-            selectedPeriod={selectedPeriod}
-            filterCurso={filterCurso}
-            setFilterCurso={setFilterCurso}
-            filterFase={filterFase}
-            setFilterFase={setFilterFase}
-            filterTurma={filterTurma}
-            setFilterTurma={setFilterTurma}
-            filterDisciplina={filterDisciplina}
-            setFilterDisciplina={setFilterDisciplina}
-            filteredStudents={filteredStudents}
-            totalRiskStudents={fetchRiskStudents.length}
-            onStartAttendance={(student) => {
-              setNaeStudent(student);
-              setActiveNav(2);
-            }}
-            hidden={activeNav !== 0}
-          />
+          <main className="flex-1 overflow-auto relative">
+            <Dashboard
+              selectedPeriod={selectedPeriod}
+              filterCurso={filterCurso}
+              setFilterCurso={setFilterCurso}
+              filterFase={filterFase}
+              setFilterFase={setFilterFase}
+              filterTurma={filterTurma}
+              setFilterTurma={setFilterTurma}
+              filterDisciplina={filterDisciplina}
+              setFilterDisciplina={setFilterDisciplina}
+              filteredStudents={riskStudents}
+              totalRiskStudents={riskStudents.length}
+              onStartAttendance={(student) => {
+                setNaeStudent(student);
+                setActiveNav(2);
+              }}
+              hidden={activeNav !== 0}
+            />
+
+            {activeNav === 1 && (
+              conselhoMode === "list" ? (
+                <ConselhosLista 
+                  onEnterConselho={() => setConselhoMode("workspace")} 
+                />
+              ) : (
+                /* Caso possua uma página/componente separado de workspace: */
+                /* <ConselhoWorkspace onBack={() => setConselhoMode("list")} /> */
+                <div className="p-6">
+                  <button 
+                    onClick={() => setConselhoMode("list")} 
+                    className="text-sm text-primary font-semibold underline mb-4"
+                  >
+                    ← Voltar para lista de conselhos
+                  </button>
+                  <p className="text-sm text-muted-foreground">Área de Realização do Conselho de Classe (Workspace)</p>
+                </div>
+              )
+            )}
+
+            {activeNav === 2 && (
+              <Atendimentos
+                initialStudent={naeStudent}
+                onClearInitialStudent={() => setNaeStudent(null)}
+              />
+            )}
+
+            {activeNav === 3 && <Encaminhamentos />}
+
+            {(activeNav === 4 || importarOpen) && (
+              <ImportarDados
+                isOpen={importarOpen || activeNav === 4}
+                onClose={() => {
+                  setImportarOpen(false);
+                  if (activeNav === 4) setActiveNav(0);
+                }}
+              />
+            )}
+
+            {activeNav === 5 && <Cadastros />}
+          </main>
         )}
       </div>
     </div>

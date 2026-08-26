@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import type { UserProfile } from "../../types/auth";
 import { loginUser } from "../../data/authData";
 
 interface LoginFormProps {
+  initialEmail?: string;
   onLoginSuccess: (p: UserProfile) => void;
   onRegister: () => void;
   onForgot: () => void;
@@ -13,6 +14,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({
+  initialEmail = "",
   onLoginSuccess,
   onRegister,
   onForgot,
@@ -20,11 +22,18 @@ export default function LoginForm({
   onErrorStateChange,
   clearError,
 }: LoginFormProps) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Preenche o campo de e-mail automaticamente quando finaliza o cadastro
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
 
   const handleClearError = () => {
     if (clearError) clearError();

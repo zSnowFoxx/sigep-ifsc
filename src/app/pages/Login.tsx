@@ -8,19 +8,29 @@ import LoginError from "../components/Login/LoginError";
 import LoginForm from "../components/Login/LoginForm";
 import LoginTeste from "../components/Login/LoginTeste";
 
-// Novos formulários
-import { RegisterForm } from "../components/Login/RegisterForm";
-import { ForgotForm } from "../components/Login/ForgotForm";
+// Registro e Recuperação de Senha
+import { RegisterForm } from "../components/Login/Register/RegisterForm";
+import { ForgotForm } from "../components/Login/Reset/ForgotForm";
 
 type Mode = "login" | "register" | "forgot";
 
 export default function Login({ onLogin }: LoginProps) {
   const [mode, setMode] = useState<Mode>("login");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [registeredEmail, setRegisteredEmail] = useState<string>("");
 
   const handleModeChange = (newMode: Mode) => {
     setErrorMessage("");
+    setSuccessMessage("");
     setMode(newMode);
+  };
+
+  const handleRegisterComplete = (email: string) => {
+    setRegisteredEmail(email);
+    setSuccessMessage("Cadastro realizado com sucesso! Insira sua senha para acessar.");
+    setErrorMessage("");
+    setMode("login");
   };
 
   return (
@@ -50,6 +60,20 @@ export default function Login({ onLogin }: LoginProps) {
           }
         />
 
+        {/* Banner de Sucesso pós-cadastro */}
+        {successMessage && mode === "login" && (
+          <div className="mx-6 mt-4 p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium flex items-center justify-between">
+            <span>{successMessage}</span>
+            <button
+              type="button"
+              onClick={() => setSuccessMessage("")}
+              className="text-emerald-600 hover:text-emerald-900 font-bold ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {errorMessage && mode === "login" && (
           <LoginError message={errorMessage} />
         )}
@@ -57,13 +81,17 @@ export default function Login({ onLogin }: LoginProps) {
         {mode === "login" && (
           <>
             <LoginForm
+              initialEmail={registeredEmail}
               onLoginSuccess={onLogin}
               onErrorStateChange={(hasErr: any) => {
                 if (!hasErr) setErrorMessage("");
               }}
               onRegister={() => handleModeChange("register")}
               onForgot={() => handleModeChange("forgot")}
-              onError={(msg: SetStateAction<string>) => setErrorMessage(msg)}
+              onError={(msg: SetStateAction<string>) => {
+                setSuccessMessage("");
+                setErrorMessage(msg);
+              }}
             />
             <LoginTeste />
           </>
@@ -72,7 +100,7 @@ export default function Login({ onLogin }: LoginProps) {
         {mode === "register" && (
           <RegisterForm
             onBack={() => handleModeChange("login")}
-            onComplete={() => handleModeChange("login")}
+            onComplete={handleRegisterComplete}
           />
         )}
 

@@ -2,9 +2,9 @@ module.exports = [
   {
     id: 1,
     email: "servidor@ifsc.edu.br",
-    password: "teste",
-    nome: "Silvio Wienieski",
-    siape: "3386303",
+    password: "$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy",
+    nome: "Servidor Exemplo",
+    siape: "1234567",
     perfil_id: 4,
     curso_id: null,
     disciplinas_ids: []
@@ -12,7 +12,7 @@ module.exports = [
   {
     id: 2,
     email: "professor@ifsc.edu.br",
-    password: "teste",
+    password: "$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy",
     nome: "Carlos Lima",
     siape: "7654321",
     perfil_id: 1,
@@ -22,7 +22,7 @@ module.exports = [
   {
     id: 3,
     email: "coordenador@ifsc.edu.br",
-    password: "teste",
+    password: "$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy",
     nome: "Maria Santos",
     siape: "9876543",
     perfil_id: 2,
