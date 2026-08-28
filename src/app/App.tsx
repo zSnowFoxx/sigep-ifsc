@@ -4,21 +4,21 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Cadastros from "./pages/Cadastros";
-import Atendimentos from "./pages/Atendimentos";
-import ConselhosLista from "./pages/ConselhosLista";
-import ImportarDados from "./pages/ImportarDados";
-import Encaminhamentos from "./pages/Encaminhamentos";
+// import Atendimentos from "./pages/Atendimentos";
+// import ConselhosLista from "./pages/ConselhosLista";
+// import ImportarDados from "./pages/ImportarDados";
+// import Encaminhamentos from "./pages/Encaminhamentos";
 
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
-import type { UserProfile } from "./types/auth";
+import type { UserSession } from "./types/auth";
 import { fetchRiskStudents } from "./services/dashService";
 import { fetchCurrentUser } from "./services/profileService";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserSession | null>(null);
   // const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState(0);
   const [conselhoMode, setConselhoMode] = useState<"list" | "workspace">("list");
@@ -145,12 +145,11 @@ export default function App() {
 
             {activeNav === 1 && (
               conselhoMode === "list" ? (
-                <ConselhosLista 
-                  onEnterConselho={() => setConselhoMode("workspace")} 
-                />
+                ""
+                // <ConselhosLista 
+                //   onEnterConselho={() => setConselhoMode("workspace")} 
+                // />
               ) : (
-                /* Caso possua uma página/componente separado de workspace: */
-                /* <ConselhoWorkspace onBack={() => setConselhoMode("list")} /> */
                 <div className="p-6">
                   <button 
                     onClick={() => setConselhoMode("list")} 
@@ -164,22 +163,27 @@ export default function App() {
             )}
 
             {activeNav === 2 && (
-              <Atendimentos
-                initialStudent={naeStudent}
-                onClearInitialStudent={() => setNaeStudent(null)}
-              />
+              ""
+              // <Atendimentos
+              //   initialStudent={naeStudent}
+              //   onClearInitialStudent={() => setNaeStudent(null)}
+              // />
             )}
 
-            {activeNav === 3 && <Encaminhamentos />}
+            {activeNav === 3 && 
+              ""
+              // <Encaminhamentos />
+            }
 
             {(activeNav === 4 || importarOpen) && (
-              <ImportarDados
-                isOpen={importarOpen || activeNav === 4}
-                onClose={() => {
-                  setImportarOpen(false);
-                  if (activeNav === 4) setActiveNav(0);
-                }}
-              />
+              ""
+              // <ImportarDados
+              //   isOpen={importarOpen || activeNav === 4}
+              //   onClose={() => {
+              //     setImportarOpen(false);
+              //     if (activeNav === 4) setActiveNav(0);
+              //   }}
+              // />
             )}
 
             {activeNav === 5 && <Cadastros />}

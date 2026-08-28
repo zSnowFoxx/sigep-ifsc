@@ -55,7 +55,7 @@ export const DisciplinasTable: React.FC<Props> = ({
             </Td>
             <Td>
               <span className="text-xs text-gray-600">
-                {stripPrefix(item.curso)}
+                {stripPrefix(item.curso ?? "")}
               </span>
             </Td>
             <Td className="text-right">

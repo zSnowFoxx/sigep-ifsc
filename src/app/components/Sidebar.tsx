@@ -1,6 +1,6 @@
 import { GraduationCap, ChevronLeft } from "lucide-react";
 import { navItems } from "../data/sideData";
-import type { UserProfile } from "../types/auth";
+import type { UserSession } from "../types/auth";
 
 interface SidebarProps {
   sidebarCollapsed: boolean;
@@ -9,7 +9,7 @@ interface SidebarProps {
   setActiveNav: (index: number) => void;
   setImportarOpen: (open: boolean) => void;
   setConselhoMode: (mode: "list" | "workspace") => void;
-  userProfile: UserProfile | null;
+  userProfile: UserSession | null;
   showPerfil: boolean;
   setShowPerfil: (show: boolean) => void;
 }
@@ -147,7 +147,7 @@ export default function Sidebar({
       </nav>
 
       {userProfile && (() => {
-        const initials = userProfile.name
+        const initials = userProfile.nome
           .split(" ")
           .filter(Boolean)
           .map((n) => n[0].toUpperCase())
@@ -155,18 +155,18 @@ export default function Sidebar({
           .join("");
 
         const roleShort = (() => {
-          if (userProfile.role === "Professor") {
-            const first = userProfile.disciplines?.[0];
+          if (userProfile.cargo === "Professor") {
+            const first = userProfile.funcoes?.[0];
             return first
               ? `Prof. — ${first.length > 16 ? first.slice(0, 14) + "…" : first}`
               : "Professor";
           }
-          if (userProfile.role === "Coordenador de Curso") return "Coordenador de Curso";
-          if (userProfile.role === "Equipe Pedagógica/NAE") return "Equipe Pedagógica";
-          return userProfile.role;
+          if (userProfile.cargo === "Coordenador de Curso") return "Coordenador de Curso";
+          if (userProfile.cargo === "Equipe Pedagógica/NAE") return "Equipe Pedagógica";
+          return userProfile.cargo;
         })();
 
-        const displayName = userProfile.name.split(" ").slice(0, 2).join(" ");
+        const displayName = userProfile.nome.split(" ").slice(0, 2).join(" ");
 
         return (
           <button
@@ -188,7 +188,7 @@ export default function Sidebar({
             }}
             title={
               sidebarCollapsed
-                ? `${userProfile.name} — ${roleShort}`
+                ? `${userProfile.nome} — ${roleShort}`
                 : "Meu Perfil"
             }
           >

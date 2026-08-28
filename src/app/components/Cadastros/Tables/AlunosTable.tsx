@@ -47,7 +47,7 @@ export const AlunosTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
             </Td>
             <Td>
               <div className="flex flex-wrap gap-1.5">
-                {item.turmas.map((f, i) => (
+                {(item.turmas ?? []).map((f, i) => (
                   <TurmasBadge key={i} tag={f} />
                 ))}
               </div>

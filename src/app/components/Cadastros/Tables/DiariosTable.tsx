@@ -45,7 +45,7 @@ export const DiariosTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
             </Td>
             <Td>
               <div className="flex items-center gap-2">
-                <Avatar name={item.professor} size={22} />
+                <Avatar name={item.professor ?? "Professor"} size={22} />
                 <span className="text-xs text-gray-700">{item.professor}</span>
               </div>
             </Td>
