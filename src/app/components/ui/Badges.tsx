@@ -96,6 +96,29 @@ export const FuncaoBadge: React.FC<FuncaoBadgeProps> = ({ tag }) => {
   );
 };
 
+export interface TurmasBadgeProps {
+  tag: string;
+}
+
+export const TurmasBadge: React.FC<TurmasBadgeProps> = ({ tag }) => {
+  const s = tag.startsWith("TDS")
+    ? { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" }
+    : tag.startsWith("MEC")
+    ? { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" }
+    : tag.startsWith("ADM")
+    ? { bg: "#eef2ff", color: "#4338ca", border: "#c7d2fe" }
+    : { bg: "#faf5ff", color: "#7e22ce", border: "#e9d5ff" };
+
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold whitespace-nowrap border"
+      style={{ background: s.bg, color: s.color, borderColor: s.border }}
+    >
+      {tag}
+    </span>
+  );
+};
+
 export interface SimpleBadgeProps {
   label: string;
 }

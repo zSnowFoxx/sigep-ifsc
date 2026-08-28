@@ -8,22 +8,36 @@ const cursosDB = require("../data/cursos");
 const disciplinasDB = require("../data/disciplinas");
 
 router.get("/stats", (req, res) => {
-  const totalTurmas = turmasDB.length;
-  const totalAlunos = alunosDB.length;
+  // Mapeia os IDs dos alunos presentes na tabela de situação de risco
+  const alunoIdsComRisco = new Set(situacaoRiscoDB.map((sr) => sr.aluno_id));
 
-  const atencaoPedagogica = situacaoRiscoDB.filter(
-    (sr) => sr.risco === "alto" || sr.risco === "medio"
+  // Filtra a lista de alunos para considerar apenas quem está em situação de risco
+  const alunosValidos = alunosDB.filter((aluno) => alunoIdsComRisco.has(aluno.id));
+
+  const totalTurmas = turmasDB.length;
+  const totalAlunos = alunosValidos.length;
+
+  // Contabiliza alunos com nível de risco ("critico", "alto" ou "medio")
+  const atencaoPedagogica = situacaoRiscoDB.filter((sr) =>
+    ["critico", "alto", "medio"].includes(sr.risco)
   ).length;
 
-  const percentualAtencao = totalAlunos > 0 
-    ? ((atencaoPedagogica / totalAlunos) * 100).toFixed(1) 
-    : "0.0";
+  const percentualAtencao =
+    totalAlunos > 0
+      ? ((atencaoPedagogica / totalAlunos) * 100).toFixed(1)
+      : "0.0";
 
   const encaminhamentosAtivos = situacaoRiscoDB.filter(
     (sr) => Array.isArray(sr.fatores) && sr.fatores.length > 0
   ).length;
 
-  return res.json({ totalTurmas, totalAlunos, atencaoPedagogica, percentualAtencao, encaminhamentosAtivos });
+  return res.json({
+    totalTurmas,
+    totalAlunos,
+    atencaoPedagogica,
+    percentualAtencao,
+    encaminhamentosAtivos,
+  });
 });
 
 router.get("/filter-options", (req, res) => {

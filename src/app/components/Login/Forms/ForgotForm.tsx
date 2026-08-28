@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { StepDots } from "../../ui/StepDots";
-import { forgotPasswordApi, verifyOtpApi, resetPasswordApi } from "../../../services/authService";
+import { forgotPassword, verifyOtp, resetPassword } from "../../../services/authService";
 
-import { ForgotIdentify } from "./ForgotIdentify";
-import { ForgotVerify } from "./ForgotVerify";
-import { ForgotNewPassword } from "./ForgotPassword";
-import { ForgotDone } from "./ForgotDone";
+import { ForgotIdentify } from "../Reset/ForgotIdentify";
+import { ForgotVerify } from "../Reset/ForgotVerify";
+import { ForgotNewPassword } from "../Reset/ForgotPassword";
+import { ForgotDone } from "../Reset/ForgotDone";
 
 export function ForgotForm({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState(1);
@@ -45,7 +45,7 @@ export function ForgotForm({ onBack }: { onBack: () => void }) {
     setSendLoading(true);
 
     try {
-      await forgotPasswordApi(cleanEmail);
+      await forgotPassword(cleanEmail);
       setStep(2);
       setTimer(90);
     } catch (err: any) {
@@ -63,7 +63,7 @@ export function ForgotForm({ onBack }: { onBack: () => void }) {
     setOtpLoading(true);
 
     try {
-      await verifyOtpApi(email.trim().toLowerCase(), cleanCode);
+      await verifyOtp(email.trim().toLowerCase(), cleanCode);
       setStep(3);
     } catch (err: any) {
       setOtpError(err.message);
@@ -82,7 +82,7 @@ export function ForgotForm({ onBack }: { onBack: () => void }) {
     setResetLoading(true);
 
     try {
-      await resetPasswordApi(email.trim().toLowerCase(), otpValue.trim().replace(/\s/g, ""), newPw);
+      await resetPassword(email.trim().toLowerCase(), otpValue.trim().replace(/\s/g, ""), newPw);
       setDone(true);
     } catch (err: any) {
       setResetError(err.message);

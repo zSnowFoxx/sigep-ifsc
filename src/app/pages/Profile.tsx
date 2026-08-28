@@ -5,12 +5,12 @@ import { ProfileHeader } from "../components/Profile/ProfileHeader";
 import { ProfileInstitutional } from "../components/Profile/ProfileInstitucional";
 import { ProfilePassword } from "../components/Profile/ProfilePassword";
 
-interface Props {
+interface ProfileProps {
   profile: UserProfile;
   onLogout: () => void;
 }
 
-export default function Profile({ profile, onLogout }: Props) {
+export default function Profile({ profile, onLogout }: ProfileProps) {
   return (
     <div className="flex-1 overflow-y-auto bg-background">
       <div className="w-full max-w-7xl mx-auto px-6 py-6 space-y-6">

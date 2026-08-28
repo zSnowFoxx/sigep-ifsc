@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Filter, X } from "lucide-react";
-import { fetchFilterOptions } from "../../data/dashData";
+import { fetchFilterOptions } from "../../services/dashService";
 import type { FilterOptions } from "../../types/dashboard";
 import FilterSelect from "./FilterSelect";
 

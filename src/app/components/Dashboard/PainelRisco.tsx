@@ -67,11 +67,20 @@ export default function PainelRisco({
           ) : (
             filteredStudents.map((s, i) => {
               const risco = s.risco as NivelRisco;
-              const cfg = riscoConfig[risco];
-              const mediaAlert = s.media < 6;
-              const freqAlert = s.infrequencia >= 25;
+              const cfg = riscoConfig[risco] ?? {
+                rowClass: "",
+                badgeClass: "bg-gray-100 text-gray-800",
+                label: risco || "Desconhecido",
+              };
+              
+              const mediaVal = s.media ?? 0;
+              const infreqVal = s.infrequencia ?? 0;
+              const mediaAlert = typeof s.media === "number" && mediaVal < 6;
+              const freqAlert = typeof s.infrequencia === "number" && infreqVal >= 25;
+              const fatoresList = Array.isArray(s.fatores) ? s.fatores : [];
+
               return (
-                <TRow key={i} className={cfg.rowClass}>
+                <TRow key={s.matricula || i} className={cfg.rowClass}>
                   <Td className="font-mono text-xs text-muted-foreground font-medium">
                     {s.matricula}
                   </Td>
@@ -81,14 +90,14 @@ export default function PainelRisco({
                         className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                         style={{ background: "var(--secondary)", color: "var(--primary)" }}
                       >
-                        {s.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                        {s.nome ? s.nome.split(" ").map((n) => n[0]).slice(0, 2).join("") : "AL"}
                       </div>
                       <span className="text-sm font-medium text-foreground">{s.nome}</span>
                     </div>
                   </Td>
                   <Td>
                     <span className="text-xs bg-[#f0f2f5] text-foreground px-2 py-1 rounded-md font-medium">
-                      {s.turma}
+                      {s.turma || "Sem Turma"}
                     </span>
                   </Td>
                   <Td>
@@ -96,7 +105,7 @@ export default function PainelRisco({
                       className={`text-sm font-bold ${mediaAlert ? "text-red-600" : "text-foreground"}`}
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
-                      {s.media.toFixed(1)}
+                      {typeof s.media === "number" ? s.media.toFixed(1) : "N/A"}
                     </span>
                     {mediaAlert && (
                       <span className="ml-1.5 text-xs text-red-400" title="Abaixo da média mínima">▼</span>
@@ -107,7 +116,7 @@ export default function PainelRisco({
                       className={`text-sm font-bold ${freqAlert ? "text-red-600" : "text-foreground"}`}
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
-                      {s.infrequencia}%
+                      {typeof s.infrequencia === "number" ? `${s.infrequencia}%` : "N/A"}
                     </span>
                     {freqAlert && (
                       <span className="ml-1.5 text-xs text-red-400" title="Acima do limite LDB">▲</span>
@@ -115,7 +124,7 @@ export default function PainelRisco({
                   </Td>
                   <Td className="max-w-55">
                     <div className="flex flex-wrap gap-1">
-                      {s.fatores.map((f, j) => (
+                      {fatoresList.map((f, j) => (
                         <span
                           key={j}
                           className="text-xs bg-orange-50 text-orange-800 border border-orange-200 px-2 py-0.5 rounded-full"

@@ -7,7 +7,7 @@ import {
   Database,
   User
 } from "lucide-react";
-import type { CommandActions, CommandItem, Periodo } from "../types/header";
+import type { CommandActions, CommandItem } from "../types/header";
 
 export const getCommandPalette = ({
   setActiveNav,
@@ -99,14 +99,3 @@ export const getCommandPalette = ({
     },
   },
 ];
-
-export async function fetchPeriodos(): Promise<Periodo[]> {
-  try {
-    const response = await fetch("http://localhost:3001/api/options/periodos"); // Substitua pela sua URL/rota real
-    if (!response.ok) throw new Error("Erro ao buscar períodos");
-    return await response.json();
-  } catch (error) {
-    console.error("Erro na requisição de períodos:", error);
-    return [];
-  }
-}

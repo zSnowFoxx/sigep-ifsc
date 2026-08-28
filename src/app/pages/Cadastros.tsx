@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type { CategoryKey, ModalMode, Aluno, Servidor, Curso, Disciplina, Turma, Diario } from "../types/cadastros";
 import { unique, stripPrefix } from "../utils/cadastrosUtils";
-import { CATEGORIES, SEED_ALUNOS, SEED_SERVIDORES, SEED_CURSOS, SEED_DISCIPLINAS, SEED_TURMAS, SEED_DIARIOS } from "../data/cadastrosData";
+import { CATEGORIES, fetchAllInitialData } from "../data/cadastrosData";
+import { entityServices } from "../services/cadastrosService";
 
 // Componentes da Página
 import { CadastrosHeader } from "../components/Cadastros/CadastrosHeader";
@@ -27,12 +28,13 @@ import { DiarioForm } from "../components/Cadastros/Forms/DiarioForm";
 
 export const CadastrosPage: React.FC = () => {
   // Estados de Dados
-  const [alunos, setAlunos] = useState<Aluno[]>(SEED_ALUNOS);
-  const [servidores, setServidores] = useState<Servidor[]>(SEED_SERVIDORES);
-  const [cursos, setCursos] = useState<Curso[]>(SEED_CURSOS);
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>(SEED_DISCIPLINAS);
-  const [turmas, setTurmas] = useState<Turma[]>(SEED_TURMAS);
-  const [diarios, setDiarios] = useState<Diario[]>(SEED_DIARIOS);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [servidores, setServidores] = useState<Servidor[]>([]);
+  const [cursos, setCursos] = useState<Curso[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [diarios, setDiarios] = useState<Diario[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Navegação e Filtros
   const [activeTab, setActiveTab] = useState<CategoryKey>("alunos");
@@ -56,6 +58,28 @@ export const CadastrosPage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
 
+  // Carregamento dos dados via REST API
+  const loadInitialData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await fetchAllInitialData();
+      setAlunos(data.alunos);
+      setServidores(data.servidores);
+      setCursos(data.cursos);
+      setDisciplinas(data.disciplinas);
+      setTurmas(data.turmas);
+      setDiarios(data.diarios);
+    } catch (error) {
+      console.error("Erro ao carregar dados do servidor:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
   const currentCategory = useMemo(() => CATEGORIES.find((c) => c.key === activeTab)!, [activeTab]);
 
   // Listas para Selects
@@ -64,12 +88,12 @@ export const CadastrosPage: React.FC = () => {
   const disciplinasList = useMemo(() => disciplinas.map((d) => d.nome), [disciplinas]);
   const professoresList = useMemo(() => servidores.filter((s) => s.cargo === "Professor").map((s) => s.nome), [servidores]);
   const servidoresList = useMemo(() => servidores.map((s) => s.nome), [servidores]);
-  const allFuncoes = useMemo(() => unique(servidores.flatMap((s) => s.funcoes)).sort(), [servidores]);
-  const discCursos = useMemo(() => unique(disciplinas.map((d) => d.curso)), [disciplinas]);
-  const discFases = useMemo(() => unique(disciplinas.map((d) => d.faseOferta)).sort(), [disciplinas]);
-  const turmaPers = useMemo(() => unique(turmas.map((t) => t.periodo)).sort(), [turmas]);
-  const turmaCursos = useMemo(() => unique(turmas.map((t) => t.curso)), [turmas]);
-  const diarioTurmas = useMemo(() => unique(diarios.map((d) => d.turma)).sort(), [diarios]);
+  const allFuncoes = useMemo(() => unique(servidores.flatMap((s) => s.funcoes || [])).sort(), [servidores]);
+  const discCursos = useMemo(() => unique(disciplinas.map((d) => d.curso || "")), [disciplinas]);
+  const discFases = useMemo(() => unique(disciplinas.map((d) => d.faseOferta || "")).sort(), [disciplinas]);
+  const turmaPers = useMemo(() => unique(turmas.map((t) => t.periodo || "")).sort(), [turmas]);
+  const turmaCursos = useMemo(() => unique(turmas.map((t) => t.curso || "")), [turmas]);
+  const diarioTurmas = useMemo(() => unique(diarios.map((d) => d.turma || "")).sort(), [diarios]);
 
   const handleTabChange = (tab: CategoryKey) => {
     setActiveTab(tab);
@@ -77,9 +101,6 @@ export const CadastrosPage: React.FC = () => {
     setFStatus(""); setFCargo(""); setFFuncao(""); setFTipo(""); setFGrau(""); setFModalidade("");
     setFDiscCurso(""); setFFase(""); setFTurmaPer(""); setFTurmaCurso(""); setFDiarioTurma(""); setFDiarioProf("");
   };
-
-  // Auxiliar de busca e filtragem, buscando tanto minusculas quanto maiúsculas, e ignorando prefixos como "o ", "a ", "os ", "as "
-  const cleanQuery = stripPrefix(searchQuery.trim().toLowerCase());
 
   const matchQ = useCallback(
     (...fields: (string | undefined)[]) => {
@@ -94,132 +115,124 @@ export const CadastrosPage: React.FC = () => {
     [searchQuery]
   );
 
-  // Filtragem padronizada
+  // Filtragem
   const filteredAlunos = useMemo(
-    () =>
-      alunos.filter(
-        (a) =>
-          matchQ(a.nome, a.matricula, a.email) &&
-          (!fStatus || a.status.toLowerCase() === fStatus.toLowerCase())
-      ),
+    () => alunos.filter((a) => matchQ(a.nome, a.matricula, a.email) && (!fStatus || (a.status && a.status.toLowerCase() === fStatus.toLowerCase()))),
     [alunos, matchQ, fStatus]
   );
 
   const filteredServidores = useMemo(
-    () =>
-      servidores.filter(
-        (s) =>
-          matchQ(s.nome, s.siape, s.email) &&
-          (!fCargo || s.cargo === fCargo)
-      ),
-    [servidores, cleanQuery, fCargo]
+    () => servidores.filter((s) => matchQ(s.nome, s.siape, s.email) && (!fCargo || s.cargo === fCargo)),
+    [servidores, matchQ, fCargo]
   );
 
   const filteredCursos = useMemo(
-    () =>
-      cursos.filter(
-        (c) =>
-          matchQ(c.nome, c.tipo, c.grau, c.coordenador) &&
-          (!fTipo || c.tipo === fTipo) &&
-          (!fGrau || c.grau === fGrau) &&
-          (!fModalidade || c.modalidade === fModalidade)
-      ),
-    [cursos, cleanQuery, fTipo, fGrau, fModalidade]
+    () => cursos.filter((c) => matchQ(c.nome, c.tipo, c.grau, c.coordenador) && (!fTipo || c.tipo === fTipo) && (!fGrau || c.grau === fGrau) && (!fModalidade || c.modalidade === fModalidade)),
+    [cursos, matchQ, fTipo, fGrau, fModalidade]
   );
 
   const filteredDisciplinas = useMemo(
-    () =>
-      disciplinas.filter(
-        (d) =>
-          matchQ(d.sigla, d.nome, d.curso) &&
-          (!fDiscCurso || d.curso === fDiscCurso) &&
-          (!fFase || d.faseOferta === fFase)
-      ),
-    [disciplinas, cleanQuery, fDiscCurso, fFase]
+    () => disciplinas.filter((d) => matchQ(d.sigla, d.nome, d.curso) && (!fDiscCurso || d.curso === fDiscCurso) && (!fFase || d.faseOferta === fFase)),
+    [disciplinas, matchQ, fDiscCurso, fFase]
   );
 
   const filteredTurmas = useMemo(
-    () =>
-      turmas.filter(
-        (t) =>
-          matchQ(t.nome, t.curso) &&
-          (!fTurmaPer || t.periodo === fTurmaPer) &&
-          (!fTurmaCurso || t.curso === fTurmaCurso)
-      ),
-    [turmas, cleanQuery, fTurmaPer, fTurmaCurso]
+    () => turmas.filter((t) => matchQ(t.nome, t.curso) && (!fTurmaPer || t.periodo === fTurmaPer) && (!fTurmaCurso || t.curso === fTurmaCurso)),
+    [turmas, matchQ, fTurmaPer, fTurmaCurso]
   );
 
   const filteredDiarios = useMemo(
-    () =>
-      diarios.filter(
-        (d) =>
-          matchQ(d.codigo, d.disciplina, d.turma, d.professor) &&
-          (!fDiarioTurma || d.turma === fDiarioTurma) &&
-          (!fDiarioProf || d.professor === fDiarioProf)
-      ),
-    [diarios, cleanQuery, fDiarioTurma, fDiarioProf]
+    () => diarios.filter((d) => matchQ(d.codigo, d.disciplina, d.turma, d.professor) && (!fDiarioTurma || d.turma === fDiarioTurma) && (!fDiarioProf || d.professor === fDiarioProf)),
+    [diarios, matchQ, fDiarioTurma, fDiarioProf]
   );
-  const rowCount = { alunos: filteredAlunos.length, servidores: filteredServidores.length, cursos: filteredCursos.length, disciplinas: filteredDisciplinas.length, turmas: filteredTurmas.length, diarios: filteredDiarios.length }[activeTab];
+
+  const rowCount = {
+    alunos: filteredAlunos.length,
+    servidores: filteredServidores.length,
+    cursos: filteredCursos.length,
+    disciplinas: filteredDisciplinas.length,
+    turmas: filteredTurmas.length,
+    diarios: filteredDiarios.length,
+  }[activeTab];
 
   const countLabel = useMemo(() => {
     const labels: Record<CategoryKey, [string, string]> = {
-      alunos: ["aluno", "alunos"], servidores: ["servidor", "servidores"], cursos: ["curso", "cursos"],
-      disciplinas: ["disciplina", "disciplinas"], turmas: ["turma", "turmas"], diarios: ["diário", "diários"],
+      alunos: ["aluno", "alunos"],
+      servidores: ["servidor", "servidores"],
+      cursos: ["curso", "cursos"],
+      disciplinas: ["disciplina", "disciplinas"],
+      turmas: ["turma", "turmas"],
+      diarios: ["diário", "diários"],
     };
     const [sing, plur] = labels[activeTab];
     return `${rowCount} ${rowCount === 1 ? sing : plur}`;
   }, [activeTab, rowCount]);
 
-  // Handlers CRUD
-  const getKey = (k: CategoryKey, item: any): string => {
-    if (k === "alunos") return item.matricula;
-    if (k === "servidores") return item.siape;
-    if (k === "cursos") return item.nome;
-    if (k === "disciplinas") return `${item.sigla}__${item.curso}`;
-    if (k === "turmas") return `${item.nome}__${item.periodo}`;
-    if (k === "diarios") return item.codigo;
-    return "";
+  // Handlers
+  const handleOpenCreate = () => {
+    setModalMode("create");
+    setEditingItem(null);
+    setFormData({});
+    setIsModalOpen(true);
   };
 
-  const handleOpenCreate = () => { setModalMode("create"); setEditingItem(null); setFormData({}); setIsModalOpen(true); };
-  const handleOpenEdit = (item: any) => { setModalMode("edit"); setEditingItem(item); setFormData({ ...item }); setIsModalOpen(true); };
-  const handleCloseModal = () => { setIsModalOpen(false); setEditingItem(null); setFormData({}); setModalMode(null); };
-
-  const handleSave = () => {
-    const key = editingItem ? getKey(activeTab, editingItem) : "";
-    if (activeTab === "alunos") setAlunos((prev) => modalMode === "create" ? [...prev, formData as Aluno] : prev.map((x) => (getKey("alunos", x) === key ? (formData as Aluno) : x)));
-    else if (activeTab === "servidores") setServidores((prev) => modalMode === "create" ? [...prev, formData as Servidor] : prev.map((x) => (getKey("servidores", x) === key ? (formData as Servidor) : x)));
-    else if (activeTab === "cursos") setCursos((prev) => modalMode === "create" ? [...prev, formData as Curso] : prev.map((x) => (getKey("cursos", x) === key ? (formData as Curso) : x)));
-    else if (activeTab === "disciplinas") setDisciplinas((prev) => modalMode === "create" ? [...prev, formData as Disciplina] : prev.map((x) => (getKey("disciplinas", x) === key ? (formData as Disciplina) : x)));
-    else if (activeTab === "turmas") setTurmas((prev) => modalMode === "create" ? [...prev, formData as Turma] : prev.map((x) => (getKey("turmas", x) === key ? (formData as Turma) : x)));
-    else if (activeTab === "diarios") setDiarios((prev) => modalMode === "create" ? [...prev, formData as Diario] : prev.map((x) => (getKey("diarios", x) === key ? (formData as Diario) : x)));
-    handleCloseModal();
+  const handleOpenEdit = (item: any) => {
+    setModalMode("edit");
+    setEditingItem(item);
+    setFormData({ ...item });
+    setIsModalOpen(true);
   };
 
-  const handleDelete = () => {
-    if (!editingItem) return;
-    const key = getKey(activeTab, editingItem);
-    if (activeTab === "alunos") setAlunos((prev) => prev.filter((x) => getKey("alunos", x) !== key));
-    else if (activeTab === "servidores") setServidores((prev) => prev.filter((x) => getKey("servidores", x) !== key));
-    else if (activeTab === "cursos") setCursos((prev) => prev.filter((x) => getKey("cursos", x) !== key));
-    else if (activeTab === "disciplinas") setDisciplinas((prev) => prev.filter((x) => getKey("disciplinas", x) !== key));
-    else if (activeTab === "turmas") setTurmas((prev) => prev.filter((x) => getKey("turmas", x) !== key));
-    else if (activeTab === "diarios") setDiarios((prev) => prev.filter((x) => getKey("diarios", x) !== key));
-    handleCloseModal();
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingItem(null);
+    setFormData({});
+    setModalMode(null);
+  };
+
+  const handleSave = async () => {
+    try {
+      const service = entityServices[activeTab];
+      if (modalMode === "create") {
+        await service.create(formData);
+      } else if (modalMode === "edit" && editingItem?.id) {
+        await service.update(editingItem.id, formData);
+      }
+      await loadInitialData();
+      handleCloseModal();
+    } catch (error) {
+      console.error("Erro ao salvar os dados:", error);
+      alert("Não foi possível salvar os dados no servidor.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingItem?.id) return;
+    if (!confirm("Tem certeza que deseja remover este cadastro?")) return;
+
+    try {
+      const service = entityServices[activeTab];
+      await service.delete(editingItem.id);
+      await loadInitialData();
+      handleCloseModal();
+    } catch (error) {
+      console.error("Erro ao excluir o registro:", error);
+      alert("Não foi possível excluir o registro no servidor.");
+    }
   };
 
   return (
     <div className="flex-1 overflow-y-auto bg-background">
       <div className="w-full px-6 py-6 space-y-5">
         <CadastrosHeader entityName={currentCategory.entity} onOpenCreate={handleOpenCreate} />
-        
+
         <CadastrosCards activeTab={activeTab} onTabChange={handleTabChange} />
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 bg-[#fafbfc]">
             <h2 className="text-sm font-bold text-gray-800">{currentCategory.entityPlural}</h2>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#e8f0eb] text-[#0f4a23]">
-              {countLabel}
+              {loading ? "Carregando..." : countLabel}
             </span>
           </div>
 

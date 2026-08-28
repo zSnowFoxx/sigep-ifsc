@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { getCommandPalette, fetchPeriodos } from "../data/headData";
+import { getCommandPalette } from "../data/headData";
+import { fetchPeriodos } from "../services/headService";
 import type { CommandItem, Periodo } from "../types/header";
 
 import {

@@ -3,9 +3,9 @@ import type { Aluno } from "../../../types/cadastros";
 import {
   FLabel,
   FInput,
-  FSelect,
   FRow,
   ToggleStatus,
+  MultiSelectPills,
 } from "../../ui/FormPrimitives";
 
 interface FormProps {
@@ -60,12 +60,12 @@ export const AlunoForm: React.FC<FormProps> = ({
       </div>
 
       <div>
-        <FLabel>Curso / Turma Vinculada</FLabel>
-        <FSelect
-          value={formData.turma || ""}
-          onChange={(v) => onChange({ ...formData, turma: v })}
-          placeholder="Selecionar turma..."
+        <FLabel>Turmas Vinculadas</FLabel>
+        <MultiSelectPills
+          value={formData.turmas || []}
+          onChange={(v) => onChange({ ...formData, turmas: v })}
           options={turmasOptions}
+          placeholder="Selecionar turmas..."
         />
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
-import type { UserProfile } from "../../types/auth";
-import { loginUser } from "../../data/authData";
+import type { UserProfile } from "../../../types/auth";
+import { loginUser } from "../../../services/authService";
 
 interface LoginFormProps {
   initialEmail?: string;

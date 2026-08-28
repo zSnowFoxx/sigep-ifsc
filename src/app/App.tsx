@@ -13,8 +13,8 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
 import type { UserProfile } from "./types/auth";
-import { fetchRiskStudents } from "./data/dashData";
-import { fetchCurrentUser } from "./data/authData";
+import { fetchRiskStudents } from "./services/dashService";
+import { fetchCurrentUser } from "./services/profileService";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);

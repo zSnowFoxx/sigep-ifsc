@@ -5,7 +5,8 @@ module.exports = [
     password: "$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy",
     nome: "Servidor Exemplo",
     siape: "1234567",
-    perfil_id: 4,
+    funcoes_ids: [],
+    perfil_id: 3,
     curso_id: null,
     disciplinas_ids: []
   },
@@ -15,6 +16,7 @@ module.exports = [
     password: "$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy",
     nome: "Carlos Lima",
     siape: "7654321",
+    funcoes_ids: [],
     perfil_id: 1,
     curso_id: null,
     disciplinas_ids: [1, 2]
@@ -25,8 +27,20 @@ module.exports = [
     password: "$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy",
     nome: "Maria Santos",
     siape: "9876543",
+    funcoes_ids: [],
     perfil_id: 2,
     curso_id: 1,
+    disciplinas_ids: []
+  },
+  {
+    id: 4,
+    email: "joao.pedro@ifsc.edu.br",
+    password: null,
+    nome: "Joao Pedro",
+    siape: "2342342",
+    funcoes_ids: [],
+    perfil_id: 4,
+    curso_id: null,
     disciplinas_ids: []
   }
 ];

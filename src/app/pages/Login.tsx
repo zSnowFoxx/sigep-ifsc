@@ -5,12 +5,12 @@ import type { LoginProps } from "../types/auth";
 import LoginBackground from "../components/Login/LoginBackground";
 import LoginHeader from "../components/Login/LoginHeader";
 import LoginError from "../components/Login/LoginError";
-import LoginForm from "../components/Login/LoginForm";
+import LoginForm from "../components/Login/Forms/LoginForm";
 import LoginTeste from "../components/Login/LoginTeste";
 
 // Registro e Recuperação de Senha
-import { RegisterForm } from "../components/Login/Register/RegisterForm";
-import { ForgotForm } from "../components/Login/Reset/ForgotForm";
+import { RegisterForm } from "../components/Login/Forms/RegisterForm";
+import { ForgotForm } from "../components/Login/Forms/ForgotForm";
 
 type Mode = "login" | "register" | "forgot";
 

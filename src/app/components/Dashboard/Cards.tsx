@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import type { DashboardStats } from "../../types/dashboard";
-import { fetchDashboardStats, getDashboardCards } from "../../data/dashData";
+import { fetchDashboardStats } from "../../services/dashService";
+import { getDashboardCards } from "../../data/dashData";
 
 export default function Cards() {
   const [stats, setStats] = useState<DashboardStats | null>(null);

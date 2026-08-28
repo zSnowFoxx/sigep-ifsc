@@ -8,7 +8,7 @@ import {
   EmptyState,
   RowActions,
 } from "../../ui/TablePrimitives";
-import { Avatar, StatusBadge } from "../../ui/Badges";
+import { Avatar, StatusBadge, TurmasBadge } from "../../ui/Badges";
 
 interface Props {
   data: Aluno[];
@@ -22,6 +22,7 @@ export const AlunosTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
       <tr>
         <Th>Matrícula</Th>
         <Th>Nome do Aluno</Th>
+        <Th>Turmas</Th>
         <Th>Status</Th>
         <Th className="text-right">Ações</Th>
       </tr>
@@ -42,6 +43,13 @@ export const AlunosTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">{item.email}</p>
                 </div>
+              </div>
+            </Td>
+            <Td>
+              <div className="flex flex-wrap gap-1.5">
+                {item.turmas.map((f, i) => (
+                  <TurmasBadge key={i} tag={f} />
+                ))}
               </div>
             </Td>
             <Td>
