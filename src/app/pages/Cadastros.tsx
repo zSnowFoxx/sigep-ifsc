@@ -3,6 +3,7 @@ import type { CategoryKey, ModalMode, Aluno, Servidor, Curso, Disciplina, Turma,
 import { unique, stripPrefix } from "../utils/cadastrosUtils";
 import { CATEGORIES, fetchAllInitialData } from "../data/cadastrosData";
 import { entityServices } from "../services/cadastrosService";
+import { processAndSaveEntity } from "../utils/cadastrosUtils";
 
 // Componentes da Página
 import { CadastrosHeader } from "../components/Cadastros/CadastrosHeader";
@@ -25,6 +26,8 @@ import { CursoForm } from "../components/Cadastros/Forms/CursoForm";
 import { DisciplinaForm } from "../components/Cadastros/Forms/DisciplinaForm";
 import { TurmaForm } from "../components/Cadastros/Forms/TurmaForm";
 import { DiarioForm } from "../components/Cadastros/Forms/DiarioForm";
+
+type EntityItem = Aluno | Servidor | Curso | Disciplina | Turma | Diario;
 
 export const CadastrosPage: React.FC = () => {
   // Estados de Dados
@@ -55,20 +58,20 @@ export const CadastrosPage: React.FC = () => {
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [editingItem, setEditingItem] = useState<EntityItem | null>(null);
+  const [formData, setFormData] = useState<Record<string, any>>({});
 
   // Carregamento dos dados via REST API
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchAllInitialData();
-      setAlunos(data.alunos);
-      setServidores(data.servidores);
-      setCursos(data.cursos);
-      setDisciplinas(data.disciplinas);
-      setTurmas(data.turmas);
-      setDiarios(data.diarios);
+      setAlunos(data.alunos || []);
+      setServidores(data.servidores || []);
+      setCursos(data.cursos || []);
+      setDisciplinas(data.disciplinas || []);
+      setTurmas(data.turmas || []);
+      setDiarios(data.diarios || []);
     } catch (error) {
       console.error("Erro ao carregar dados do servidor:", error);
     } finally {
@@ -176,7 +179,7 @@ export const CadastrosPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (item: any) => {
+  const handleOpenEdit = (item: EntityItem) => {
     setModalMode("edit");
     setEditingItem(item);
     setFormData({ ...item });
@@ -192,12 +195,8 @@ export const CadastrosPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      const service = entityServices[activeTab];
-      if (modalMode === "create") {
-        await service.create(formData);
-      } else if (modalMode === "edit" && editingItem?.id) {
-        await service.update(editingItem.id, formData);
-      }
+      const targetId = editingItem && 'id' in editingItem ? editingItem.id : undefined;
+      await processAndSaveEntity(activeTab, formData, modalMode, targetId);
       await loadInitialData();
       handleCloseModal();
     } catch (error) {
@@ -207,12 +206,13 @@ export const CadastrosPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!editingItem?.id) return;
+    const targetId = editingItem && 'id' in editingItem ? editingItem.id : undefined;
+    if (targetId === undefined) return;
     if (!confirm("Tem certeza que deseja remover este cadastro?")) return;
 
     try {
       const service = entityServices[activeTab];
-      await service.delete(editingItem.id);
+      await service.delete(targetId);
       await loadInitialData();
       handleCloseModal();
     } catch (error) {

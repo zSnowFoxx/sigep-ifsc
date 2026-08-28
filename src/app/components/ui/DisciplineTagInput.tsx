@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
+import { API_URL } from "../../data/apiData";
 
 interface DisciplineTagInputProps {
   value: string[];
@@ -15,12 +16,20 @@ export function DisciplineTagInput({ value, onChange }: DisciplineTagInputProps)
   useEffect(() => {
     const fetchDisciplines = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/disciplines");
+        const response = await fetch(`${API_URL}/disciplinas`);
+
+        if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.status}`);
+        }
+
         const data = await response.json();
 
-        if (response.ok) {
-          setOptions(Array.isArray(data) ? data : data.disciplines || []);
-        }
+        // Extrai o nome caso o backend retorne array de objetos [{ id, nome }] ou array de strings
+        const disciplineList = Array.isArray(data)
+          ? data.map((item: any) => (typeof item === "string" ? item : item.nome))
+          : [];
+
+        setOptions(disciplineList.filter(Boolean));
       } catch (err) {
         console.error("Erro ao carregar lista de disciplinas:", err);
       } finally {

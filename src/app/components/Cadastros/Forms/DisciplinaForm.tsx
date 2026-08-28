@@ -7,12 +7,14 @@ interface FormProps {
   formData: Partial<Disciplina>;
   onChange: (data: Partial<Disciplina>) => void;
   cursosOptions: string[];
+  isEdit?: boolean;
 }
 
 export const DisciplinaForm: React.FC<FormProps> = ({
   formData,
   onChange,
   cursosOptions,
+  isEdit = false,
 }) => {
   return (
     <div className="space-y-4">
@@ -55,15 +57,17 @@ export const DisciplinaForm: React.FC<FormProps> = ({
             placeholder="Ex: 60h"
           />
         </div>
-        <div>
-          <FLabel>Curso Vinculado</FLabel>
-          <FSelect
-            value={formData.curso || ""}
-            onChange={(v) => onChange({ ...formData, curso: v })}
-            placeholder="Selecionar curso..."
-            options={cursosOptions}
-          />
-        </div>
+        {!isEdit && (
+          <div>
+            <FLabel>Curso Vinculado</FLabel>
+            <FSelect
+              value={formData.curso || ""}
+              onChange={(v) => onChange({ ...formData, curso: v })}
+              placeholder="Selecionar curso..."
+              options={cursosOptions}
+            />
+          </div>
+        )}
       </FRow>
     </div>
   );

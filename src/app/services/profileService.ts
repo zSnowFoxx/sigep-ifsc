@@ -1,4 +1,4 @@
-import type { UserProfile } from "../types/auth";
+import type { UserSession } from "../types/auth";
 import { API_URL } from "../data/apiData";
 
 // 1. Alteração de Senha no Perfil
@@ -7,7 +7,7 @@ export async function changePasswordApi(
   currentPassword: string,
   newPassword: string
 ) {
-  const response = await fetch(`${API_URL}/profile/change-password`, {
+  const response = await fetch(`${API_URL}/auth/change-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, currentPassword, newPassword }),
@@ -21,7 +21,7 @@ export async function changePasswordApi(
 }
 
 // 2. Busca os dados do Usuário Logado (Perfil)
-export async function fetchCurrentUser(): Promise<UserProfile | null> {
+export async function fetchCurrentUser(): Promise<UserSession | null> {
   const userEmail = localStorage.getItem("userEmail") || sessionStorage.getItem("userEmail");
   if (!userEmail) return null;
 

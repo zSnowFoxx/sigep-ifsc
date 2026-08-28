@@ -1,14 +1,12 @@
 import { useState, type SetStateAction } from "react";
 import type { LoginProps } from "../types/auth";
 
-// Importações com default export
 import LoginBackground from "../components/Login/LoginBackground";
 import LoginHeader from "../components/Login/LoginHeader";
 import LoginError from "../components/Login/LoginError";
 import LoginForm from "../components/Login/Forms/LoginForm";
 import LoginTeste from "../components/Login/LoginTeste";
 
-// Registro e Recuperação de Senha
 import { RegisterForm } from "../components/Login/Forms/RegisterForm";
 import { ForgotForm } from "../components/Login/Forms/ForgotForm";
 
@@ -60,7 +58,6 @@ export default function Login({ onLogin }: LoginProps) {
           }
         />
 
-        {/* Banner de Sucesso pós-cadastro */}
         {successMessage && mode === "login" && (
           <div className="mx-6 mt-4 p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium flex items-center justify-between">
             <span>{successMessage}</span>

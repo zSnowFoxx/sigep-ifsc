@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
-import type { UserProfile } from "../../../types/auth";
+import type { UserSession } from "../../../types/auth";
 import { loginUser } from "../../../services/authService";
 
 interface LoginFormProps {
   initialEmail?: string;
-  onLoginSuccess: (p: UserProfile) => void;
+  onLoginSuccess: (p: UserSession) => void;
   onRegister: () => void;
   onForgot: () => void;
   onError: (msg: string) => void;
@@ -58,7 +58,7 @@ export default function LoginForm({
         localStorage.removeItem("userEmail");
       }
 
-      onLoginSuccess(response.user as unknown as UserProfile);
+      onLoginSuccess(response.user as unknown as UserSession);
     } catch (err: unknown) {
       const errorMsg =
         err instanceof Error

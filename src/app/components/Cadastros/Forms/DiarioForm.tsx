@@ -1,12 +1,6 @@
 import React from "react";
 import type { Diario } from "../../../types/cadastros";
-import {
-  FLabel,
-  FInput,
-  FNumber,
-  FSelect,
-  FRow,
-} from "../../ui/FormPrimitives";
+import { FLabel, FInput, FNumber, FSelect, FRow } from "../../ui/FormPrimitives";
 
 interface FormProps {
   formData: Partial<Diario>;
@@ -14,6 +8,7 @@ interface FormProps {
   disciplinasOptions: string[];
   turmasOptions: string[];
   professoresOptions: string[];
+  isEdit?: boolean;
 }
 
 export const DiarioForm: React.FC<FormProps> = ({
@@ -22,50 +17,54 @@ export const DiarioForm: React.FC<FormProps> = ({
   disciplinasOptions,
   turmasOptions,
   professoresOptions,
+  isEdit = false,
 }) => {
   return (
     <div className="space-y-4">
-      <FRow>
-        <div>
-          <FLabel>Código do Diário</FLabel>
-          <FInput
-            value={formData.codigo || ""}
-            onChange={(v) => onChange({ ...formData, codigo: v })}
-            placeholder="DIR-2026-99"
-            mono
-          />
-        </div>
-        <div>
-          <FLabel>Disciplina</FLabel>
-          <FSelect
-            value={formData.disciplina || ""}
-            onChange={(v) => onChange({ ...formData, disciplina: v })}
-            placeholder="Selecionar disciplina..."
-            options={disciplinasOptions}
-          />
-        </div>
-      </FRow>
+      <div>
+        <FLabel>Código do Diário</FLabel>
+        <FInput
+          value={formData.codigo || ""}
+          onChange={(v) => onChange({ ...formData, codigo: v })}
+          placeholder="DIR-2026-99"
+          mono
+        />
+      </div>
 
-      <FRow>
-        <div>
-          <FLabel>Turma</FLabel>
-          <FSelect
-            value={formData.turma || ""}
-            onChange={(v) => onChange({ ...formData, turma: v })}
-            placeholder="Selecionar turma..."
-            options={turmasOptions}
-          />
-        </div>
-        <div>
-          <FLabel>Professor Responsável</FLabel>
-          <FSelect
-            value={formData.professor || ""}
-            onChange={(v) => onChange({ ...formData, professor: v })}
-            placeholder="Selecionar professor..."
-            options={professoresOptions}
-          />
-        </div>
-      </FRow>
+      {!isEdit && (
+        <>
+          <FRow>
+            <div>
+              <FLabel>Disciplina</FLabel>
+              <FSelect
+                value={formData.disciplina || ""}
+                onChange={(v) => onChange({ ...formData, disciplina: v })}
+                placeholder="Selecionar disciplina..."
+                options={disciplinasOptions}
+              />
+            </div>
+            <div>
+              <FLabel>Turma</FLabel>
+              <FSelect
+                value={formData.turma || ""}
+                onChange={(v) => onChange({ ...formData, turma: v })}
+                placeholder="Selecionar turma..."
+                options={turmasOptions}
+              />
+            </div>
+          </FRow>
+
+          <div>
+            <FLabel>Professor Responsável</FLabel>
+            <FSelect
+              value={formData.professor || ""}
+              onChange={(v) => onChange({ ...formData, professor: v })}
+              placeholder="Selecionar professor..."
+              options={professoresOptions}
+            />
+          </div>
+        </>
+      )}
 
       <FRow>
         <div>
@@ -84,7 +83,9 @@ export const DiarioForm: React.FC<FormProps> = ({
                 ? String(formData.aulasPrevistas)
                 : ""
             }
-            onChange={(v) => onChange({ ...formData, aulasPrevistas: v ? Number(v) : 0 })}
+            onChange={(v) =>
+              onChange({ ...formData, aulasPrevistas: v ? Number(v) : 0 })
+            }
             placeholder="72"
           />
         </div>

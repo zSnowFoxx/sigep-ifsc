@@ -9,22 +9,22 @@ export interface Aluno {
   nome: string;
   email: string;
   turmas_id?: number[];
-  turmas?: string[];
   status: string;
+  turmas?: string[];
 }
 
 export interface Servidor {
   id?: number;
-  siape: string;
-  nome: string;
   email: string;
   password?: string | null;
-  perfil_id?: number;
-  cargo?: string;
+  nome: string;
+  siape: string;
   funcoes_ids?: number[];
-  funcoes?: string[];
+  perfil_id?: number;
   curso_id?: number | null;
   disciplinas_ids?: number[];
+  cargo?: string;
+  funcoes?: string[];
 }
 
 export interface Curso {
@@ -36,8 +36,8 @@ export interface Curso {
   modalidade: string;
   ppc: string;
   fases: number;
-  cargaHoraria?: string;
   coordenador_id?: number | null;
+  cargaHoraria?: string;
   coordenador?: string;
 }
 
@@ -57,9 +57,9 @@ export interface Turma {
   nome: string;
   curso_id?: number;
   periodo_id?: number;
+  alunos_qtd?: number;
   periodo?: string;
   curso?: string;
-  alunos_qtd?: number;
   alunos?: number;
 }
 
@@ -67,13 +67,24 @@ export interface Diario {
   id?: number;
   codigo?: string;
   disciplina_id?: number;
-  disciplina?: string;
   turma_id?: number;
-  turma?: string;
+  professor_id?: number;
   professor_usuario_id?: number;
-  professor?: string;
   cargaHoraria?: string;
   aulasPrevistas?: number;
+  disciplina?: string;
+  turma?: string;
+  professor?: string;
+}
+
+export interface Perfil {
+  id: number;
+  nome: string;
+}
+
+export interface Funcao {
+  id: number;
+  nome: string;
 }
 
 export interface CategoryItem {

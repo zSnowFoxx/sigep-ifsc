@@ -1,17 +1,17 @@
 const express = require("express");
 const router = express.Router();
 
-// Importação dos seus arquivos de dados (ajuste o caminho relativo caso estejam em outra pasta)
 let db = {
   alunos: require("../data/alunos.js"),
   usuarios: require("../data/usuarios.js"),
+  funcoes: require("../data/funcoes.js"),
+  perfis: require("../data/perfis.js"),
   cursos: require("../data/cursos.js"),
   disciplinas: require("../data/disciplinas.js"),
   turmas: require("../data/turmas.js"),
   diarios: require("../data/diarios.js"),
 };
 
-// Gerador genérico de rotas CRUD para cada entidade
 function createCrudRouter(entityKey) {
   const entityRouter = express.Router();
 
@@ -27,28 +27,37 @@ function createCrudRouter(entityKey) {
     res.json(item);
   });
 
-  // POST
+  // POST (Adicionar)
   entityRouter.post("/", (req, res) => {
     const newItem = { id: Date.now(), ...req.body };
     db[entityKey].push(newItem);
+
+    console.log(`[${entityKey.toUpperCase()}] Adicionado com sucesso! ID: ${newItem.id}`);
+
     res.status(201).json(newItem);
   });
 
-  // PUT
+  // PUT (Editar / Atualizar)
   entityRouter.put("/:id", (req, res) => {
     const index = db[entityKey].findIndex((i) => i.id == req.params.id);
     if (index === -1) return res.status(404).json({ message: "Registro não encontrado" });
 
     db[entityKey][index] = { ...db[entityKey][index], ...req.body };
+
+    console.log(`[${entityKey.toUpperCase()}] Atualizado com sucesso! ID: ${req.params.id}`);
+
     res.json(db[entityKey][index]);
   });
 
-  // DELETE
+  // DELETE (Excluir)
   entityRouter.delete("/:id", (req, res) => {
     const index = db[entityKey].findIndex((i) => i.id == req.params.id);
     if (index === -1) return res.status(404).json({ message: "Registro não encontrado" });
 
     db[entityKey].splice(index, 1);
+
+    console.log(`[${entityKey.toUpperCase()}] Excluído com sucesso! ID: ${req.params.id}`);
+
     res.status(204).send();
   });
 
@@ -58,6 +67,8 @@ function createCrudRouter(entityKey) {
 // Sub-rotas acopladas ao router principal de Cadastros
 router.use("/alunos", createCrudRouter("alunos"));
 router.use("/usuarios", createCrudRouter("usuarios"));
+router.use("/funcoes", createCrudRouter("funcoes"));
+router.use("/perfis", createCrudRouter("perfis"));
 router.use("/cursos", createCrudRouter("cursos"));
 router.use("/disciplinas", createCrudRouter("disciplinas"));
 router.use("/turmas", createCrudRouter("turmas"));

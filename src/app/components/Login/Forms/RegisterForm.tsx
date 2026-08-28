@@ -23,9 +23,10 @@ interface RegisterFormProps {
 export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
   const [step, setStep] = useState(1);
 
-  // Opções da API
+  // Opções vindas da API
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [courseOptions, setCourseOptions] = useState<string[]>([]);
+  const [funcoesOptions, setFuncoesOptions] = useState<string[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
 
   // Step 1
@@ -62,7 +63,8 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
     fetchSystemOptions()
       .then((data) => {
         setRoleOptions(data.roles || []);
-        setCourseOptions(data.courses || []);
+        setCourseOptions((data.courses || []).map((c) => c.nome));
+        setFuncoesOptions((data.funcoes || []).map((f) => f.nome));
       })
       .catch((err) => console.error("Erro ao carregar opções:", err))
       .finally(() => setLoadingOptions(false));
@@ -114,7 +116,7 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
       if (data.role) setRole(data.role as Role);
       if (data.disciplines) setDisciplines(data.disciplines);
       if (data.course) setCourse(data.course);
-      if ((data as any).funcoes) setFuncoes((data as any).funcoes);
+      if (data.funcoes) setFuncoes(data.funcoes);
       setSigaaFetched(true);
     } catch (err: any) {
       alert(err.message);
@@ -150,13 +152,13 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
         name: name.trim(),
         siape: siape.trim(),
         role,
-        disciplines: role === "Professor" ? disciplines : undefined,
+        disciplines,
         course: role === "Coordenador de Curso" ? course : undefined,
         funcoes:
           role === "Equipe Pedagógica/NAE" || role === "Servidor Geral"
             ? funcoes
             : undefined,
-      } as any);
+      });
       onComplete(cleanEmail);
     } catch (err: any) {
       setFinalError(err.message);
@@ -223,6 +225,7 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
             course={course}
             setCourse={setCourse}
             courseOptions={courseOptions}
+            allFuncoesOptions={funcoesOptions}
             funcoes={funcoes}
             setFuncoes={setFuncoes}
             loadingOptions={loadingOptions}

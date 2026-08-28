@@ -3,6 +3,7 @@ import type { CategoryItem, Aluno, Servidor, Curso, Disciplina, Turma, Diario } 
 import {
   alunosService,
   servidoresService,
+  funcoesService,
   cursosService,
   disciplinasService,
   turmasService,
@@ -10,20 +11,28 @@ import {
 } from "../services/cadastrosService";
 
 export const CATEGORIES: CategoryItem[] = [
-  { key: "alunos", label: "Alunos", icon: GraduationCap, badge: "Alunos", entity: "Aluno", entityPlural: "Alunos Cadastrados" },
-  { key: "servidores", label: "Usuários / Servidores", icon: Users, badge: "Servidores", entity: "Servidor", entityPlural: "Usuários e Servidores" },
-  { key: "cursos", label: "Cursos", icon: Award, badge: "Cursos", entity: "Curso", entityPlural: "Cursos" },
-  { key: "disciplinas", label: "Disciplinas", icon: BookMarked, badge: "Disciplinas", entity: "Disciplina", entityPlural: "Disciplinas" },
-  { key: "turmas", label: "Turmas", icon: LayoutGrid, badge: "Turmas", entity: "Turma", entityPlural: "Turmas Cadastradas" },
-  { key: "diarios", label: "Diários de Classe", icon: ClipboardList, badge: "Diários", entity: "Diário", entityPlural: "Diários de Classe" },
+  { key: "alunos", label: "Alunos", icon: GraduationCap, badge: "", entity: "Aluno", entityPlural: "Alunos Cadastrados" },
+  { key: "servidores", label: "Usuários / Servidores", icon: Users, badge: "", entity: "Servidor", entityPlural: "Usuários e Servidores" },
+  { key: "cursos", label: "Cursos", icon: Award, badge: "", entity: "Curso", entityPlural: "Cursos" },
+  { key: "disciplinas", label: "Disciplinas", icon: BookMarked, badge: "", entity: "Disciplina", entityPlural: "Disciplinas" },
+  { key: "turmas", label: "Turmas", icon: LayoutGrid, badge: "", entity: "Turma", entityPlural: "Turmas Cadastradas" },
+  { key: "diarios", label: "Diários de Classe", icon: ClipboardList, badge: "", entity: "Diário", entityPlural: "Diários de Classe" },
 ];
+
+export function updateCategoriesWithCounts(counts: Record<string, number>): CategoryItem[] {
+  CATEGORIES.forEach((cat) => {
+    const total = counts[cat.key] ?? 0;
+    cat.badge = `${total} ${total === 1 ? "cadastrado" : "cadastrados"}`;
+  });
+  return CATEGORIES;
+}
 
 export const FASES = [
   "1ª Fase", "2ª Fase", "3ª Fase", "4ª Fase",
   "5ª Fase", "6ª Fase", "7ª Fase", "8ª Fase"
 ];
 
-// Tabelas auxiliares do backend para cruzamento de IDs
+// Perfis padrão do sistema
 const PERFIS_MAP: Record<number, string> = {
   1: "Professor",
   2: "Coordenador de Curso",
@@ -31,25 +40,27 @@ const PERFIS_MAP: Record<number, string> = {
   4: "Servidor Geral"
 };
 
-const FUNCOES_MAP: Record<number, string> = {
-  1: "Pedagogo(a)", 2: "Psicólogo(a) Educacional", 3: "Assistente Social",
-  4: "Tradutor(a) e Intérprete de LIBRAS", 5: "Orientador(a) Educacional",
-  6: "Técnico(a) em Assuntos Educacionais", 7: "Apoio ao NAPNE",
-  8: "Coordenador(a) de Curso", 9: "Coordenador(a) de Ensino",
-  15: "Secretário(a) Acadêmico(a)", 16: "Assistente Administrativo"
-};
-
 export async function fetchAllInitialData() {
-  const [rawAlunos, rawUsuarios, rawCursos, rawDisciplinas, rawTurmas, rawDiarios] = await Promise.all([
+  const [
+    rawAlunos,
+    rawUsuarios,
+    rawFuncoes,
+    rawCursos,
+    rawDisciplinas,
+    rawTurmas,
+    rawDiarios,
+  ] = await Promise.all([
     alunosService.getAll().catch(() => []),
     servidoresService.getAll().catch(() => []),
+    funcoesService.getAll().catch(() => []),
     cursosService.getAll().catch(() => []),
     disciplinasService.getAll().catch(() => []),
     turmasService.getAll().catch(() => []),
     diariosService.getAll().catch(() => []),
   ]);
 
-  // Conversão de IDs para String garante compatibilidade no Map.get() independente se o backend envia número ou texto
+  // Criar mapas para cruzamento dinâmico via tabela do backend
+  const funcoesMap = new Map(rawFuncoes.map((f: any) => [String(f.id), f.nome]));
   const cursosMap = new Map(rawCursos.map((c: any) => [String(c.id), c.nome]));
   const turmasMap = new Map(rawTurmas.map((t: any) => [String(t.id), t.nome]));
   const usuariosMap = new Map(rawUsuarios.map((u: any) => [String(u.id), u.nome]));
@@ -57,21 +68,15 @@ export async function fetchAllInitialData() {
 
   // 1. Servidores / Usuários
   const servidores: Servidor[] = rawUsuarios.map((u: any) => {
-    // Aceita funcoes_ids, funcoesIds, ou o próprio array de funções se já vier formatado
-    const ids = u.funcoes_ids || u.funcoesIds || [];
-    let funcoesMapeadas: string[] = [];
+    const ids: number[] = Array.isArray(u.funcoes_ids) ? u.funcoes_ids : [];
 
-    if (Array.isArray(ids) && ids.length > 0) {
-      funcoesMapeadas = ids
-        .map((fid: any) => (typeof fid === "number" ? FUNCOES_MAP[fid] : fid))
-        .filter(Boolean);
-    } else if (typeof u.funcao === "string" && u.funcao) {
-      funcoesMapeadas = [u.funcao];
-    }
+    const funcoesMapeadas = ids
+      .map((fid) => funcoesMap.get(String(fid)))
+      .filter((nome): nome is string => Boolean(nome));
 
     return {
       ...u,
-      cargo: PERFIS_MAP[u.perfil_id || u.perfilId] || u.cargo || "Não especificado",
+      cargo: PERFIS_MAP[u.perfil_id] || "Não especificado",
       funcoes: funcoesMapeadas.length > 0 ? funcoesMapeadas : ["Nenhuma função vinculada"],
     };
   });
@@ -103,20 +108,24 @@ export async function fetchAllInitialData() {
     };
   });
 
-  // 5. Turmas
+  // 5. Turmas (calcula a quantidade exata de alunos vinculados filtrando a lista total de alunos)
   const turmas: Turma[] = rawTurmas.map((t: any) => {
     const cursoId = t.curso_id ?? t.cursoId;
+    const totalAlunosNaTurma = rawAlunos.filter((a: any) => {
+      const tIds = a.turmas_id || a.turmasIds || [];
+      return Array.isArray(tIds) && tIds.some((tid) => String(tid) === String(t.id));
+    }).length;
+
     return {
       ...t,
       curso: cursoId ? (cursosMap.get(String(cursoId)) || t.curso) : "Sem curso vinculado",
       periodo: t.periodo || (t.periodo_id === 3 ? "2026.2" : "2026.1"),
-      alunos: t.alunos_qtd || t.alunosQtd || 0,
+      alunos: totalAlunosNaTurma || t.alunos_qtd || t.alunosQtd || 0,
     };
   });
 
   // 6. Diários
   const diarios: Diario[] = rawDiarios.map((d: any) => {
-    // Aceita múltiplos nomes de chaves que o backend costuma retornar
     const profId = d.professor_usuario_id ?? d.professor_id ?? d.professorUsuarioId ?? d.usuario_id;
     const discId = d.disciplina_id ?? d.disciplinaId;
     const turmaId = d.turma_id ?? d.turmaId;
@@ -132,5 +141,18 @@ export async function fetchAllInitialData() {
     };
   });
 
-  return { alunos, servidores, cursos, disciplinas, turmas, diarios };
+  // Mapeamento dinâmico dos totais por entidade
+  const counts: Record<string, number> = {
+    alunos: alunos.length,
+    servidores: servidores.length,
+    cursos: cursos.length,
+    disciplinas: disciplinas.length,
+    turmas: turmas.length,
+    diarios: diarios.length,
+  };
+
+  // Categorias processadas com a quantidade real ("X cadastrados")
+ const categories = updateCategoriesWithCounts(counts);
+
+  return { alunos, servidores, cursos, disciplinas, turmas, diarios, counts, categories };
 }
