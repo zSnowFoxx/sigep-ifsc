@@ -12,13 +12,13 @@ import Encaminhamentos from "./pages/Encaminhamentos";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
-import type { UserProfile } from "./types/auth";
+import type { UserSession } from "./types/auth";
 import { fetchRiskStudents } from "./services/dashService";
 import { fetchCurrentUser } from "./services/profileService";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserSession | null>(null);
   // const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState(0);
   const [conselhoMode, setConselhoMode] = useState<"list" | "workspace">("list");

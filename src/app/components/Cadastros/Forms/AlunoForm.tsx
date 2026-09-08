@@ -12,14 +12,12 @@ interface FormProps {
   formData: Partial<Aluno>;
   onChange: (data: Partial<Aluno>) => void;
   turmasOptions: string[];
-  isEdit?: boolean;
 }
 
 export const AlunoForm: React.FC<FormProps> = ({
   formData,
   onChange,
   turmasOptions,
-  isEdit = false,
 }) => {
   return (
     <div className="space-y-4">
@@ -33,17 +31,15 @@ export const AlunoForm: React.FC<FormProps> = ({
       </div>
 
       <FRow>
-        {!isEdit && (
-          <div>
-            <FLabel>Matrícula</FLabel>
-            <FInput
-              value={formData.matricula || ""}
-              onChange={(v) => onChange({ ...formData, matricula: v })}
-              placeholder="202110806528"
-              mono
-            />
-          </div>
-        )}
+        <div>
+          <FLabel>Matrícula</FLabel>
+          <FInput
+            value={formData.matricula || ""}
+            onChange={(v) => onChange({ ...formData, matricula: v })}
+            placeholder="202110806528"
+            mono
+          />
+        </div>
         <div>
           <FLabel>Status</FLabel>
           <ToggleStatus
@@ -63,17 +59,15 @@ export const AlunoForm: React.FC<FormProps> = ({
         />
       </div>
 
-      {!isEdit && (
-        <div>
-          <FLabel>Turmas Vinculadas</FLabel>
-          <MultiSelectPills
-            value={formData.turmas || []}
-            onChange={(v) => onChange({ ...formData, turmas: v })}
-            options={turmasOptions}
-            placeholder="Selecionar turmas..."
-          />
-        </div>
-      )}
+      <div>
+        <FLabel>Turmas Vinculadas</FLabel>
+        <MultiSelectPills
+          value={formData.turmas || []}
+          onChange={(v) => onChange({ ...formData, turmas: v })}
+          options={turmasOptions}
+          placeholder="Selecionar turmas..."
+        />
+      </div>
     </div>
   );
 };

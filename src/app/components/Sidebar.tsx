@@ -1,6 +1,6 @@
 import { GraduationCap, ChevronLeft } from "lucide-react";
 import { navItems } from "../data/sideData";
-import type { UserProfile } from "../types/auth";
+import type { UserSession } from "../types/auth";
 
 interface SidebarProps {
   sidebarCollapsed: boolean;
@@ -9,7 +9,7 @@ interface SidebarProps {
   setActiveNav: (index: number) => void;
   setImportarOpen: (open: boolean) => void;
   setConselhoMode: (mode: "list" | "workspace") => void;
-  userProfile: UserProfile | null;
+  userProfile: UserSession | null;
   showPerfil: boolean;
   setShowPerfil: (show: boolean) => void;
 }

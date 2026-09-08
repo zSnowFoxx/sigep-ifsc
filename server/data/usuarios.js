@@ -5,10 +5,10 @@ module.exports = [
     password: "$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy",
     nome: "Servidor Exemplo",
     siape: "1234567",
-    funcoes_ids: [],
+    funcoes_ids: [1],
     perfil_id: 3,
-    curso_id: null,
-    disciplinas_ids: []
+    curso_id: 1,
+    disciplinas_ids: [1]
   },
   {
     id: 2,
