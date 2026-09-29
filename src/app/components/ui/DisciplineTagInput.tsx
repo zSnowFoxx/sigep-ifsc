@@ -15,11 +15,19 @@ export function DisciplineTagInput({ value, onChange }: DisciplineTagInputProps)
   useEffect(() => {
     const fetchDisciplines = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/disciplines");
+        const response = await fetch("http://localhost:3001/api/disciplinas");
         const data = await response.json();
 
         if (response.ok) {
-          setOptions(Array.isArray(data) ? data : data.disciplines || []);
+          if (Array.isArray(data)) {
+            const names = data.map((item: any) => {
+              if (typeof item === "string") return item;
+              return item.nome || item.name || item.disciplina || String(item);
+            });
+            setOptions(names);
+          } else {
+            setOptions([]);
+          }
         }
       } catch (err) {
         console.error("Erro ao carregar lista de disciplinas:", err);
