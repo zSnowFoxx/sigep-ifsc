@@ -4,7 +4,7 @@ export type Role =
   | "Coordenador de Curso"
   | "Servidor Geral";
 
-export interface UserProfile {
+export interface UserSession {
   email: string;
   name: string;
   siape: string;
@@ -13,8 +13,8 @@ export interface UserProfile {
   disciplines?: string[];
 }
 
-export type StoredUser = UserProfile & { password: string };
+export type StoredUser = UserSession & { password: string };
 
 export interface LoginProps {
-  onLogin: (profile: UserProfile) => void;
+  onLogin: (profile: UserSession) => void;
 }
