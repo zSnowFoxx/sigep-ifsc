@@ -23,6 +23,16 @@ const getById = asyncHandler(async (req, res) => {
   res.json({ success: true, data: user });
 });
 
+const getProfile = asyncHandler(async (req, res) => {
+  const profile = await userModel.findProfileBySiape(req.params.siape);
+
+  if (!profile) {
+    throw new ApiError(404, 'Usuário não encontrado');
+  }
+
+  res.json({ success: true, data: profile });
+});
+
 const create = asyncHandler(async (req, res) => {
   const { siape, nome, email, senha, perfilId, funcaoIds } = req.body;
 
@@ -114,6 +124,7 @@ const remove = asyncHandler(async (req, res) => {
 module.exports = {
   getAll,
   getById,
+  getProfile,
   create,
   update,
   remove
