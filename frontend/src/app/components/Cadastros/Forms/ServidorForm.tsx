@@ -17,6 +17,8 @@ export interface ServidorFormData extends Partial<Servidor> {
 interface FormProps {
   formData: ServidorFormData;
   onChange: (data: ServidorFormData) => void;
+  isEdit?: boolean;
+  cargosOptions?: string[];
   turmasOptions?: string[];
   cursosOptions?: string[];
   allFuncoesOptions?: string[];
@@ -25,6 +27,8 @@ interface FormProps {
 export const ServidorForm: React.FC<FormProps> = ({
   formData,
   onChange,
+  isEdit = false,
+  cargosOptions = [],
   turmasOptions = [],
   cursosOptions = [],
   allFuncoesOptions = [],
@@ -49,6 +53,7 @@ export const ServidorForm: React.FC<FormProps> = ({
             onChange={(v) => onChange({ ...formData, siape: v })}
             placeholder="0000000"
             mono
+            disabled={isEdit}
           />
         </div>
         <div>
@@ -57,12 +62,7 @@ export const ServidorForm: React.FC<FormProps> = ({
             value={formData.cargo || ""}
             onChange={handleCargoChange}
             placeholder="Selecionar cargo..."
-            options={[
-              "Professor",
-              "Coordenador de Curso",
-              "Equipe Pedagógica/NAE",
-              "Servidor Geral",
-            ]}
+            options={cargosOptions}
           />
         </div>
       </FRow>
@@ -83,6 +83,16 @@ export const ServidorForm: React.FC<FormProps> = ({
           value={formData.email || ""}
           onChange={(v) => onChange({ ...formData, email: v })}
           placeholder="nome@ifsc.edu.br"
+        />
+      </div>
+
+      <div>
+        <FLabel required={!isEdit}>{isEdit ? "Nova Senha" : "Senha Inicial"}</FLabel>
+        <FInput
+          type="password"
+          value={formData.password || ""}
+          onChange={(v) => onChange({ ...formData, password: v })}
+          placeholder={isEdit ? "Deixe em branco para manter a senha atual" : "Mínimo de 6 caracteres"}
         />
       </div>
 

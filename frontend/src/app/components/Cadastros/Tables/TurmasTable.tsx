@@ -38,11 +38,11 @@ export const TurmasTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
               <span className="font-semibold text-gray-800">{item.nome}</span>
             </Td>
             <Td>
-              <PeriodBadge label={item.periodo} />
+              <PeriodBadge label={item.periodo ?? ""} />
             </Td>
             <Td>
               <span className="text-xs text-gray-600">
-                {stripPrefix(item.curso)}
+                {stripPrefix(item.curso ?? "")}
               </span>
             </Td>
             <Td>

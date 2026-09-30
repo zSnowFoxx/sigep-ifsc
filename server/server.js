@@ -20,4 +20,5 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api", cadastrosRoutes);
 
-app.listen(3001, () => console.log("Servidor rodando na porta 3001"));
+// Porta 3001 fica com o backend real (backend/).
+app.listen(3002, () => console.log("Servidor rodando na porta 3002"));

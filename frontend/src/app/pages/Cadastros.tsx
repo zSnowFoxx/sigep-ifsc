@@ -34,6 +34,8 @@ export const CadastrosPage: React.FC = () => {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [diarios, setDiarios] = useState<Diario[]>([]);
+  const [perfisOptions, setPerfisOptions] = useState<string[]>([]);
+  const [funcoesOptions, setFuncoesOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Navegação e Filtros
@@ -69,6 +71,8 @@ export const CadastrosPage: React.FC = () => {
       setDisciplinas(data.disciplinas);
       setTurmas(data.turmas);
       setDiarios(data.diarios);
+      setPerfisOptions(data.perfis);
+      setFuncoesOptions(data.funcoes);
     } catch (error) {
       console.error("Erro ao carregar dados do servidor:", error);
     } finally {
@@ -190,34 +194,37 @@ export const CadastrosPage: React.FC = () => {
     setModalMode(null);
   };
 
+  // Usuários são identificados pelo SIAPE no backend; as demais entidades pelo id.
+  const recordKey = (item: any) => (activeTab === "servidores" ? item?.siape : item?.id);
+
   const handleSave = async () => {
     try {
       const service = entityServices[activeTab];
       if (modalMode === "create") {
         await service.create(formData);
-      } else if (modalMode === "edit" && editingItem?.id) {
-        await service.update(editingItem.id, formData);
+      } else if (modalMode === "edit" && recordKey(editingItem)) {
+        await service.update(recordKey(editingItem), formData);
       }
       await loadInitialData();
       handleCloseModal();
     } catch (error) {
       console.error("Erro ao salvar os dados:", error);
-      alert("Não foi possível salvar os dados no servidor.");
+      alert(`Não foi possível salvar os dados no servidor.\n${error instanceof Error ? error.message : ""}`);
     }
   };
 
   const handleDelete = async () => {
-    if (!editingItem?.id) return;
+    if (!recordKey(editingItem)) return;
     if (!confirm("Tem certeza que deseja remover este cadastro?")) return;
 
     try {
       const service = entityServices[activeTab];
-      await service.delete(editingItem.id);
+      await service.delete(recordKey(editingItem));
       await loadInitialData();
       handleCloseModal();
     } catch (error) {
       console.error("Erro ao excluir o registro:", error);
-      alert("Não foi possível excluir o registro no servidor.");
+      alert(`Não foi possível excluir o registro no servidor.\n${error instanceof Error ? error.message : ""}`);
     }
   };
 
@@ -275,7 +282,15 @@ export const CadastrosPage: React.FC = () => {
         onDelete={modalMode === "edit" ? handleDelete : undefined}
       >
         {activeTab === "alunos" && <AlunoForm formData={formData} onChange={setFormData} turmasOptions={turmasList} />}
-        {activeTab === "servidores" && <ServidorForm formData={formData} onChange={setFormData} />}
+        {activeTab === "servidores" && (
+          <ServidorForm
+            formData={formData}
+            onChange={setFormData}
+            isEdit={modalMode === "edit"}
+            cargosOptions={perfisOptions}
+            allFuncoesOptions={funcoesOptions}
+          />
+        )}
         {activeTab === "cursos" && <CursoForm formData={formData} onChange={setFormData} servidoresOptions={servidoresList} />}
         {activeTab === "disciplinas" && <DisciplinaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} />}
         {activeTab === "turmas" && <TurmaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} />}

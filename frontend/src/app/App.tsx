@@ -14,7 +14,7 @@ import Header from "./components/Header";
 
 import type { UserSession } from "./types/auth";
 import { fetchRiskStudents } from "./services/dashService";
-import { fetchCurrentUser } from "./services/profileService";
+import { fetchSessionUser, clearSession } from "./services/authService";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -37,7 +37,7 @@ export default function App() {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        const user = await fetchCurrentUser();
+        const user = await fetchSessionUser();
         if (user) {
           setUserProfile(user);
           setAuthenticated(true);
@@ -115,8 +115,7 @@ export default function App() {
           <Profile
             profile={userProfile}
             onLogout={() => {
-              localStorage.removeItem("userEmail");
-              sessionStorage.removeItem("userEmail");
+              clearSession();
               setAuthenticated(false);
               setUserProfile(null);
               setShowPerfil(false);

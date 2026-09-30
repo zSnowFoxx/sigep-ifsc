@@ -1,10 +1,10 @@
 import { User } from "lucide-react";
-import type { UserProfile } from "../../types/auth";
+import type { UserSession } from "../../types/auth";
 import { Card } from "./ProfileCard";
 import { InfoTile } from "./ProfileInfo";
 
 interface ProfileInstitutionalProps {
-  profile: UserProfile;
+  profile: UserSession;
 }
 
 export function ProfileInstitutional({ profile }: ProfileInstitutionalProps) {

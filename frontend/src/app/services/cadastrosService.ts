@@ -1,17 +1,46 @@
 import { API_URL } from "../data/apiData";
+import { request, backend, type Lookup } from "./apiClient";
 
-async function http<T>(path: string, config?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...config?.headers },
-    ...config,
-  });
+const http = <T>(path: string, config?: RequestInit) => request<T>(API_URL, path, config);
 
-  if (!response.ok) {
-    throw new Error(`Erro na requisição ${path}: ${response.statusText}`);
-  }
+export const perfisService = {
+  getAll: () => backend<Lookup[]>("/perfis"),
+};
 
-  if (response.status === 204) return {} as T;
-  return response.json();
+export const funcoesService = {
+  getAll: () => backend<Lookup[]>("/funcoes"),
+  create: (nome: string) => backend<Lookup>("/funcoes", { method: "POST", body: JSON.stringify({ nome }) }),
+};
+
+// Converte nomes de funções em ids; funções digitadas que ainda não existem são cadastradas antes.
+export async function resolveFuncaoIds(nomes: string[] = [], funcoes?: Lookup[]) {
+  const existentes = funcoes ?? (await funcoesService.getAll());
+
+  return Promise.all(
+    nomes.map(async (nome) => {
+      const existente = existentes.find((f) => f.nome.toLowerCase() === nome.toLowerCase());
+      return existente ? existente.id : (await funcoesService.create(nome)).id;
+    })
+  );
+}
+
+// Converte o formulário (cargo e funções por nome) no payload do backend (perfilId e funcaoIds).
+async function toUsuarioPayload(data: any, isCreate: boolean) {
+  const [perfis, funcoes] = await Promise.all([perfisService.getAll(), funcoesService.getAll()]);
+
+  const perfil = perfis.find((p) => p.nome === data.cargo);
+  if (!perfil) throw new Error("Selecione um cargo/perfil válido.");
+
+  const funcaoIds = await resolveFuncaoIds(data.funcoes, funcoes);
+
+  return {
+    ...(isCreate && { siape: data.siape?.trim() }),
+    nome: data.nome?.trim(),
+    email: data.email?.trim().toLowerCase(),
+    perfilId: perfil.id,
+    funcaoIds,
+    ...(data.password && { senha: data.password }),
+  };
 }
 
 export const alunosService = {
@@ -22,12 +51,15 @@ export const alunosService = {
   delete: (id: number | string) => http<any>(`/alunos/${id}`, { method: "DELETE" }),
 };
 
+// Usuários são identificados pelo SIAPE nas rotas do backend.
 export const servidoresService = {
-  getAll: () => http<any[]>("/usuarios"),
-  getById: (id: number | string) => http<any>(`/usuarios/${id}`),
-  create: (data: any) => http<any>("/usuarios", { method: "POST", body: JSON.stringify(data) }),
-  update: (id: number | string, data: any) => http<any>(`/usuarios/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  delete: (id: number | string) => http<any>(`/usuarios/${id}`, { method: "DELETE" }),
+  getAll: () => backend<any[]>("/users"),
+  getById: (siape: number | string) => backend<any>(`/users/${siape}`),
+  create: async (data: any) =>
+    backend<any>("/users", { method: "POST", body: JSON.stringify(await toUsuarioPayload(data, true)) }),
+  update: async (siape: number | string, data: any) =>
+    backend<any>(`/users/${siape}`, { method: "PUT", body: JSON.stringify(await toUsuarioPayload(data, false)) }),
+  delete: (siape: number | string) => backend<any>(`/users/${siape}`, { method: "DELETE" }),
 };
 
 export const cursosService = {

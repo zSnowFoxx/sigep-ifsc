@@ -50,7 +50,7 @@ export const ServidoresTable: React.FC<Props> = ({ data, onEdit, onDelete }) => 
             </Td>
             <Td>
               <div className="flex flex-wrap gap-1.5">
-                {item.funcoes.map((f, i) => (
+                {(item.funcoes?.length ? item.funcoes : ["Nenhuma função vinculada"]).map((f, i) => (
                   <FuncaoBadge key={i} tag={f} />
                 ))}
               </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import type { UserSession } from "../../../types/auth";
-import { loginUser } from "../../../services/authService";
+import { loginUser, saveSession } from "../../../services/authService";
 
 interface LoginFormProps {
   initialEmail?: string;
@@ -46,19 +46,9 @@ export default function LoginForm({
     handleClearError();
 
     try {
-      const response = await loginUser(email.trim(), password);
-
-      // Se "Permanecer Conectado" estiver ativo, salva no localStorage
-      // Se não estiver ativo, salva no sessionStorage
-      if (remember) {
-        localStorage.setItem("userEmail", response.user.email);
-        sessionStorage.removeItem("userEmail");
-      } else {
-        sessionStorage.setItem("userEmail", response.user.email);
-        localStorage.removeItem("userEmail");
-      }
-
-      onLoginSuccess(response.user as unknown as UserSession);
+      const user = await loginUser(email.trim(), password);
+      saveSession(user.siape, remember);
+      onLoginSuccess(user);
     } catch (err: unknown) {
       const errorMsg =
         err instanceof Error

@@ -12,12 +12,16 @@ interface RegisterRolesProps {
   course: string;
   setCourse: (v: string) => void;
   courseOptions: string[];
+  funcaoOptions: string[];
   funcoes: string[];
   setFuncoes: (v: string[]) => void;
   loadingOptions: boolean;
   onNext: () => void;
   onBack: () => void;
 }
+
+// Cargos que não são Professor nem Coordenador informam funções/áreas de atuação.
+export const usesFuncoes = (role: string) => !!role && role !== "Professor" && role !== "Coordenador de Curso";
 
 export function RegisterRoles({
   role,
@@ -26,6 +30,7 @@ export function RegisterRoles({
   course,
   setCourse,
   courseOptions,
+  funcaoOptions,
   funcoes,
   setFuncoes,
   loadingOptions,
@@ -35,9 +40,7 @@ export function RegisterRoles({
   const step3Valid = () => {
     if (role === "Professor") return disciplines.length > 0;
     if (role === "Coordenador de Curso") return !!course;
-    if (role === "Equipe Pedagógica/NAE" || role === "Servidor Geral") {
-      return funcoes.length > 0;
-    }
+    if (usesFuncoes(role)) return funcoes.length > 0;
     return true;
   };
 
@@ -100,7 +103,7 @@ export function RegisterRoles({
         </div>
       )}
 
-      {(role === "Equipe Pedagógica/NAE" || role === "Servidor Geral") && (
+      {usesFuncoes(role) && (
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1.5">
             Função / Área de Atuação
@@ -108,7 +111,7 @@ export function RegisterRoles({
           <CreatableTagInput
             value={funcoes}
             onChange={setFuncoes}
-            allTags={[]}
+            allTags={funcaoOptions}
             placeholder="Digite a função/área e pressione Enter..."
           />
           {funcoes.length === 0 && (
