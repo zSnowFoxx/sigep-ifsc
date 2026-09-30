@@ -73,7 +73,7 @@ export function RegisterEmail({
         <div className="space-y-4">
           <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs" style={{ background: "#f0faf4", borderColor: "#bbf7d0", color: "#166534" }}>
             <CheckCircle2 size={14} className="shrink-0" />
-            <span>Código enviado para <strong>{regEmail}</strong>. (Use <strong>123456</strong> para teste).</span>
+            <span>Código enviado para <strong>{regEmail}</strong></span>
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-3 text-center">Código de verificação (6 dígitos)</label>
