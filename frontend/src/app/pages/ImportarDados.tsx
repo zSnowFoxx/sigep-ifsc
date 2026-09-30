@@ -33,7 +33,7 @@ const syncSteps = [
   "Concluindo sincronização...",
 ];
 
-export default function ImportarDados({ isOpen, onClose }: Props) {
+export default function ImportarDados({ onClose }: Props) {
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStep, setSyncStep] = useState("");

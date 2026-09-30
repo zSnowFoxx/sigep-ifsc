@@ -7,12 +7,13 @@ import {
   fetchSigaaData,
   registerUser,
 } from "../../../services/authService";
+import { HttpError } from "../../../services/apiClient";
 import type { Role } from "../../../types/auth";
 import { StepDots } from "../../ui/StepDots";
 
 import { RegisterEmail } from "../Register/RegisterEmail";
 import { RegisterData } from "../Register/RegisterData";
-import { RegisterRoles } from "../Register/RegisterRoles";
+import { RegisterRoles, usesFuncoes } from "../Register/RegisterRoles";
 import { RegisterPassword } from "../Register/RegisterPassword";
 
 interface RegisterFormProps {
@@ -26,6 +27,7 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
   // Opções da API
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [courseOptions, setCourseOptions] = useState<string[]>([]);
+  const [funcaoOptions, setFuncaoOptions] = useState<string[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
 
   // Step 1
@@ -63,6 +65,7 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
       .then((data) => {
         setRoleOptions(data.roles || []);
         setCourseOptions(data.courses || []);
+        setFuncaoOptions(data.funcoes || []);
       })
       .catch((err) => console.error("Erro ao carregar opções:", err))
       .finally(() => setLoadingOptions(false));
@@ -152,13 +155,19 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
         role,
         disciplines: role === "Professor" ? disciplines : undefined,
         course: role === "Coordenador de Curso" ? course : undefined,
-        funcoes:
-          role === "Equipe Pedagógica/NAE" || role === "Servidor Geral"
-            ? funcoes
-            : undefined,
-      } as any);
+        funcoes: usesFuncoes(role) ? funcoes : undefined,
+      });
       onComplete(cleanEmail);
     } catch (err: any) {
+      if (err instanceof HttpError && err.status === 403) {
+        // A verificação do e-mail expirou: volta para a etapa 1 para solicitar um novo código.
+        setOtpSent(false);
+        setOtpValue("");
+        setTimer(0);
+        setEmailError("A verificação do e-mail expirou. Solicite um novo código para concluir o cadastro.");
+        setStep(1);
+        return;
+      }
       setFinalError(err.message);
     } finally {
       setFinalLoading(false);
@@ -223,6 +232,7 @@ export function RegisterForm({ onBack, onComplete }: RegisterFormProps) {
             course={course}
             setCourse={setCourse}
             courseOptions={courseOptions}
+            funcaoOptions={funcaoOptions}
             funcoes={funcoes}
             setFuncoes={setFuncoes}
             loadingOptions={loadingOptions}

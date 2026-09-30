@@ -1,12 +1,12 @@
 import { LogOut } from "lucide-react";
-import type { UserProfile } from "../types/auth";
+import type { UserSession } from "../types/auth";
 import { Card } from "../components/Profile/ProfileCard";
 import { ProfileHeader } from "../components/Profile/ProfileHeader";
 import { ProfileInstitutional } from "../components/Profile/ProfileInstitucional";
 import { ProfilePassword } from "../components/Profile/ProfilePassword";
 
 interface ProfileProps {
-  profile: UserProfile;
+  profile: UserSession;
   onLogout: () => void;
 }
 

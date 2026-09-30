@@ -36,6 +36,53 @@ async function findByEmail(email) {
   return rows[0] ?? null;
 }
 
+// Dados da sessão do usuário: perfil, funções, disciplinas e cursos coordenados por nome.
+async function findProfileBySiape(siape) {
+  const [rows] = await pool.query(
+    `SELECT u.id, u.siape, u.nome, u.email, p.id AS perfilId, p.nome AS perfilNome
+     FROM usuarios u
+     JOIN perfis p ON p.id = u.perfil_id
+     WHERE u.siape = ?`,
+    [siape]
+  );
+
+  const user = rows[0];
+  if (!user) {
+    return null;
+  }
+
+  const [[funcoes], [disciplinas], [cursos]] = await Promise.all([
+    pool.query(
+      `SELECT f.nome FROM usuario_funcoes uf
+       JOIN funcoes f ON f.id = uf.funcao_id
+       WHERE uf.usuario_id = ? ORDER BY f.nome`,
+      [user.id]
+    ),
+    pool.query(
+      `SELECT d.nome FROM usuario_disciplinas ud
+       JOIN disciplinas d ON d.id = ud.disciplina_id
+       WHERE ud.usuario_id = ? ORDER BY d.nome`,
+      [user.id]
+    ),
+    pool.query('SELECT nome FROM cursos WHERE coordenador_id = ? ORDER BY nome', [user.id])
+  ]);
+
+  return {
+    id: user.id,
+    siape: user.siape,
+    nome: user.nome,
+    email: user.email,
+    perfil: { id: user.perfilId, nome: user.perfilNome },
+    funcoes: funcoes.map((row) => row.nome),
+    disciplinas: disciplinas.map((row) => row.nome),
+    cursosCoordenados: cursos.map((row) => row.nome)
+  };
+}
+
+async function updatePassword(id, passwordHash) {
+  await pool.query('UPDATE usuarios SET password = ? WHERE id = ?', [passwordHash, id]);
+}
+
 async function setFuncoes(connection, usuarioId, funcaoIds) {
   await connection.query('DELETE FROM usuario_funcoes WHERE usuario_id = ?', [usuarioId]);
 
@@ -47,8 +94,18 @@ async function setFuncoes(connection, usuarioId, funcaoIds) {
   await connection.query('INSERT INTO usuario_funcoes (usuario_id, funcao_id) VALUES ?', [values]);
 }
 
+async function addDisciplinas(connection, usuarioId, disciplinaIds) {
+  if (!disciplinaIds || disciplinaIds.length === 0) {
+    return;
+  }
+
+  const values = [...new Set(disciplinaIds)].map((disciplinaId) => [usuarioId, disciplinaId]);
+  await connection.query('INSERT INTO usuario_disciplinas (usuario_id, disciplina_id) VALUES ?', [values]);
+}
+
+// disciplinaIds (disciplinas lecionadas) e cursoIds (cursos coordenados) são usados no autocadastro.
 async function create(data) {
-  const { siape, nome, email, passwordHash, perfilId, funcaoIds } = data;
+  const { siape, nome, email, passwordHash, perfilId, funcaoIds, disciplinaIds, cursoIds } = data;
 
   await withTransaction(async (connection) => {
     const [result] = await connection.query(
@@ -58,6 +115,14 @@ async function create(data) {
     );
 
     await setFuncoes(connection, result.insertId, funcaoIds);
+    await addDisciplinas(connection, result.insertId, disciplinaIds);
+
+    if (cursoIds && cursoIds.length > 0) {
+      await connection.query('UPDATE cursos SET coordenador_id = ? WHERE id IN (?)', [
+        result.insertId,
+        cursoIds
+      ]);
+    }
   });
 
   return findBySiape(siape);
@@ -109,6 +174,8 @@ module.exports = {
   findAll,
   findBySiape,
   findByEmail,
+  findProfileBySiape,
+  updatePassword,
   create,
   update,
   remove

@@ -7,6 +7,7 @@ const router = Router();
 
 router.get('/', controller.getAll);
 router.get('/:siape', controller.getById);
+router.get('/:siape/profile', controller.getProfile);
 router.post('/', validateCreate, controller.create);
 router.put('/:siape', validateUpdate, controller.update);
 router.delete('/:siape', controller.remove);

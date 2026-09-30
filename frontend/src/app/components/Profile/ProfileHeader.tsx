@@ -1,8 +1,8 @@
 import { GraduationCap } from "lucide-react";
-import type { UserProfile } from "../../types/auth";
+import type { UserSession } from "../../types/auth";
 
 interface ProfileHeaderProps {
-  profile: UserProfile;
+  profile: UserSession;
 }
 
 export function ProfileHeader({ profile }: ProfileHeaderProps) {
