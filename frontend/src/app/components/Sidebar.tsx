@@ -9,6 +9,7 @@ interface SidebarProps {
   setActiveNav: (index: number) => void;
   setImportarOpen: (open: boolean) => void;
   setConselhoMode: (mode: "list" | "workspace") => void;
+  conselhoMode: "list" | "workspace";
   userProfile: UserSession | null;
   showPerfil: boolean;
   setShowPerfil: (show: boolean) => void;
@@ -21,6 +22,7 @@ export default function Sidebar({
   setActiveNav,
   setImportarOpen,
   setConselhoMode,
+  conselhoMode,
   userProfile,
   showPerfil,
   setShowPerfil,
@@ -29,8 +31,9 @@ export default function Sidebar({
     <aside
       className="flex flex-col shrink-0 h-full transition-all duration-300 ease-in-out overflow-hidden"
       style={{
-        width: sidebarCollapsed ? "56px" : "256px",
+        width: activeNav === 1 && conselhoMode === "workspace" ? "0px" : sidebarCollapsed ? "56px" : "256px",
         background: "var(--sidebar)",
+        visibility: activeNav === 1 && conselhoMode === "workspace" ? "hidden" : "visible",
       }}
     >
       <div

@@ -6,6 +6,7 @@ import Profile from "./pages/Profile";
 import Cadastros from "./pages/Cadastros";
 import Atendimentos from "./pages/Atendimentos";
 import ConselhosLista from "./pages/ConselhosLista";
+import ConselhoDeClasse from "./pages/ConselhoDeClasse";
 import ImportarDados from "./pages/ImportarDados";
 import Encaminhamentos from "./pages/Encaminhamentos";
 
@@ -22,6 +23,7 @@ export default function App() {
   // const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState(0);
   const [conselhoMode, setConselhoMode] = useState<"list" | "workspace">("list");
+  const [conselhoTipo, setConselhoTipo] = useState<"intermediario" | "final">("intermediario");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [importarOpen, setImportarOpen] = useState(false);
   const [naeStudent, setNaeStudent] = useState<{ matricula: string; nome: string; turma: string } | null>(null);
@@ -93,6 +95,7 @@ export default function App() {
         }}
         setImportarOpen={setImportarOpen}
         setConselhoMode={setConselhoMode}
+        conselhoMode={conselhoMode}
         userProfile={userProfile}
         showPerfil={showPerfil}
         setShowPerfil={setShowPerfil}
@@ -145,20 +148,10 @@ export default function App() {
             {activeNav === 1 && (
               conselhoMode === "list" ? (
                 <ConselhosLista 
-                  onEnterConselho={() => setConselhoMode("workspace")} 
+                  onEnterConselho={(tipo) => { setConselhoTipo(tipo); setConselhoMode("workspace"); }}
                 />
               ) : (
-                /* Caso possua uma página/componente separado de workspace: */
-                /* <ConselhoWorkspace onBack={() => setConselhoMode("list")} /> */
-                <div className="p-6">
-                  <button 
-                    onClick={() => setConselhoMode("list")} 
-                    className="text-sm text-primary font-semibold underline mb-4"
-                  >
-                    ← Voltar para lista de conselhos
-                  </button>
-                  <p className="text-sm text-muted-foreground">Área de Realização do Conselho de Classe (Workspace)</p>
-                </div>
+                <ConselhoDeClasse onNavigate={setActiveNav} onBack={() => setConselhoMode("list")} mode={conselhoTipo} />
               )
             )}
 

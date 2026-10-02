@@ -22,10 +22,11 @@ import {
   ToggleRight,
   ClipboardList,
   UserCheck,
+  Pencil,
 } from "lucide-react";
 
 interface Props {
-  onEnterConselho: () => void;
+  onEnterConselho: (tipo: "intermediario" | "final") => void;
 }
 
 const reunioesAbertas = [
@@ -175,9 +176,8 @@ export default function ConselhosLista({
   const [search, setSearch] = useState("");
   const [filterCurso, setFilterCurso] = useState("");
   const [filterEtapa, setFilterEtapa] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
 
-  // Drawer state
+  // Drawer state — criar conselho
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [fNome, setFNome] = useState("");
   const [fEtapa, setFEtapa] = useState("");
@@ -192,6 +192,24 @@ export default function ConselhosLista({
   const [fImportarPautas, setFImportarPautas] = useState(true);
   const [fOrigem, setFOrigem] = useState(conselhosOrigem[0]);
   const [fSaved, setFSaved] = useState(false);
+
+  // Agendar conselho final modal
+  type ReuniaoBrief = { id: number; titulo: string; turmas: string[]; criadoEm?: string; data?: string };
+  const [agendarFinalFor, setAgendarFinalFor] = useState<ReuniaoBrief | null>(null);
+  const [afNomeEdit, setAfNomeEdit] = useState(false);
+  const [afNome, setAfNome] = useState("");
+  const [afTurmasEdit, setAfTurmasEdit] = useState(false);
+  const [afTurmas, setAfTurmas] = useState<string[]>([]);
+  const [afTurmaInput, setAfTurmaInput] = useState("");
+  const [afTurmaOpen, setAfTurmaOpen] = useState(false);
+  const [afData, setAfData] = useState("");
+  const [afHora, setAfHora] = useState("");
+  const [afPartBusca, setAfPartBusca] = useState("");
+  const [afPartOpen, setAfPartOpen] = useState(false);
+
+  // Tracks which intermediários were promoted to final
+  const [promotedIds, setPromotedIds] = useState<Set<number>>(new Set());
+  const [promotedFinais, setPromotedFinais] = useState<typeof reunioesAbertas>([]);
 
   const removeTurma = (t: string) =>
     setFTurmas((prev) => prev.filter((x) => x !== t));
@@ -256,6 +274,8 @@ export default function ConselhosLista({
   const [fPartBusca, setFPartBusca] = useState("");
   const [fPartOpen, setFPartOpen] = useState(false);
   const nextPartId = { current: 10 };
+  // Participants for "agendar final" modal (separate list)
+  const [afParticipantes, setAfParticipantes] = useState<Participante[]>(defaultParticipantes);
 
   const removeParticipante = (id: number) =>
     setFParticipantes((prev) =>
@@ -265,20 +285,31 @@ export default function ConselhosLista({
     if (fParticipantes.some((p) => p.nome === nome)) return;
     setFParticipantes((prev) => [
       ...prev,
-      {
-        id: nextPartId.current++,
-        nome,
-        label: "Convidado - Manual",
-        tipo: "manual",
-      },
+      { id: nextPartId.current++, nome, label: "Convidado - Manual", tipo: "manual" },
     ]);
     setFPartBusca("");
     setFPartOpen(false);
+  };
+  const removeAfParticipante = (id: number) =>
+    setAfParticipantes((prev) => prev.filter((p) => p.id !== id));
+  const addAfParticipante = (nome: string) => {
+    if (afParticipantes.some((p) => p.nome === nome)) return;
+    setAfParticipantes((prev) => [
+      ...prev,
+      { id: nextPartId.current++, nome, label: "Convidado - Manual", tipo: "manual" },
+    ]);
+    setAfPartBusca("");
+    setAfPartOpen(false);
   };
   const partSugeridos = servidoresCatalogo.filter(
     (s) =>
       !fParticipantes.some((p) => p.nome === s) &&
       s.toLowerCase().includes(fPartBusca.toLowerCase()),
+  );
+  const afPartSugeridos = servidoresCatalogo.filter(
+    (s) =>
+      !afParticipantes.some((p) => p.nome === s) &&
+      s.toLowerCase().includes(afPartBusca.toLowerCase()),
   );
 
   const openDrawer = (origem?: string) => {
@@ -293,6 +324,46 @@ export default function ConselhosLista({
   };
   const closeDrawer = () => setDrawerOpen(false);
 
+  const openAgendarFinal = (r: ReuniaoBrief) => {
+    setAgendarFinalFor(r);
+    setAfNome(r.titulo.replace("Intermediário", "Final").replace("Conselho de Classe Intermediário", "Conselho Final"));
+    setAfTurmas([...r.turmas]);
+    setAfData("");
+    setAfHora("");
+    setAfNomeEdit(false);
+    setAfTurmasEdit(false);
+    setAfTurmaInput("");
+    setAfTurmaOpen(false);
+    setAfPartBusca("");
+    setAfPartOpen(false);
+    setAfParticipantes(defaultParticipantes);
+  };
+  const closeAgendarFinal = () => setAgendarFinalFor(null);
+
+  const confirmarAgendarFinal = () => {
+    if (!agendarFinalFor) return;
+    const novoFinal = {
+      id: agendarFinalFor.id + 1000,
+      titulo: afNome,
+      etapa: "Final" as const,
+      curso: "Técnico Integrado",
+      status: "agendado" as const,
+      data: afData,
+      hora: afHora,
+      docentes: afParticipantes.length,
+      rascunho: false,
+      turmas: afTurmas,
+      progresso: 0,
+    };
+    setPromotedFinais((prev) => [...prev, novoFinal]);
+    setPromotedIds((prev) => new Set([...prev, agendarFinalFor.id]));
+    closeAgendarFinal();
+  };
+
+  const afTurmasSugeridas = turmasDisponiveis.filter(
+    (t) => !afTurmas.includes(t) && t.toLowerCase().includes(afTurmaInput.toLowerCase()),
+  );
+
   const filteredAbertas = reunioesAbertas.filter((r) => {
     const q = search.toLowerCase();
     const matchSearch =
@@ -300,10 +371,19 @@ export default function ConselhosLista({
       r.titulo.toLowerCase().includes(q) ||
       r.turmas.some((t) => t.toLowerCase().includes(q));
     const matchEtapa = !filterEtapa || r.etapa === filterEtapa;
-    const matchStatus =
-      !filterStatus || r.status === filterStatus;
-    return matchSearch && matchEtapa && matchStatus;
+    return matchSearch && matchEtapa;
   });
+
+  const filteredInter = filteredAbertas.filter(
+    (r) => r.etapa === "Intermediário" && !promotedIds.has(r.id),
+  );
+  const filteredFinais = [
+    ...filteredAbertas.filter((r) => r.etapa === "Final"),
+    ...promotedFinais.filter((r) => {
+      const q = search.toLowerCase();
+      return (!search || r.titulo.toLowerCase().includes(q) || r.turmas.some((t) => t.toLowerCase().includes(q)));
+    }),
+  ];
 
   const filteredHistorico = reunioesRealizadas.filter((r) => {
     const q = search.toLowerCase();
@@ -321,19 +401,13 @@ export default function ConselhosLista({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <BookOpen
-                size={15}
+                size={16}
                 style={{ color: "var(--primary)" }}
               />
-              <span
-                className="text-xs font-semibold"
-                style={{ color: "var(--primary)" }}
-              >
-                Conselhos de Classe
-              </span>
+              <h1 className="text-base font-bold text-foreground">
+                Gestão de Conselhos de Classe
+              </h1>
             </div>
-            <h1 className="text-base font-bold text-foreground">
-              Gestão de Conselhos de Classe
-            </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               Agende, retome ou consulte as atas das reuniões
               colegiadas
@@ -345,7 +419,7 @@ export default function ConselhosLista({
             style={{ background: "var(--primary)" }}
           >
             <Plus size={15} />
-            Agendar Novo Conselho
+            Criar novo Conselho
           </button>
         </div>
       </div>
@@ -384,13 +458,7 @@ export default function ConselhosLista({
               label: "Etapa Regulamentar",
               value: filterEtapa,
               set: setFilterEtapa,
-              opts: ["Pré-Conselho", "Intermediário", "Final"],
-            },
-            {
-              label: "Status",
-              value: filterStatus,
-              set: setFilterStatus,
-              opts: ["agendado", "em_andamento"],
+              opts: ["Intermediário", "Final"],
             },
           ].map((f) => (
             <div key={f.label} className="relative">
@@ -407,11 +475,7 @@ export default function ConselhosLista({
                 <option value="">{f.label}</option>
                 {f.opts.map((o) => (
                   <option key={o} value={o}>
-                    {o === "agendado"
-                      ? "Agendados"
-                      : o === "em_andamento"
-                        ? "Em Andamento"
-                        : o}
+                    {o}
                   </option>
                 ))}
               </select>
@@ -422,13 +486,12 @@ export default function ConselhosLista({
             </div>
           ))}
 
-          {(filterCurso || filterEtapa || filterStatus) && (
+          {(filterCurso || filterEtapa) && (
             <button
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => {
                 setFilterCurso("");
                 setFilterEtapa("");
-                setFilterStatus("");
               }}
             >
               Limpar
@@ -443,7 +506,7 @@ export default function ConselhosLista({
           {[
             {
               id: "abertas",
-              label: `Reuniões em Aberto`,
+              label: `Conselhos Abertos`,
               count: reunioesAbertas.length,
             },
             {
@@ -495,179 +558,359 @@ export default function ConselhosLista({
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {/* ── Tab A: Em Aberto ────────────────────────────────────────── */}
         {activeTab === "abertas" && (
-          <div className="space-y-4">
-            {filteredAbertas.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                <Search
-                  size={24}
-                  className="text-muted-foreground/30"
-                />
-                <p className="text-sm text-muted-foreground">
-                  Nenhum conselho encontrado com os filtros
-                  selecionados.
-                </p>
-              </div>
-            )}
-            {filteredAbertas.map((r) => {
-              const isAndamento = r.status === "em_andamento";
-              const etapaCfg =
-                etapaColors[r.etapa] ??
-                etapaColors["Intermediário"];
-              return (
-                <div
-                  key={r.id}
-                  className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow duration-200"
-                  style={{
-                    borderLeft: isAndamento
-                      ? "4px solid #f97316"
-                      : "4px solid var(--border)",
-                  }}
-                >
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        {/* Badge row */}
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span
-                            className="text-xs font-semibold px-2 py-0.5 rounded-full border"
-                            style={{
-                              background: etapaCfg.bg,
-                              color: etapaCfg.text,
-                              borderColor: etapaCfg.border,
-                            }}
-                          >
-                            {r.etapa}
-                          </span>
-                          {isAndamento ? (
-                            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1.5">
-                              <CircleDot
-                                size={10}
-                                className="animate-pulse"
-                              />
-                              Em Andamento · Rascunho Salvo
-                            </span>
-                          ) : (
-                            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
-                              <CalendarDays size={10} />
-                              Agendado
-                            </span>
-                          )}
-                        </div>
+          <div className="space-y-8">
+            {/* ── Categoria: Conselhos Intermediários ── */}
+            {(filterEtapa === "" ||
+              filterEtapa === "Intermediário") && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div
+                    className="w-1 h-4 rounded-full shrink-0"
+                    style={{ background: "#7c3aed" }}
+                  />
+                  <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
+                    Conselhos Intermediários
+                  </h2>
+                  <span
+                    className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: "#fdf4ff",
+                      color: "#7c3aed",
+                      border: "1px solid #e9d5ff",
+                    }}
+                  >
+                    {filteredInter.length}
+                  </span>
+                </div>
 
-                        {/* Title */}
-                        <h2 className="text-sm font-bold text-foreground leading-snug mb-2">
-                          {r.titulo}
-                        </h2>
+                {filteredInter.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center bg-card rounded-xl border border-dashed border-border">
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum conselho intermediário encontrado.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredInter.map((r) => (
+                      <div
+                        key={r.id}
+                        className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow duration-200"
+                        style={{
+                          borderLeft: "4px solid #7c3aed",
+                        }}
+                      >
+                        <div className="p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              {/* Badge row */}
+                              <div className="flex items-center gap-2 flex-wrap mb-2">
+                                <span
+                                  className="text-xs font-semibold px-2 py-0.5 rounded-full border"
+                                  style={{
+                                    background: "#fdf4ff",
+                                    color: "#7e22ce",
+                                    borderColor: "#e9d5ff",
+                                  }}
+                                >
+                                  Intermediário
+                                </span>
+                                {r.status === "em_andamento" ? (
+                                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1.5">
+                                    <CircleDot
+                                      size={10}
+                                      className="animate-pulse"
+                                    />
+                                    Em Andamento · Rascunho
+                                    Salvo
+                                  </span>
+                                ) : (
+                                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
+                                    <CalendarDays size={10} />{" "}
+                                    Agendado
+                                  </span>
+                                )}
+                              </div>
 
-                        {/* Turmas */}
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          {r.turmas.map((t) => (
-                            <span
-                              key={t}
-                              className="text-xs bg-[#f0f2f5] text-foreground px-2 py-0.5 rounded-md font-medium"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
+                              {/* Title */}
+                              <h2 className="text-sm font-bold text-foreground leading-snug mb-2">
+                                {r.titulo}
+                              </h2>
 
-                        {/* Meta row */}
-                        <div className="flex items-center gap-4 flex-wrap">
-                          {isAndamento ? (
-                            <>
+                              {/* Turmas */}
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {r.turmas.map((t) => (
+                                  <span
+                                    key={t}
+                                    className="text-xs bg-[#f0f2f5] text-foreground px-2 py-0.5 rounded-md font-medium"
+                                  >
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {/* Meta */}
                               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Clock size={11} /> Criado em{" "}
-                                {r.criadoEm}
+                                {r.criadoEm ?? r.data}
                               </span>
-                              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Users size={11} /> {r.docentes}{" "}
-                                docentes convocados
-                              </span>
-                              {/* Progress */}
-                              <div className="flex items-center gap-2">
-                                <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
-                                  <div
-                                    className="h-full rounded-full transition-all"
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="shrink-0 flex items-center gap-2">
+                              <button
+                                onClick={() => openAgendarFinal(r)}
+                                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all hover:bg-[#e8f0eb] active:scale-[0.98]"
+                                style={{
+                                  borderColor: "var(--primary)",
+                                  color: "var(--primary)",
+                                }}
+                              >
+                                <CalendarDays size={13} />
+                                Agendar conselho final
+                              </button>
+                              <button
+                                onClick={() => onEnterConselho("intermediario")}
+                                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+                                style={{
+                                  background: "var(--primary)",
+                                }}
+                              >
+                                Visualizar e editar dados
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Categoria: Conselhos Finais ── */}
+            {(filterEtapa === "" ||
+              filterEtapa === "Final") && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div
+                    className="w-1 h-4 rounded-full shrink-0"
+                    style={{ background: "#c2410c" }}
+                  />
+                  <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
+                    Conselhos Finais
+                  </h2>
+                  <span
+                    className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: "#fff7ed",
+                      color: "#c2410c",
+                      border: "1px solid #fed7aa",
+                    }}
+                  >
+                    {filteredFinais.length}
+                  </span>
+                </div>
+
+                {filteredFinais.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center bg-card rounded-xl border border-dashed border-border">
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum conselho final encontrado.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredFinais.map((r) => {
+                      const isAndamento =
+                        r.status === "em_andamento";
+                      const etapaCfg =
+                        etapaColors[r.etapa] ??
+                        etapaColors["Intermediário"];
+                      return (
+                        <div
+                          key={r.id}
+                          className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow duration-200"
+                          style={{
+                            borderLeft: isAndamento
+                              ? "4px solid #f97316"
+                              : "4px solid #c2410c",
+                          }}
+                        >
+                          <div className="p-5">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                {/* Badge row */}
+                                <div className="flex items-center gap-2 flex-wrap mb-2">
+                                  <span
+                                    className="text-xs font-semibold px-2 py-0.5 rounded-full border"
                                     style={{
-                                      width: `${r.progresso}%`,
+                                      background: etapaCfg.bg,
+                                      color: etapaCfg.text,
+                                      borderColor:
+                                        etapaCfg.border,
+                                    }}
+                                  >
+                                    {r.etapa}
+                                  </span>
+                                  {isAndamento ? (
+                                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1.5">
+                                      <CircleDot
+                                        size={10}
+                                        className="animate-pulse"
+                                      />
+                                      Em Andamento · Rascunho
+                                      Salvo
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
+                                      <CalendarDays size={10} />{" "}
+                                      Agendado
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Title */}
+                                <h2 className="text-sm font-bold text-foreground leading-snug mb-2">
+                                  {r.titulo}
+                                </h2>
+
+                                {/* Turmas */}
+                                <div className="flex flex-wrap gap-1.5 mb-3">
+                                  {r.turmas.map((t) => (
+                                    <span
+                                      key={t}
+                                      className="text-xs bg-[#f0f2f5] text-foreground px-2 py-0.5 rounded-md font-medium"
+                                    >
+                                      {t}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                {/* Meta row */}
+                                <div className="flex items-center gap-4 flex-wrap">
+                                  {isAndamento ? (
+                                    <>
+                                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Clock size={11} />{" "}
+                                        Criado em {r.criadoEm}
+                                      </span>
+                                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Users size={11} />{" "}
+                                        {r.docentes} docentes
+                                        convocados
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
+                                          <div
+                                            className="h-full rounded-full transition-all"
+                                            style={{
+                                              width: `${r.progresso}%`,
+                                              background:
+                                                "var(--primary)",
+                                            }}
+                                          />
+                                        </div>
+                                        <span
+                                          className="text-xs font-semibold"
+                                          style={{
+                                            color:
+                                              "var(--primary)",
+                                          }}
+                                        >
+                                          {r.progresso}%
+                                          concluído
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Calendar size={11} />{" "}
+                                        Data: {r.data} às{" "}
+                                        {r.hora}
+                                      </span>
+                                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Users size={11} />{" "}
+                                        {r.docentes} docentes
+                                        convocados
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Action button */}
+                              <div className="shrink-0 flex flex-col gap-2 items-end">
+                                {isAndamento ? (
+                                  <button
+                                    onClick={() => onEnterConselho("final")}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+                                    style={{
                                       background:
                                         "var(--primary)",
                                     }}
-                                  />
-                                </div>
-                                <span
-                                  className="text-xs font-semibold"
-                                  style={{
-                                    color: "var(--primary)",
-                                  }}
-                                >
-                                  {r.progresso}% concluído
-                                </span>
+                                  >
+                                    <Play
+                                      size={13}
+                                      fill="white"
+                                    />
+                                    Retomar Realização
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => onEnterConselho("final")}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-[#e8f0eb] active:scale-[0.98] border-2"
+                                    style={{
+                                      borderColor:
+                                        "var(--primary)",
+                                      color: "var(--primary)",
+                                    }}
+                                  >
+                                    <ArrowRight size={13} />
+                                    Iniciar Conselho
+                                  </button>
+                                )}
+                                <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                                  <FileText size={11} /> Ver
+                                  detalhes
+                                </button>
                               </div>
-                            </>
-                          ) : (
-                            <>
-                              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Calendar size={11} /> Data:{" "}
-                                {r.data} às {r.hora}
-                              </span>
-                              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Users size={11} /> {r.docentes}{" "}
-                                docentes convocados
-                              </span>
-                            </>
+                            </div>
+                          </div>
+
+                          {/* Progress footer strip */}
+                          {isAndamento && (
+                            <div className="h-1 w-full bg-muted">
+                              <div
+                                className="h-full transition-all"
+                                style={{
+                                  width: `${r.progresso}%`,
+                                  background: "var(--primary)",
+                                }}
+                              />
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      {/* Action button */}
-                      <div className="shrink-0 flex flex-col gap-2 items-end">
-                        {isAndamento ? (
-                          <button
-                            onClick={onEnterConselho}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
-                            style={{
-                              background: "var(--primary)",
-                            }}
-                          >
-                            <Play size={13} fill="white" />
-                            Retomar Realização
-                          </button>
-                        ) : (
-                          <button
-                            onClick={onEnterConselho}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-[#e8f0eb] active:scale-[0.98] border-2"
-                            style={{
-                              borderColor: "var(--primary)",
-                              color: "var(--primary)",
-                            }}
-                          >
-                            <ArrowRight size={13} />
-                            Iniciar Conselho
-                          </button>
-                        )}
-                        <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                          <FileText size={11} /> Ver detalhes
-                        </button>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {/* Progress footer strip for in-progress cards */}
-                  {isAndamento && (
-                    <div className="h-1 w-full bg-muted">
-                      <div
-                        className="h-full transition-all"
-                        style={{
-                          width: `${r.progresso}%`,
-                          background: "var(--primary)",
-                        }}
-                      />
-                    </div>
-                  )}
+            {/* Global empty state when filters hide everything */}
+            {filteredInter.length === 0 &&
+              filteredFinais.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                  <Search
+                    size={24}
+                    className="text-muted-foreground/30"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum conselho encontrado com os filtros
+                    selecionados.
+                  </p>
                 </div>
-              );
-            })}
+              )}
           </div>
         )}
 
@@ -758,130 +1001,69 @@ export default function ConselhosLista({
         )}
       </div>
 
-      {/* ── Backdrop — fixed overlay, off-canvas by default ────────────── */}
+      {/* ── Criar Novo Conselho — Modal ──────────────────────────────────── */}
       {drawerOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40"
-          style={{ backdropFilter: "blur(1px)" }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={closeDrawer}
-        />
-      )}
-
-      {/* ── Slide-in Drawer (480px) — fixed off-canvas overlay ──────────── */}
-      <div
-        className="fixed top-0 right-0 h-full z-50 flex flex-col bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-out"
-        style={{
-          width: "480px",
-          transform: drawerOpen
-            ? "translateX(0)"
-            : "translateX(100%)",
-        }}
-      >
-        {/* Drawer Header */}
-        <div
-          className="px-6 py-4 flex items-start justify-between shrink-0 border-b border-border"
-          style={{ background: "var(--primary)" }}
         >
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <ClipboardList size={14} color="white" />
-              <p className="text-xs font-medium text-white/60">
-                Conselhos de Classe · Novo Agendamento
-              </p>
-            </div>
-            <h2 className="text-sm font-bold text-white">
-              Agendar Novo Conselho de Classe
-            </h2>
-          </div>
-          <button
-            onClick={closeDrawer}
-            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors mt-0.5 shrink-0"
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative z-10 w-full flex flex-col bg-card rounded-2xl shadow-2xl"
+            style={{ maxWidth: "520px" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <X size={15} color="white" />
-          </button>
-        </div>
-
-        {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {fSaved ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{ background: "var(--secondary)" }}
-              >
-                <CheckCircle2
-                  size={28}
-                  style={{ color: "var(--primary)" }}
-                />
+            {/* Header */}
+            <div
+              className="px-6 py-4 rounded-t-2xl flex items-center justify-between shrink-0"
+              style={{ background: "linear-gradient(135deg, #0b3d1e 0%, #15622f 100%)" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <ClipboardList size={18} color="white" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-white/60">
+                    Conselho de Classe · Novo Conselho
+                  </p>
+                  <h2 className="text-sm font-bold text-white">
+                    Criar novo conselho de classe
+                  </h2>
+                </div>
               </div>
-              <p className="text-sm font-bold text-foreground">
-                Conselho agendado com sucesso!
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Os docentes serão notificados automaticamente.
-              </p>
+              <button
+                onClick={closeDrawer}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all shrink-0"
+              >
+                <X size={16} />
+              </button>
             </div>
-          ) : (
-            <>
-              {/* Field 1 — Nome */}
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-5">
+              {/* Campo: Nome de Identificação */}
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1.5">
-                  Nome de Identificação do Conselho{" "}
-                  <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Nome de Identificação <span className="text-red-500">*</span>
                 </label>
+                <p className="text-xs text-muted-foreground mb-1.5">
+                  Use um nome fácil para identificar este conselho depois, ex: "Intermediário TDS 2026.1"
+                </p>
                 <input
                   type="text"
                   value={fNome}
                   onChange={(e) => setFNome(e.target.value)}
-                  placeholder="Ex: Conselho Intermediário TDS 2026.1"
+                  placeholder="Ex: Conselho Intermediário — TDS 2026.1"
                   className="w-full text-sm px-3 py-2.5 rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-muted-foreground transition-all"
                 />
               </div>
 
-              {/* Field 2 — Etapa */}
+              {/* Campo: Turmas Vinculadas */}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1.5">
-                  Etapa Regulamentar{" "}
-                  <span className="text-red-500">*</span>
+                  Turma(s) Vinculada(s) <span className="text-red-500">*</span>
+                  <span className="font-normal text-muted-foreground ml-1">(suporta múltiplas turmas)</span>
                 </label>
-                <div className="relative">
-                  <ClipboardList
-                    size={13}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  />
-                  <select
-                    value={fEtapa}
-                    onChange={(e) => setFEtapa(e.target.value)}
-                    className="w-full appearance-none text-sm pl-9 pr-8 py-2.5 rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 cursor-pointer transition-all"
-                    style={{
-                      color: fEtapa
-                        ? "var(--foreground)"
-                        : "var(--muted-foreground)",
-                    }}
-                  >
-                    <option value="">
-                      Selecione a etapa...
-                    </option>
-                    <option>Pré-Conselho</option>
-                    <option>Conselho Intermediário</option>
-                    <option>Conselho Final</option>
-                  </select>
-                  <ChevronDown
-                    size={13}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                  />
-                </div>
-              </div>
-
-              {/* Field 3 — Turmas multi-select */}
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1.5">
-                  Turmas Vinculadas
-                  <span className="font-normal text-muted-foreground ml-1">
-                    (suporta múltiplas turmas)
-                  </span>
-                </label>
-                {/* Tag box */}
                 <div
                   className="min-h-[44px] flex flex-wrap gap-1.5 px-3 py-2 rounded-lg border border-border bg-[#f7f8fa] cursor-text transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10"
                   onClick={() => setFTurmaOpen(true)}
@@ -890,17 +1072,11 @@ export default function ConselhosLista({
                     <span
                       key={t}
                       className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "var(--secondary)",
-                        color: "var(--primary)",
-                      }}
+                      style={{ background: "var(--secondary)", color: "var(--primary)" }}
                     >
                       {t}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeTurma(t);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); removeTurma(t); }}
                         className="hover:text-red-500 transition-colors"
                       >
                         <X size={10} />
@@ -910,35 +1086,21 @@ export default function ConselhosLista({
                   <input
                     type="text"
                     value={fTurmaInput}
-                    onChange={(e) => {
-                      setFTurmaInput(e.target.value);
-                      setFTurmaOpen(true);
-                    }}
+                    onChange={(e) => { setFTurmaInput(e.target.value); setFTurmaOpen(true); }}
                     onFocus={() => setFTurmaOpen(true)}
-                    placeholder={
-                      fTurmas.length === 0
-                        ? "Buscar turma..."
-                        : ""
-                    }
+                    placeholder={fTurmas.length === 0 ? "Buscar turma..." : ""}
                     className="flex-1 min-w-[100px] text-sm bg-transparent outline-none placeholder:text-muted-foreground"
                   />
                 </div>
-                {/* Suggestions dropdown */}
                 {fTurmaOpen && turmasSugeridas.length > 0 && (
                   <div className="mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-10 relative">
                     {turmasSugeridas.slice(0, 6).map((t) => (
                       <button
                         key={t}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          addTurma(t);
-                        }}
+                        onMouseDown={(e) => { e.preventDefault(); addTurma(t); }}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-[#f7f8fa] transition-colors border-b border-border last:border-0 flex items-center gap-2"
                       >
-                        <Tag
-                          size={11}
-                          className="text-muted-foreground shrink-0"
-                        />
+                        <Tag size={11} className="text-muted-foreground shrink-0" />
                         {t}
                       </button>
                     ))}
@@ -946,287 +1108,329 @@ export default function ConselhosLista({
                 )}
               </div>
 
-              {/* Field 4 — Data & Hora */}
+              {/* Coordenador de Curso convocado — aparece ao selecionar turma */}
+              {fTurmas.length > 0 && (() => {
+                const cursoMap: Record<string, { curso: string; coordenador: string }> = {
+                  "TDS":          { curso: "Técnico em Desenvolvimento de Sistemas", coordenador: "Prof. Ricardo Alves" },
+                  "Mecatrônica":  { curso: "Técnico em Mecatrônica",                coordenador: "Profa. Camila Torres" },
+                  "Administração":{ curso: "Técnico em Administração",              coordenador: "Prof. Henrique Lopes" },
+                  "Informática":  { curso: "Técnico em Informática para Internet",  coordenador: "Profa. Sandra Melo"   },
+                };
+                const cursosPresentes = Array.from(
+                  new Set(
+                    fTurmas.map((t) => {
+                      const match = Object.keys(cursoMap).find((k) => t.startsWith(k));
+                      return match ?? null;
+                    }).filter(Boolean)
+                  )
+                ) as string[];
+
+                return (
+                  <div className="rounded-xl border border-[#d1fae5] bg-[#f0fdf4] px-4 py-3.5 space-y-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <UserCheck size={13} style={{ color: "var(--primary)" }} />
+                      <span className="text-xs font-bold text-foreground">Coordenador(es) de Curso Convocados</span>
+                    </div>
+                    {cursosPresentes.map((k) => {
+                      const info = cursoMap[k];
+                      return (
+                        <div key={k} className="flex items-center justify-between bg-white rounded-lg border border-[#bbf7d0] px-3 py-2.5">
+                          <div>
+                            <p className="text-xs font-bold text-foreground">{info.coordenador}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{info.curso}</p>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#dcfce7", color: "#15803d", border: "1px solid #86efac" }}>
+                            Convocado
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div
+              className="px-6 py-4 border-t border-border flex gap-2 shrink-0 rounded-b-2xl"
+              style={{ background: "#fafbfc" }}
+            >
+              <button
+                onClick={closeDrawer}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={!fNome || fTurmas.length === 0}
+                onClick={() => { closeDrawer(); onEnterConselho("intermediario"); }}
+                className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: "linear-gradient(135deg, #0f4a23 0%, #15622f 100%)",
+                  boxShadow: "0 4px 12px rgba(15,74,35,0.25)",
+                }}
+              >
+                Criar e visualizar conselho
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Agendar Conselho Final — Modal ──────────────────────────────── */}
+      {agendarFinalFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={closeAgendarFinal}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative z-10 w-full flex flex-col bg-card rounded-2xl shadow-2xl"
+            style={{ maxWidth: "560px", maxHeight: "92vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="px-6 py-4 rounded-t-2xl flex items-center justify-between shrink-0"
+              style={{ background: "linear-gradient(135deg, #0b3d1e 0%, #15622f 100%)" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <CalendarDays size={18} color="white" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-white/60">
+                    Conselho de Classe · Agendar Etapa Final
+                  </p>
+                  <h2 className="text-sm font-bold text-white">
+                    Agendar conselho final
+                  </h2>
+                </div>
+              </div>
+              <button
+                onClick={closeAgendarFinal}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 min-h-0">
+
+              {/* ── Dados herdados do Intermediário ── */}
+              <div className="rounded-xl border border-border overflow-hidden">
+                <div className="px-4 py-2.5 bg-[#f7f8fa] border-b border-border">
+                  <p className="text-xs font-bold text-foreground">Dados do conselho intermediário de origem</p>
+                </div>
+
+                {/* Nome */}
+                <div className="px-4 py-3 border-b border-border">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Nome de Identificação</p>
+                      {afNomeEdit ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          value={afNome}
+                          onChange={(e) => setAfNome(e.target.value)}
+                          onBlur={() => setAfNomeEdit(false)}
+                          className="w-full text-sm px-2 py-1.5 rounded-lg border border-primary bg-white outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+                        />
+                      ) : (
+                        <p className="text-sm font-semibold text-foreground truncate">{afNome}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setAfNomeEdit((v) => !v)}
+                      className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-[#f0f9f4] transition-all"
+                      title="Editar nome"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Turmas */}
+                <div className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Turmas Vinculadas</p>
+                      {afTurmasEdit ? (
+                        <div>
+                          <div
+                            className="min-h-[38px] flex flex-wrap gap-1.5 px-3 py-1.5 rounded-lg border border-primary bg-white cursor-text focus-within:ring-2 focus-within:ring-primary/10 transition-all"
+                            onClick={() => setAfTurmaOpen(true)}
+                          >
+                            {afTurmas.map((t) => (
+                              <span key={t} className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--primary)" }}>
+                                {t}
+                                <button onClick={(e) => { e.stopPropagation(); setAfTurmas((p) => p.filter((x) => x !== t)); }} className="hover:text-red-500 transition-colors">
+                                  <X size={9} />
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              type="text"
+                              value={afTurmaInput}
+                              onChange={(e) => { setAfTurmaInput(e.target.value); setAfTurmaOpen(true); }}
+                              onFocus={() => setAfTurmaOpen(true)}
+                              placeholder={afTurmas.length === 0 ? "Buscar turma..." : ""}
+                              className="flex-1 min-w-[80px] text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                            />
+                          </div>
+                          {afTurmaOpen && afTurmasSugeridas.length > 0 && (
+                            <div className="mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-10 relative">
+                              {afTurmasSugeridas.slice(0, 5).map((t) => (
+                                <button
+                                  key={t}
+                                  onMouseDown={(e) => { e.preventDefault(); setAfTurmas((p) => [...p, t]); setAfTurmaInput(""); setAfTurmaOpen(false); }}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-[#f7f8fa] transition-colors border-b border-border last:border-0 flex items-center gap-2"
+                                >
+                                  <Tag size={11} className="text-muted-foreground shrink-0" /> {t}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {afTurmas.map((t) => (
+                            <span key={t} className="text-xs bg-[#f0f2f5] text-foreground px-2 py-0.5 rounded-md font-medium">{t}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setAfTurmasEdit((v) => !v)}
+                      className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-[#f0f9f4] transition-all mt-5"
+                      title="Editar turmas"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Data e Horário ── */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1.5">
-                    Data da Reunião{" "}
-                    <span className="text-red-500">*</span>
+                    Data do Conselho Final <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Calendar
-                      size={13}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    />
+                    <CalendarDays size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                       type="date"
-                      value={fData}
-                      onChange={(e) => setFData(e.target.value)}
+                      value={afData}
+                      onChange={(e) => setAfData(e.target.value)}
                       className="w-full text-sm pl-9 pr-3 py-2.5 rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 text-foreground transition-all"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1.5">
-                    Horário{" "}
-                    <span className="text-red-500">*</span>
+                    Horário <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Clock
-                      size={13}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    />
+                    <Clock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                       type="time"
-                      value={fHora}
-                      onChange={(e) => setFHora(e.target.value)}
+                      value={afHora}
+                      onChange={(e) => setAfHora(e.target.value)}
                       className="w-full text-sm pl-9 pr-3 py-2.5 rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 text-foreground transition-all"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Smart Inheritance Module */}
+              {/* ── Participantes ── */}
               <div className="rounded-xl border border-border overflow-hidden">
-                <div
-                  className="px-4 py-3 border-b border-border flex items-center gap-2"
-                  style={{ background: "#f7f8fa" }}
-                >
-                  <div className="w-1 h-4 rounded-full bg-[#7c3aed] shrink-0" />
-                  <span className="text-xs font-bold text-foreground">
-                    Herança de Etapa Anterior
-                  </span>
-                </div>
-                <div className="px-4 py-4 space-y-3 bg-[#fafafa]">
-                  {/* Toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Importar pautas e pendências da etapa
-                        anterior?
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Encaminhamentos abertos e observações
-                        serão carregados automaticamente
-                      </p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        setFImportarPautas((v) => !v)
-                      }
-                      className="shrink-0 ml-3"
-                      title={
-                        fImportarPautas ? "Desativar" : "Ativar"
-                      }
-                    >
-                      {fImportarPautas ? (
-                        <ToggleRight
-                          size={32}
-                          style={{ color: "var(--primary)" }}
-                        />
-                      ) : (
-                        <ToggleLeft
-                          size={32}
-                          className="text-muted-foreground/40"
-                        />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Conditional origin selector */}
-                  {fImportarPautas && (
-                    <div>
-                      <label className="block text-xs font-semibold text-foreground mb-1.5">
-                        Selecione o conselho de origem:
-                      </label>
-                      <div className="relative">
-                        <ClipboardList
-                          size={13}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <select
-                          value={fOrigem}
-                          onChange={(e) =>
-                            setFOrigem(e.target.value)
-                          }
-                          className="w-full appearance-none text-sm pl-9 pr-8 py-2.5 rounded-lg border border-border bg-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 cursor-pointer transition-all text-foreground"
-                        >
-                          {conselhosOrigem.map((o) => (
-                            <option key={o} value={o}>
-                              {o}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown
-                          size={13}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Gerenciamento de Participantes */}
-              <div className="rounded-xl border border-border overflow-hidden">
-                {/* Section header */}
-                <div
-                  className="px-4 py-3 border-b border-border flex items-center justify-between"
-                  style={{ background: "#f7f8fa" }}
-                >
+                <div className="px-4 py-3 border-b border-border flex items-center justify-between" style={{ background: "#f7f8fa" }}>
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-1 h-4 rounded-full shrink-0"
-                      style={{ background: "var(--primary)" }}
-                    />
-                    <span className="text-xs font-bold text-foreground">
-                      Gerenciamento de Participantes
-                    </span>
+                    <div className="w-1 h-4 rounded-full shrink-0" style={{ background: "var(--primary)" }} />
+                    <span className="text-xs font-bold text-foreground">Participantes Convocados</span>
                   </div>
-                  <span
-                    className="text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{
-                      background: "var(--primary)",
-                      color: "white",
-                    }}
-                  >
-                    {fParticipantes.length}
+                  <span className="text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "var(--primary)", color: "white" }}>
+                    {afParticipantes.length}
                   </span>
                 </div>
-
                 <div className="px-4 py-3 space-y-3 bg-card">
-                  {/* Instruction text */}
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Os professores das disciplinas das turmas
-                    selecionadas foram importados
-                    automaticamente. Você pode remover
-                    participantes automáticos ou adicionar novos
-                    servidores manualmente.
+                    Professores das turmas vinculadas foram importados automaticamente. Adicione ou remova conforme necessário.
                   </p>
-
-                  {/* Search & add input */}
-                  <div>
-                    <label className="block text-xs font-semibold text-foreground mb-1.5">
-                      Adicionar Participantes (Servidores)
-                    </label>
-                    <div className="relative">
-                      <UserCheck
-                        size={13}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                      />
-                      <input
-                        type="text"
-                        value={fPartBusca}
-                        onChange={(e) => {
-                          setFPartBusca(e.target.value);
-                          setFPartOpen(true);
-                        }}
-                        onFocus={() => setFPartOpen(true)}
-                        placeholder="Buscar servidor por nome ou SIAPE..."
-                        className="w-full text-sm pl-9 pr-3 py-2 rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-muted-foreground transition-all"
-                      />
-                      {fPartOpen &&
-                        partSugeridos.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-10">
-                            {partSugeridos
-                              .slice(0, 5)
-                              .map((s) => (
-                                <button
-                                  key={s}
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    addParticipante(s);
-                                  }}
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-[#f7f8fa] border-b border-border last:border-0 flex items-center gap-2 transition-colors"
-                                >
-                                  <UserCheck
-                                    size={11}
-                                    className="text-muted-foreground shrink-0"
-                                  />
-                                  {s}
-                                </button>
-                              ))}
-                          </div>
-                        )}
-                    </div>
+                  {/* Search & add */}
+                  <div className="relative">
+                    <UserCheck size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={afPartBusca}
+                      onChange={(e) => { setAfPartBusca(e.target.value); setAfPartOpen(true); }}
+                      onFocus={() => setAfPartOpen(true)}
+                      placeholder="Buscar servidor por nome..."
+                      className="w-full text-sm pl-9 pr-3 py-2 rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-muted-foreground transition-all"
+                    />
+                    {afPartOpen && afPartSugeridos.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-10">
+                        {afPartSugeridos.slice(0, 5).map((s) => (
+                          <button
+                            key={s}
+                            onMouseDown={(e) => { e.preventDefault(); addAfParticipante(s); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-[#f7f8fa] border-b border-border last:border-0 flex items-center gap-2 transition-colors"
+                          >
+                            <UserCheck size={11} className="text-muted-foreground shrink-0" /> {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-
-                  {/* Participant tag box */}
-                  <div
-                    className="min-h-[60px] flex flex-wrap gap-1.5 p-3 rounded-lg border border-border bg-[#f7f8fa]"
-                    onClick={() => setFPartOpen(false)}
-                  >
-                    {fParticipantes.map((p) => (
+                  {/* Tags */}
+                  <div className="min-h-[52px] flex flex-wrap gap-1.5 p-3 rounded-lg border border-border bg-[#f7f8fa]" onClick={() => setAfPartOpen(false)}>
+                    {afParticipantes.map((p) => (
                       <span
                         key={p.id}
                         className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border"
-                        style={
-                          p.tipo === "importado"
-                            ? {
-                                background: "var(--secondary)",
-                                color: "var(--primary)",
-                                borderColor: "var(--accent)",
-                              }
-                            : {
-                                background: "#fdf4ff",
-                                color: "#7e22ce",
-                                borderColor: "#e9d5ff",
-                              }
-                        }
+                        style={p.tipo === "importado"
+                          ? { background: "var(--secondary)", color: "var(--primary)", borderColor: "var(--accent)" }
+                          : { background: "#fdf4ff", color: "#7e22ce", borderColor: "#e9d5ff" }}
                       >
                         {p.nome}
-                        <span className="font-normal opacity-70 mx-0.5">
-                          ({p.label})
-                        </span>
-                        <button
-                          onClick={() =>
-                            removeParticipante(p.id)
-                          }
-                          className="hover:opacity-60 transition-opacity ml-0.5"
-                          title="Remover"
-                        >
+                        <button onClick={() => removeAfParticipante(p.id)} className="hover:opacity-60 transition-opacity ml-0.5">
                           <X size={10} />
                         </button>
                       </span>
                     ))}
-                    {fParticipantes.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">
-                        Nenhum participante adicionado.
-                      </p>
+                    {afParticipantes.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">Nenhum participante adicionado.</p>
                     )}
                   </div>
                 </div>
               </div>
-            </>
-          )}
-        </div>
+            </div>
 
-        {/* Drawer Footer */}
-        {!fSaved && (
-          <div className="px-6 py-4 border-t border-border bg-card flex gap-2 shrink-0">
-            <button
-              onClick={closeDrawer}
-              className="flex-1 py-2.5 text-sm font-semibold rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              disabled={
-                !fNome ||
-                !fEtapa ||
-                fTurmas.length === 0 ||
-                !fData ||
-                !fHora
-              }
-              onClick={() => setFSaved(true)}
-              className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: "var(--primary)" }}
-            >
-              Agendar e Convocá-los
-            </button>
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-border flex gap-2 shrink-0 rounded-b-2xl" style={{ background: "#fafbfc" }}>
+              <button
+                onClick={closeAgendarFinal}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={!afData || !afHora}
+                onClick={confirmarAgendarFinal}
+                className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: "linear-gradient(135deg, #0f4a23 0%, #15622f 100%)",
+                  boxShadow: "0 4px 12px rgba(15,74,35,0.25)",
+                }}
+              >
+                Agendar e convocar participantes
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
