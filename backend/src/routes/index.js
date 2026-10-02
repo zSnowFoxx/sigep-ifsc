@@ -26,5 +26,6 @@ router.use('/atendimentos', require('./atendimento.routes'));
 router.use('/encaminhamentos', require('./encaminhamento.routes'));
 router.use('/historico-encaminhamentos', require('./historicoEncaminhamento.routes'));
 router.use('/logs-auditoria', require('./logAuditoria.routes'));
+router.use('/dashboard', require('./dashboard.routes'));
 
 module.exports = router;

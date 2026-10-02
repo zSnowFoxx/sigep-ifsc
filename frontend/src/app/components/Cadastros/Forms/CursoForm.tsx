@@ -88,12 +88,22 @@ export const CursoForm: React.FC<FormProps> = ({
             placeholder="4"
           />
         </div>
-        <div>
+        {/* A carga horária do curso não é salva no banco: o backend calcula pela soma das disciplinas. */}
+        {/* <div>
           <FLabel>Carga Horária Total</FLabel>
           <FInput
             value={formData.cargaHoraria || ""}
             onChange={(v) => onChange({ ...formData, cargaHoraria: v })}
             placeholder="Ex: 3.200h"
+          />
+        </div> */}
+        <div>
+          <FLabel>Código do Curso</FLabel>
+          <FInput
+            value={formData.codigo || ""}
+            onChange={(v) => onChange({ ...formData, codigo: v.toUpperCase() })}
+            placeholder="Ex: BSI"
+            mono
           />
         </div>
       </FRow>

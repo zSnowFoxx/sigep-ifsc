@@ -36,6 +36,7 @@ export const CadastrosPage: React.FC = () => {
   const [diarios, setDiarios] = useState<Diario[]>([]);
   const [perfisOptions, setPerfisOptions] = useState<string[]>([]);
   const [funcoesOptions, setFuncoesOptions] = useState<string[]>([]);
+  const [periodosOptions, setPeriodosOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Navegação e Filtros
@@ -73,6 +74,7 @@ export const CadastrosPage: React.FC = () => {
       setDiarios(data.diarios);
       setPerfisOptions(data.perfis);
       setFuncoesOptions(data.funcoes);
+      setPeriodosOptions(data.periodos);
     } catch (error) {
       console.error("Erro ao carregar dados do servidor:", error);
     } finally {
@@ -293,7 +295,7 @@ export const CadastrosPage: React.FC = () => {
         )}
         {activeTab === "cursos" && <CursoForm formData={formData} onChange={setFormData} servidoresOptions={servidoresList} />}
         {activeTab === "disciplinas" && <DisciplinaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} />}
-        {activeTab === "turmas" && <TurmaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} />}
+        {activeTab === "turmas" && <TurmaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} periodosOptions={periodosOptions} />}
         {activeTab === "diarios" && <DiarioForm formData={formData} onChange={setFormData} disciplinasOptions={disciplinasList} turmasOptions={turmasList} professoresOptions={professoresList} />}
       </ModalShell>
     </div>

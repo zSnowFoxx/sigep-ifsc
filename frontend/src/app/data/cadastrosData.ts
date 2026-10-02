@@ -9,6 +9,8 @@ import {
   diariosService,
   perfisService,
   funcoesService,
+  periodosService,
+  periodoLabel,
 } from "../services/cadastrosService";
 
 export const CATEGORIES: CategoryItem[] = [
@@ -26,7 +28,7 @@ export const FASES = [
 ];
 
 export async function fetchAllInitialData() {
-  const [rawAlunos, rawUsuarios, rawCursos, rawDisciplinas, rawTurmas, rawDiarios, rawPerfis, rawFuncoes] = await Promise.all([
+  const [rawAlunos, rawUsuarios, rawCursos, rawDisciplinas, rawTurmas, rawDiarios, rawPerfis, rawFuncoes, rawPeriodos] = await Promise.all([
     alunosService.getAll().catch(() => []),
     servidoresService.getAll().catch(() => []),
     cursosService.getAll().catch(() => []),
@@ -35,6 +37,7 @@ export async function fetchAllInitialData() {
     diariosService.getAll().catch(() => []),
     perfisService.getAll().catch(() => []),
     funcoesService.getAll().catch(() => []),
+    periodosService.getAll().catch(() => []),
   ]);
 
   // Conversão de IDs para String garante compatibilidade no Map.get() independente se o backend envia número ou texto
@@ -44,6 +47,7 @@ export async function fetchAllInitialData() {
   const disciplinasMap = new Map(rawDisciplinas.map((d: any) => [String(d.id), d.nome]));
   const perfisMap = new Map(rawPerfis.map((p) => [String(p.id), p.nome]));
   const funcoesMap = new Map(rawFuncoes.map((f) => [String(f.id), f.nome]));
+  const periodosMap = new Map(rawPeriodos.map((p) => [String(p.id), periodoLabel(p)]));
 
   // 1. Servidores / Usuários (backend retorna perfil_id e funcaoIds)
   const servidores: Servidor[] = rawUsuarios.map((u: any) => ({
@@ -54,10 +58,11 @@ export async function fetchAllInitialData() {
       .filter(Boolean),
   }));
 
-  // 2. Alunos
+  // 2. Alunos (backend retorna turmaIds, vindos das matrículas)
   const alunos: Aluno[] = rawAlunos.map((a: any) => ({
     ...a,
-    turmas: (a.turmas_id || a.turmasIds || [])
+    // turmas: (a.turmas_id || a.turmasIds || [])
+    turmas: (a.turmaIds || [])
       .map((tid: any) => turmasMap.get(String(tid)))
       .filter(Boolean),
   }));
@@ -67,7 +72,9 @@ export async function fetchAllInitialData() {
     const coordId = c.coordenador_id ?? c.coordenadorId;
     return {
       ...c,
-      cargaHoraria: c.cargaHoraria || c.carga_horaria || "1.200h",
+      // cargaHoraria: c.cargaHoraria || c.carga_horaria || "1.200h",
+      // Calculada no backend pela soma das disciplinas do curso.
+      cargaHoraria: c.cargaHoraria || "—",
       coordenador: coordId ? (usuariosMap.get(String(coordId)) || c.coordenador) : "Sem coordenador vinculado",
     };
   });
@@ -87,7 +94,8 @@ export async function fetchAllInitialData() {
     return {
       ...t,
       curso: cursoId ? (cursosMap.get(String(cursoId)) || t.curso) : "Sem curso vinculado",
-      periodo: t.periodo || (t.periodo_id === 3 ? "2026.2" : "2026.1"),
+      // periodo: t.periodo || (t.periodo_id === 3 ? "2026.2" : "2026.1"),
+      periodo: periodosMap.get(String(t.periodo_id)) || "—",
       alunos: t.alunos_qtd || t.alunosQtd || 0,
     };
   });
@@ -119,5 +127,6 @@ export async function fetchAllInitialData() {
     diarios,
     perfis: rawPerfis.map((p) => p.nome),
     funcoes: rawFuncoes.map((f) => f.nome),
+    periodos: rawPeriodos.map(periodoLabel),
   };
 }
