@@ -1,14 +1,14 @@
 const ApiError = require('../utils/ApiError');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const FIELDS = ['matricula', 'nome', 'email', 'status'];
+const FIELDS = ['matricula', 'nome', 'email', 'status', 'turmaIds'];
 
 function isNonEmptyString(value, maxLength) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
 }
 
 function collectErrors(body, isCreate) {
-  const { matricula, nome, email, status } = body;
+  const { matricula, nome, email, status, turmaIds } = body;
   const errors = [];
 
   if ((isCreate || matricula !== undefined) && !isNonEmptyString(matricula, 20)) {
@@ -26,6 +26,10 @@ function collectErrors(body, isCreate) {
   }
   if (status !== undefined && status !== null && !isNonEmptyString(status, 20)) {
     errors.push('status deve ter no máximo 20 caracteres');
+  }
+
+  if (turmaIds !== undefined && (!Array.isArray(turmaIds) || !turmaIds.every((id) => Number.isInteger(id)))) {
+    errors.push('turmaIds deve ser uma lista de números inteiros');
   }
 
   return errors;

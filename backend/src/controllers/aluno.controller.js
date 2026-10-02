@@ -1,7 +1,19 @@
 const alunoModel = require('../models/aluno.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
-const { isRowReferenced } = require('../utils/dbErrors');
+const { isRowReferenced, isForeignKeyViolation } = require('../utils/dbErrors');
+
+// turmaIds com uma turma inexistente viola a chave estrangeira de matriculas.
+async function saveOrInvalidTurma(work) {
+  try {
+    return await work();
+  } catch (error) {
+    if (isForeignKeyViolation(error)) {
+      throw new ApiError(400, 'turmaIds inválido: turma não encontrada');
+    }
+    throw error;
+  }
+}
 
 const getAll = asyncHandler(async (req, res) => {
   const alunos = await alunoModel.findAll();
@@ -19,19 +31,21 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const { matricula, nome, email, status } = req.body;
+  const { matricula, nome, email, status, turmaIds } = req.body;
 
   const existing = await alunoModel.findByMatricula(matricula);
   if (existing) {
     throw new ApiError(409, 'Já existe um aluno com essa matrícula');
   }
 
-  const aluno = await alunoModel.create({ matricula, nome, email, status });
+  const aluno = await saveOrInvalidTurma(() =>
+    alunoModel.create({ matricula, nome, email, status, turmaIds })
+  );
   res.status(201).json({ success: true, data: aluno });
 });
 
 const update = asyncHandler(async (req, res) => {
-  const { matricula, nome, email, status } = req.body;
+  const { matricula, nome, email, status, turmaIds } = req.body;
 
   const existing = await alunoModel.findById(req.params.id);
   if (!existing) {
@@ -45,7 +59,9 @@ const update = asyncHandler(async (req, res) => {
     }
   }
 
-  const aluno = await alunoModel.update(req.params.id, { matricula, nome, email, status });
+  const aluno = await saveOrInvalidTurma(() =>
+    alunoModel.update(req.params.id, { matricula, nome, email, status, turmaIds })
+  );
   res.json({ success: true, data: aluno });
 });
 

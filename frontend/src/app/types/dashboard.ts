@@ -24,8 +24,8 @@ export interface StudentRisk {
   matricula: string;
   nome: string;
   turma: string;
-  media: number;
-  infrequencia: number;
+  media: number | null;
+  infrequencia: number | null;
   fatores: string[];
   risco: NivelRisco;
 }

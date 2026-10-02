@@ -38,6 +38,16 @@ export const DisciplinaForm: React.FC<FormProps> = ({
       </FRow>
 
       <div>
+        <FLabel>Código</FLabel>
+        <FInput
+          value={formData.codigo || ""}
+          onChange={(v) => onChange({ ...formData, codigo: v.toUpperCase() })}
+          placeholder="Ex: BSI1001"
+          mono
+        />
+      </div>
+
+      <div>
         <FLabel>Nome da Disciplina</FLabel>
         <FInput
           value={formData.nome || ""}
