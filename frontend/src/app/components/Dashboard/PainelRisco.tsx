@@ -72,11 +72,40 @@ export default function PainelRisco({
                 badgeClass: "bg-gray-100 text-gray-800",
                 label: risco || "Desconhecido",
               };
-              
+
               const mediaVal = s.media ?? 0;
-              const infreqVal = s.infrequencia ?? 0;
-              const mediaAlert = typeof s.media === "number" && mediaVal < 6;
-              const freqAlert = typeof s.infrequencia === "number" && infreqVal >= 25;
+              const freqVal = s.infrequencia ?? 0;
+
+              // --- Lógica do Indicador de Média ---
+              // Vermelho: < 6 | Amarelo: <= 7 | Normal: > 7
+              let mediaColorClass = "text-foreground";
+              let mediaIcon = null;
+
+              if (typeof mediaVal === "number") {
+                if (mediaVal < 6) {
+                  mediaColorClass = "text-red-600";
+                  mediaIcon = <span className="ml-1.5 text-xs text-red-500" title="Abaixo de 6 (Atenção Crítica)">▼</span>;
+                } else if (mediaVal < 7) {
+                  mediaColorClass = "text-amber-500";
+                  mediaIcon = <span className="ml-1.5 text-xs text-amber-500" title="Abaixo ou igual a 7 (Atenção)">▼</span>;
+                }
+              }
+
+              // --- Lógica do Indicador de Frequência ---
+              // Vermelho: < 20 | Amarelo: < 15 (se a prioridade for o valor mais crítico primeiro: < 15 vermelho e < 20 amarelo)
+              let freqColorClass = "text-foreground";
+              let freqIcon = null;
+
+              if (typeof freqVal === "number") {
+                if (freqVal > 15 && freqVal < 20) {
+                  freqColorClass = "text-amber-500";
+                  freqIcon = <span className="ml-1.5 text-xs text-amber-500" title="Abaixo de 15%">▼</span>;
+                } else if (freqVal >= 20) {
+                  freqColorClass = "text-red-600";
+                  freqIcon = <span className="ml-1.5 text-xs text-red-500" title="Abaixo de 20%">▼</span>;
+                }
+              }
+
               const fatoresList = Array.isArray(s.fatores) ? s.fatores : [];
 
               return (
@@ -102,25 +131,21 @@ export default function PainelRisco({
                   </Td>
                   <Td>
                     <span
-                      className={`text-sm font-bold ${mediaAlert ? "text-red-600" : "text-foreground"}`}
+                      className={`text-sm font-bold ${mediaColorClass}`}
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
-                      {typeof s.media === "number" ? s.media.toFixed(1) : "N/A"}
+                      {typeof mediaVal === "number" ? mediaVal.toFixed(1) : "N/A"}
                     </span>
-                    {mediaAlert && (
-                      <span className="ml-1.5 text-xs text-red-400" title="Abaixo da média mínima">▼</span>
-                    )}
+                    {mediaIcon}
                   </Td>
                   <Td>
                     <span
-                      className={`text-sm font-bold ${freqAlert ? "text-red-600" : "text-foreground"}`}
+                      className={`text-sm font-bold ${freqColorClass}`}
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
-                      {typeof s.infrequencia === "number" ? `${s.infrequencia}%` : "N/A"}
+                      {typeof freqVal === "number" ? `${freqVal}%` : "N/A"}
                     </span>
-                    {freqAlert && (
-                      <span className="ml-1.5 text-xs text-red-400" title="Acima do limite LDB">▲</span>
-                    )}
+                    {freqIcon}
                   </Td>
                   <Td className="max-w-55">
                     <div className="flex flex-wrap gap-1">

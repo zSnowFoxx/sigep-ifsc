@@ -10,21 +10,21 @@ function classificarRisco(media, infrequencia) {
 
   if (media < 3) {
     risco = 'critico';
-    fatores.push('media_muito_baixa');
+    fatores.push('Média muito baixa');
   } else if (media < 5) {
     risco = 'alto';
-    fatores.push('media_baixa');
+    fatores.push('Média baixa');
   } else if (media < 6) {
     risco = 'medio';
-    fatores.push('media_abaixo_media');
+    fatores.push('Baixo rendimento acadêmico');
   }
 
   if (infrequencia > 20) {
     risco = risco === 'critico' || risco === 'alto' ? 'critico' : 'alto';
-    fatores.push('infrequencia_muito_alta');
+    fatores.push('Risco de evasão');
   } else if (infrequencia > 15) {
     if (risco === 'baixo') risco = 'medio';
-    fatores.push('infrequencia_alta');
+    fatores.push('Baixa frequência');
   }
 
   return { risco, fatores };

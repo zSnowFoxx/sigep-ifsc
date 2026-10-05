@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 
-const COLUMNS = 'id, aluno_id, turma_id, status';
+const COLUMNS = 'id, aluno_id, turma_id';
 
 async function findAll() {
   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM matriculas ORDER BY id`);
@@ -12,16 +12,16 @@ async function findById(id) {
   return rows[0] ?? null;
 }
 
-async function create({ alunoId, turmaId, status }) {
+async function create({ alunoId, turmaId }) {
   const [result] = await pool.query(
-    'INSERT INTO matriculas (aluno_id, turma_id, status) VALUES (?, ?, ?)',
-    [alunoId, turmaId, status ?? 'Ativo']
+    'INSERT INTO matriculas (aluno_id, turma_id) VALUES (?, ?)',
+    [alunoId, turmaId]
   );
   return findById(result.insertId);
 }
 
 async function update(id, data) {
-  const fieldMap = { alunoId: 'aluno_id', turmaId: 'turma_id', status: 'status' };
+  const fieldMap = { alunoId: 'aluno_id', turmaId: 'turma_id' };
 
   const columns = [];
   const values = [];
@@ -29,7 +29,6 @@ async function update(id, data) {
   for (const [key, column] of Object.entries(fieldMap)) {
     if (data[key] !== undefined) {
       columns.push(`${column} = ?`);
-      values.push(key === 'status' ? data[key] ?? 'Ativo' : data[key]);
     }
   }
 

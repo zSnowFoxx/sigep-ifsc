@@ -5,7 +5,7 @@
 
 CREATE DATABASE IF NOT EXISTS sigep
   CHARACTER SET utf8mb4
-  COLLATE utf8mb4_0900_ai_ci;
+  COLLATE utf8mb4_general_ci;
 
 USE sigep;
 
@@ -13,21 +13,21 @@ USE sigep;
 -- 1. TABELAS DE APOIO
 -- =====================================================================
 
-CREATE TABLE perfis (
+CREATE TABLE IF NOT EXISTS perfis (
   id   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nome VARCHAR(100) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_perfis_nome (nome)
 );
 
-CREATE TABLE funcoes (
+CREATE TABLE IF NOT EXISTS funcoes (
   id   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nome VARCHAR(150) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_funcoes_nome (nome)
 );
 
-CREATE TABLE periodos (
+CREATE TABLE IF NOT EXISTS periodos (
   id       INT UNSIGNED NOT NULL AUTO_INCREMENT,
   ano      CHAR(4)      NOT NULL,
   semestre CHAR(1)      NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE periodos (
 -- =====================================================================
 
 -- Usuários / Servidores (docentes, coordenadores, equipe pedagógica/NAE...)
-CREATE TABLE usuarios (
+CREATE TABLE IF NOT EXISTS usuarios (
   id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
   siape     VARCHAR(20)  NOT NULL,
   nome      VARCHAR(150) NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE usuarios (
   CONSTRAINT fk_usuarios_perfil FOREIGN KEY (perfil_id) REFERENCES perfis (id)
 );
 
-CREATE TABLE cursos (
+CREATE TABLE IF NOT EXISTS cursos (
   id             INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   codigo         VARCHAR(20)      NOT NULL,
   nome           VARCHAR(150)     NOT NULL,
@@ -75,10 +75,11 @@ CREATE TABLE cursos (
 );
 
 -- usuarios e cursos se referenciam mutuamente, por isso esta FK vem depois
+ALTER TABLE usuarios DROP FOREIGN KEY IF EXISTS fk_usuarios_curso;
 ALTER TABLE usuarios
   ADD CONSTRAINT fk_usuarios_curso FOREIGN KEY (curso_id) REFERENCES cursos (id) ON DELETE SET NULL;
 
-CREATE TABLE disciplinas (
+CREATE TABLE IF NOT EXISTS disciplinas (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
   codigo        VARCHAR(20)  NOT NULL,
   sigla         VARCHAR(20)  NULL,
@@ -92,7 +93,7 @@ CREATE TABLE disciplinas (
   CONSTRAINT fk_disciplinas_curso FOREIGN KEY (curso_id) REFERENCES cursos (id)
 );
 
-CREATE TABLE turmas (
+CREATE TABLE IF NOT EXISTS turmas (
   id         INT UNSIGNED      NOT NULL AUTO_INCREMENT,
   nome       VARCHAR(100)      NOT NULL,
   curso_id   INT UNSIGNED      NOT NULL,
@@ -104,7 +105,7 @@ CREATE TABLE turmas (
   CONSTRAINT fk_turmas_periodo FOREIGN KEY (periodo_id) REFERENCES periodos (id)
 );
 
-CREATE TABLE alunos (
+CREATE TABLE IF NOT EXISTS alunos (
   id        INT UNSIGNED             NOT NULL AUTO_INCREMENT,
   matricula VARCHAR(20)              NOT NULL,
   nome      VARCHAR(150)             NOT NULL,
@@ -115,11 +116,10 @@ CREATE TABLE alunos (
 );
 
 -- Vínculo aluno x turma (as "turmas" de cada aluno no frontend)
-CREATE TABLE matriculas (
+CREATE TABLE IF NOT EXISTS matriculas (
   id       INT UNSIGNED             NOT NULL AUTO_INCREMENT,
   aluno_id INT UNSIGNED             NOT NULL,
   turma_id INT UNSIGNED             NOT NULL,
-  status   ENUM('Ativo', 'Inativo') NOT NULL DEFAULT 'Ativo',
   PRIMARY KEY (id),
   UNIQUE KEY uq_matriculas_aluno_turma (aluno_id, turma_id),
   CONSTRAINT fk_matriculas_aluno FOREIGN KEY (aluno_id) REFERENCES alunos (id) ON DELETE CASCADE,
@@ -127,7 +127,7 @@ CREATE TABLE matriculas (
 );
 
 -- Diários de classe (disciplina x turma x professor)
-CREATE TABLE diarios (
+CREATE TABLE IF NOT EXISTS diarios (
   id              INT UNSIGNED      NOT NULL AUTO_INCREMENT,
   codigo          VARCHAR(30)       NOT NULL,
   disciplina_id   INT UNSIGNED      NOT NULL,
@@ -143,7 +143,7 @@ CREATE TABLE diarios (
 );
 
 -- Notas e frequência do aluno em cada diário (Dashboard e Avaliação Discente do conselho)
-CREATE TABLE notas_frequencias (
+CREATE TABLE IF NOT EXISTS notas_frequencias (
   id                      INT UNSIGNED      NOT NULL AUTO_INCREMENT,
   matricula_id            INT UNSIGNED      NOT NULL,
   diario_id               INT UNSIGNED      NOT NULL,
@@ -160,7 +160,7 @@ CREATE TABLE notas_frequencias (
   CONSTRAINT ck_notas_infrequencia CHECK (infrequencia BETWEEN 0 AND 100)
 );
 
-CREATE TABLE usuarios_funcoes (
+CREATE TABLE IF NOT EXISTS usuarios_funcoes (
   usuario_id INT UNSIGNED NOT NULL,
   funcao_id  INT UNSIGNED NOT NULL,
   PRIMARY KEY (usuario_id, funcao_id),
@@ -168,7 +168,7 @@ CREATE TABLE usuarios_funcoes (
   CONSTRAINT fk_usuarios_funcoes_funcao  FOREIGN KEY (funcao_id)  REFERENCES funcoes (id)  ON DELETE CASCADE
 );
 
-CREATE TABLE usuarios_disciplinas (
+CREATE TABLE IF NOT EXISTS usuarios_disciplinas (
   usuario_id    INT UNSIGNED NOT NULL,
   disciplina_id INT UNSIGNED NOT NULL,
   PRIMARY KEY (usuario_id, disciplina_id),
@@ -180,7 +180,7 @@ CREATE TABLE usuarios_disciplinas (
 -- 3. CONSELHOS DE CLASSE
 -- =====================================================================
 
-CREATE TABLE conselhos_lista (
+CREATE TABLE IF NOT EXISTS conselhos_lista (
   id                 INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome               VARCHAR(255)     NOT NULL,
   -- 1 = Intermediário, 2 = Final
@@ -197,7 +197,7 @@ CREATE TABLE conselhos_lista (
 );
 
 -- Turmas relacionadas ao conselho
-CREATE TABLE conselhos_turmas (
+CREATE TABLE IF NOT EXISTS conselhos_turmas (
   conselho_id INT UNSIGNED NOT NULL,
   turma_id    INT UNSIGNED NOT NULL,
   PRIMARY KEY (conselho_id, turma_id),
@@ -206,7 +206,7 @@ CREATE TABLE conselhos_turmas (
 );
 
 -- Servidores relacionados ao conselho (participantes)
-CREATE TABLE conselhos_servidores (
+CREATE TABLE IF NOT EXISTS conselhos_servidores (
   conselho_id INT UNSIGNED NOT NULL,
   usuario_id  INT UNSIGNED NOT NULL,
   -- Lista de presença do conselho final. NULL = ainda não registrada.
@@ -217,7 +217,7 @@ CREATE TABLE conselhos_servidores (
 );
 
 -- Demandas gerais: um formulário por turma do conselho
-CREATE TABLE conselhos_demandas (
+CREATE TABLE IF NOT EXISTS conselhos_demandas (
   id                     INT UNSIGNED NOT NULL AUTO_INCREMENT,
   conselho_id            INT UNSIGNED NOT NULL,
   turma_id               INT UNSIGNED NOT NULL,
@@ -237,7 +237,7 @@ CREATE TABLE conselhos_demandas (
   CONSTRAINT ck_conselhos_demandas_dificuldades CHECK (JSON_TYPE(dificuldades_apontadas) = 'ARRAY')
 );
 
-CREATE TABLE conselhos_demandas_gerais (
+CREATE TABLE IF NOT EXISTS conselhos_demandas_gerais (
   id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
   conselho_demanda_id INT UNSIGNED NOT NULL,
   situacao            TEXT         NOT NULL,
@@ -251,7 +251,7 @@ CREATE TABLE conselhos_demandas_gerais (
 -- 4. ENCAMINHAMENTOS
 -- =====================================================================
 
-CREATE TABLE encaminhamentos (
+CREATE TABLE IF NOT EXISTS encaminhamentos (
   id                      INT UNSIGNED NOT NULL AUTO_INCREMENT,
   aluno_id                INT UNSIGNED NOT NULL,
   -- Preenchido automaticamente a partir do aluno (trigger)
@@ -278,7 +278,7 @@ CREATE TABLE encaminhamentos (
 );
 
 -- Linha do tempo do encaminhamento (criação, triagem, relatos e parecer de conclusão)
-CREATE TABLE encaminhamentos_acompanhamento (
+CREATE TABLE IF NOT EXISTS encaminhamentos_acompanhamento (
   id                INT UNSIGNED NOT NULL AUTO_INCREMENT,
   encaminhamento_id INT UNSIGNED NOT NULL,
   -- NULL = registro gerado pelo sistema
@@ -296,7 +296,7 @@ CREATE TABLE encaminhamentos_acompanhamento (
 -- 5. REGISTROS DOCENTES E DELIBERAÇÕES DO CONSELHO
 -- =====================================================================
 
-CREATE TABLE registros_docentes (
+CREATE TABLE IF NOT EXISTS registros_docentes (
   id                INT UNSIGNED NOT NULL AUTO_INCREMENT,
   conselho_id       INT UNSIGNED NOT NULL,
   aluno_id          INT UNSIGNED NOT NULL,
@@ -318,7 +318,7 @@ CREATE TABLE registros_docentes (
   CONSTRAINT fk_registros_docentes_encaminhamento FOREIGN KEY (encaminhamento_id) REFERENCES encaminhamentos (id) ON DELETE SET NULL
 );
 
-CREATE TABLE conselhos_deliberacoes (
+CREATE TABLE IF NOT EXISTS conselhos_deliberacoes (
   id                    INT UNSIGNED NOT NULL AUTO_INCREMENT,
   conselho_id           INT UNSIGNED NOT NULL,
   aluno_id              INT UNSIGNED NOT NULL,
@@ -337,7 +337,7 @@ CREATE TABLE conselhos_deliberacoes (
 -- 6. ATENDIMENTOS (NAE)
 -- =====================================================================
 
-CREATE TABLE atendimentos (
+CREATE TABLE IF NOT EXISTS atendimentos (
   id               INT UNSIGNED NOT NULL AUTO_INCREMENT,
   aluno_id         INT UNSIGNED NOT NULL,
   -- Preenchido automaticamente a partir do aluno (trigger)
@@ -358,7 +358,7 @@ CREATE TABLE atendimentos (
 -- 7. AUDITORIA
 -- =====================================================================
 
-CREATE TABLE logs_auditoria (
+CREATE TABLE IF NOT EXISTS logs_auditoria (
   id_log           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   usuario_id       INT UNSIGNED    NULL,
   acao             VARCHAR(20)     NOT NULL,
@@ -374,12 +374,13 @@ CREATE TABLE logs_auditoria (
 );
 
 -- =====================================================================
--- 8. TURMA AUTOMÁTICA A PARTIR DO ALUNO
+-- 8.1. TRIGGERS - TURMA AUTOMÁTICA A PARTIR DO ALUNO
 -- Quando turma_id não é informado, usa a turma do aluno, priorizando:
 -- turma que faz parte do conselho > matrícula ativa > período mais recente.
 -- Se o aluno não tiver matrícula, o INSERT falha (turma_id é NOT NULL).
 -- =====================================================================
 
+DROP FUNCTION IF EXISTS fn_turma_do_aluno;
 DELIMITER $$
 
 CREATE FUNCTION fn_turma_do_aluno(p_aluno_id INT UNSIGNED, p_conselho_id INT UNSIGNED)
@@ -400,6 +401,8 @@ BEGIN
   );
 END$$
 
+DROP TRIGGER IF EXISTS trg_registros_docentes_bi$$
+
 CREATE TRIGGER trg_registros_docentes_bi BEFORE INSERT ON registros_docentes
 FOR EACH ROW
 BEGIN
@@ -407,6 +410,8 @@ BEGIN
     SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
   END IF;
 END$$
+
+DROP TRIGGER IF EXISTS trg_registros_docentes_bu$$
 
 CREATE TRIGGER trg_registros_docentes_bu BEFORE UPDATE ON registros_docentes
 FOR EACH ROW
@@ -416,6 +421,8 @@ BEGIN
   END IF;
 END$$
 
+DROP TRIGGER IF EXISTS trg_conselhos_deliberacoes_bi$$
+
 CREATE TRIGGER trg_conselhos_deliberacoes_bi BEFORE INSERT ON conselhos_deliberacoes
 FOR EACH ROW
 BEGIN
@@ -423,6 +430,8 @@ BEGIN
     SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
   END IF;
 END$$
+
+DROP TRIGGER IF EXISTS trg_conselhos_deliberacoes_bu$$
 
 CREATE TRIGGER trg_conselhos_deliberacoes_bu BEFORE UPDATE ON conselhos_deliberacoes
 FOR EACH ROW
@@ -432,6 +441,8 @@ BEGIN
   END IF;
 END$$
 
+DROP TRIGGER IF EXISTS trg_encaminhamentos_bi$$
+
 CREATE TRIGGER trg_encaminhamentos_bi BEFORE INSERT ON encaminhamentos
 FOR EACH ROW
 BEGIN
@@ -439,6 +450,8 @@ BEGIN
     SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
   END IF;
 END$$
+
+DROP TRIGGER IF EXISTS trg_encaminhamentos_bu$$
 
 CREATE TRIGGER trg_encaminhamentos_bu BEFORE UPDATE ON encaminhamentos
 FOR EACH ROW
@@ -448,6 +461,8 @@ BEGIN
   END IF;
 END$$
 
+DROP TRIGGER IF EXISTS trg_atendimentos_bi$$
+
 CREATE TRIGGER trg_atendimentos_bi BEFORE INSERT ON atendimentos
 FOR EACH ROW
 BEGIN
@@ -455,6 +470,8 @@ BEGIN
     SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NULL);
   END IF;
 END$$
+
+DROP TRIGGER IF EXISTS trg_atendimentos_bu$$
 
 CREATE TRIGGER trg_atendimentos_bu BEFORE UPDATE ON atendimentos
 FOR EACH ROW
@@ -466,148 +483,75 @@ END$$
 
 DELIMITER ;
 
--- =====================================================================
--- 9. DADOS INICIAIS (server/data)
--- =====================================================================
+-- ============================================================
+-- 8.2. TRIGGERS - SINCRONIZAÇÃO ENTRE USUÁRIOS E CURSOS (MySQL)
+-- ============================================================
 
-INSERT INTO perfis (id, nome) VALUES
-  (1, 'Professor'),
-  (2, 'Coordenador de Curso'),
-  (3, 'Equipe Pedagógica/NAE'),
-  (4, 'Servidor Geral');
+DELIMITER $$
 
-INSERT INTO funcoes (id, nome) VALUES
-  -- Equipe Pedagógica / NAE
-  (1,  'Pedagogo(a)'),
-  (2,  'Psicólogo(a) Educacional'),
-  (3,  'Assistente Social'),
-  (4,  'Tradutor(a) e Intérprete de LIBRAS'),
-  (5,  'Orientador(a) Educacional'),
-  (6,  'Técnico(a) em Assuntos Educacionais'),
-  (7,  'Apoio ao Núcleo de Acessibilidade (NAPNE)'),
-  -- Gestão e Coordenação
-  (8,  'Coordenador(a) de Curso'),
-  (9,  'Coordenador(a) de Ensino'),
-  (10, 'Coordenador(a) de Pesquisa e Extensão'),
-  (11, 'Coordenador(a) de Estágios'),
-  (12, 'Coordenador(a) de Turno Matutino'),
-  (13, 'Coordenador(a) de Turno Vespertino'),
-  (14, 'Coordenador(a) de Turno Noturno'),
-  -- Secretaria Acadêmica e Administração
-  (15, 'Secretário(a) Acadêmico(a)'),
-  (16, 'Assistente Administrativo'),
-  (17, 'Apoio à Secretaria'),
-  (18, 'Atendimento ao Estudante'),
-  (19, 'Gestor(a) de Protocolo e Documentos'),
-  -- Docência e Laboratórios
-  (20, 'Professor(a) Regente'),
-  (21, 'Professor(a) Orientador(a) de TCC'),
-  (22, 'Técnico(a) de Laboratório'),
-  (23, 'Responsável por Laboratório de Informática'),
-  -- Suporte Geral e TI
-  (24, 'Suporte de TI e Infraestrutura'),
-  (25, 'Administrador(a) de Sistemas'),
-  (26, 'Apoio Operacional / Logística');
+-- Trigger para alterações na tabela USUARIOS
+DROP TRIGGER IF EXISTS trg_usuarios_curso_sync$$
 
-INSERT INTO periodos (id, ano, semestre, ativo) VALUES
-  (1, '2025', '2', FALSE),
-  (2, '2026', '1', FALSE),
-  (3, '2026', '2', TRUE);
+CREATE TRIGGER trg_usuarios_curso_sync
+AFTER UPDATE ON usuarios
+FOR EACH ROW
+BEGIN
+    -- Evita recursão infinita entre triggers usando variável de sessão
+    IF @disable_sync IS NULL OR @disable_sync = FALSE THEN
+        SET @disable_sync = TRUE;
 
--- curso_id é preenchido após a inserção dos cursos (referência circular)
-INSERT INTO usuarios (id, siape, nome, email, senha, perfil_id) VALUES
-  (1, '1234567', 'Servidor Exemplo', 'servidor@ifsc.edu.br',    '$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy', 3),
-  (2, '7654321', 'Carlos Lima',      'professor@ifsc.edu.br',   '$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy', 1),
-  (3, '9876543', 'Maria Santos',     'coordenador@ifsc.edu.br', '$2b$10$abcdefghijklmnopqrstuun5X9sI3N72casQ.UG9TGLnV1MAprdMy', 2),
-  (4, '2342342', 'Joao Pedro',       'joao.pedro@ifsc.edu.br',  NULL,                                                           4);
+        -- Verifica se o curso_id mudou (equivalente ao IS DISTINCT FROM)
+        IF NOT (OLD.curso_id <=> NEW.curso_id) THEN
+            -- Se o usuário perdeu ou alterou o curso, limpa a referência no curso antigo
+            IF OLD.curso_id IS NOT NULL THEN
+                UPDATE cursos 
+                SET coordenador_id = NULL 
+                WHERE id = OLD.curso_id AND coordenador_id = NEW.id;
+            END IF;
 
-INSERT INTO cursos (id, codigo, nome, tipo, grau, modalidade, ppc, fases, coordenador_id) VALUES
-  (1, 'TDS', 'Técnico em Desenvolvimento de Sistemas', 'Técnico',  'Integrado ao EM', 'Presencial', 'PPC 2023', 3,  3),
-  (2, 'MEC', 'Técnico em Mecatrônica',                 'Técnico',  'Subsequente',     'Presencial', 'PPC 2023', 4,  NULL),
-  (3, 'ADM', 'Técnico em Administração',               'Técnico',  'Integrado ao EM', 'Presencial', 'PPC 2025', 2,  NULL),
-  (4, 'ENF', 'Técnico em Enfermagem',                  'Técnico',  'Concomitante',    'Presencial', 'PPC 2025', 6,  NULL),
-  (5, 'CCP', 'Ciência da Computação',                  'Superior', 'Bacharelado',     'EAD',        'PPC 2023', 8,  NULL),
-  (6, 'ENM', 'Engenharia Mecânica',                    'Superior', 'Bacharelado',     'Presencial', 'PPC 2023', 10, NULL);
+            -- Se um novo curso foi atribuído ao usuário, atualiza a tabela de cursos
+            IF NEW.curso_id IS NOT NULL THEN
+                UPDATE cursos 
+                SET coordenador_id = NEW.id 
+                WHERE id = NEW.curso_id AND NOT (coordenador_id <=> NEW.id);
+            END IF;
+        END IF;
 
-UPDATE usuarios SET curso_id = 1 WHERE id IN (1, 3);
+        SET @disable_sync = FALSE;
+    END IF;
+END$$
 
-INSERT INTO disciplinas (id, codigo, sigla, nome, carga_horaria, fase_oferta, curso_id) VALUES
-  (1,  '101', 'ALG',  'Algoritmos e Programação', '80h', '1ª Fase', 1),
-  (2,  '102', 'BD',   'Banco de Dados',           '60h', '2ª Fase', 1),
-  (3,  '103', 'PW',   'Programação Web',          '80h', '2ª Fase', 1),
-  (4,  '104', 'ED',   'Estrutura de Dados',       '80h', '3ª Fase', 1),
-  (5,  '105', 'SO',   'Sistemas Operacionais',    '72h', '4ª Fase', 1),
-  (6,  '106', 'ES',   'Engenharia de Software',   '72h', '4ª Fase', 1),
-  (7,  '107', 'ING',  'Inglês Técnico',           '40h', '1ª Fase', 1),
-  (8,  '108', 'ELE',  'Eletrônica Digital',       '72h', '3ª Fase', 2),
-  (9,  '109', 'MAT',  'Matemática Aplicada',      '60h', '2ª Fase', 2),
-  (10, '110', 'HID',  'Hidráulica e Pneumática',  '60h', '3ª Fase', 2),
-  (11, '111', 'GES',  'Gestão Empresarial',       '60h', '1ª Fase', 3),
-  (12, '112', 'CONT', 'Contabilidade Básica',     '60h', '2ª Fase', 3);
 
-INSERT INTO usuarios_funcoes (usuario_id, funcao_id) VALUES
-  (1, 1);
+-- Trigger para alterações na tabela CURSOS
+DROP TRIGGER IF EXISTS trg_cursos_coordenador_sync$$
 
-INSERT INTO usuarios_disciplinas (usuario_id, disciplina_id) VALUES
-  (1, 1),
-  (2, 1),
-  (2, 2);
+CREATE TRIGGER trg_cursos_coordenador_sync
+AFTER UPDATE ON cursos
+FOR EACH ROW
+BEGIN
+    -- Evita recursão infinita entre triggers usando variável de sessão
+    IF @disable_sync IS NULL OR @disable_sync = FALSE THEN
+        SET @disable_sync = TRUE;
 
-INSERT INTO turmas (id, nome, curso_id, periodo_id, alunos_qtd) VALUES
-  (1, 'TDS - 1ª Fase',           1, 2, 28),
-  (2, 'TDS - 2ª Fase',           1, 2, 25),
-  (3, 'TDS - 3ª Fase',           1, 2, 22),
-  (4, 'Mecatrônica - 2ª Fase',   2, 2, 20),
-  (5, 'Mecatrônica - 4ª Fase',   2, 2, 18),
-  (6, 'Administração - 1ª Fase', 3, 2, 24);
+        -- Verifica se o coordenador_id mudou
+        IF NOT (OLD.coordenador_id <=> NEW.coordenador_id) THEN
+            -- Se o curso perdeu ou mudou de coordenador, limpa o curso_id do coordenador antigo
+            IF OLD.coordenador_id IS NOT NULL THEN
+                UPDATE usuarios 
+                SET curso_id = NULL 
+                WHERE id = OLD.coordenador_id AND curso_id = NEW.id;
+            END IF;
 
-INSERT INTO alunos (id, matricula, nome, email, status) VALUES
-  (1,  '202110806528', 'João Pedro Silva',       'joao.silva@aluno.ifsc.edu.br',      'Ativo'),
-  (2,  '202210809911', 'Maria Eduarda Oliveira', 'maria.oliveira@aluno.ifsc.edu.br',  'Ativo'),
-  (3,  '202310804422', 'Carlos Henrique Souza',  'carlos.souza@aluno.ifsc.edu.br',    'Ativo'),
-  (4,  '202110801345', 'Ana Beatriz Ferreira',   'ana.ferreira@aluno.ifsc.edu.br',    'Ativo'),
-  (5,  '202210812788', 'Lucas Mendes Costa',     'lucas.costa@aluno.ifsc.edu.br',     'Inativo'),
-  (6,  '202310807654', 'Fernanda Costa Lima',    'fernanda.lima@aluno.ifsc.edu.br',   'Ativo'),
-  (7,  '202110811234', 'Rafael Augusto Neves',   'rafael.neves@aluno.ifsc.edu.br',    'Ativo'),
-  (8,  '202210803321', 'Isabela Rocha Martins',  'isabela.martins@aluno.ifsc.edu.br', 'Ativo'),
-  (9,  '202310809876', 'Thiago Alves Pereira',   'thiago.pereira@aluno.ifsc.edu.br',  'Ativo'),
-  (10, '202110814499', 'Camila Dias Santos',     'camila.santos@aluno.ifsc.edu.br',   'Inativo');
+            -- Se um novo coordenador foi atribuído ao curso, atualiza a tabela de usuários
+            IF NEW.coordenador_id IS NOT NULL THEN
+                UPDATE usuarios 
+                SET curso_id = NEW.id 
+                WHERE id = NEW.coordenador_id AND NOT (curso_id <=> NEW.id);
+            END IF;
+        END IF;
 
-INSERT INTO matriculas (id, aluno_id, turma_id, status) VALUES
-  -- server/data/matriculas.js
-  (1,  1,  2, 'Ativo'),
-  (2,  2,  1, 'Ativo'),
-  (3,  3,  5, 'Ativo'),
-  (4,  4,  3, 'Ativo'),
-  (5,  5,  4, 'Ativo'),
-  (6,  6,  6, 'Ativo'),
-  -- server/data/alunos.js (turmas_id)
-  (7,  1,  1, 'Ativo'),
-  (8,  2,  6, 'Ativo'),
-  (9,  3,  3, 'Ativo'),
-  (10, 4,  2, 'Ativo'),
-  (11, 5,  2, 'Inativo'),
-  (12, 6,  3, 'Ativo'),
-  (13, 7,  4, 'Ativo'),
-  (14, 8,  5, 'Ativo'),
-  (15, 9,  4, 'Ativo'),
-  (16, 10, 1, 'Inativo');
+        SET @disable_sync = FALSE;
+    END IF;
+END$$
 
-INSERT INTO diarios (id, codigo, disciplina_id, turma_id, professor_id, carga_horaria, aulas_previstas) VALUES
-  (1, 'DIR-2026-01', 1,  2, 2, '60h', 72),
-  (2, 'DIR-2026-02', 3,  2, 2, '80h', 96),
-  (3, 'DIR-2026-03', 4,  2, 2, '80h', 96),
-  (4, 'DIR-2026-04', 9,  2, 3, '60h', 72),
-  (5, 'DIR-2026-05', 8,  2, 3, '72h', 86),
-  (6, 'DIR-2026-06', 11, 3, 2, '60h', 72),
-  (7, 'DIR-2026-07', 7,  2, 2, '40h', 48),
-  (8, 'DIR-2026-08', 5,  2, 2, '72h', 86),
-  (9, 'DIR-2026-09', 10, 2, 3, '60h', 72);
-
-INSERT INTO notas_frequencias (id, matricula_id, diario_id, media, infrequencia) VALUES
-  (1, 1, 1, 5.2, 12),
-  (2, 2, 2, 7.5, 28),
-  (3, 3, 1, 4.8, 26),
-  (4, 4, 2, 5.8, 18),
-  (5, 5, 1, 4.1, 31),
-  (6, 6, 2, 6.9, 22);
+DELIMITER ;

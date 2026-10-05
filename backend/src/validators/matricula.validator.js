@@ -1,10 +1,9 @@
 const ApiError = require('../utils/ApiError');
 
-const FIELDS = ['alunoId', 'turmaId', 'status'];
-const STATUS = ['Ativo', 'Inativo'];
+const FIELDS = ['alunoId', 'turmaId'];
 
 function collectErrors(body, isCreate) {
-  const { alunoId, turmaId, status } = body;
+  const { alunoId, turmaId } = body;
   const errors = [];
 
   if ((isCreate || alunoId !== undefined) && !Number.isInteger(alunoId)) {
@@ -12,9 +11,6 @@ function collectErrors(body, isCreate) {
   }
   if ((isCreate || turmaId !== undefined) && !Number.isInteger(turmaId)) {
     errors.push('turmaId é obrigatório e deve ser um número inteiro');
-  }
-  if (status !== undefined && status !== null && !STATUS.includes(status)) {
-    errors.push(`status deve ser um destes valores: ${STATUS.join(', ')}`);
   }
 
   return errors;

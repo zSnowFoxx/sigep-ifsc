@@ -21,10 +21,10 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const { alunoId, turmaId, status } = req.body;
+  const { alunoId, turmaId } = req.body;
 
   try {
-    const matricula = await matriculaModel.create({ alunoId, turmaId, status });
+    const matricula = await matriculaModel.create({ alunoId, turmaId });
     res.status(201).json({ success: true, data: matricula });
   } catch (error) {
     if (isDuplicateEntry(error)) {
@@ -38,7 +38,7 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
-  const { alunoId, turmaId, status } = req.body;
+  const { alunoId, turmaId } = req.body;
 
   const existing = await matriculaModel.findById(req.params.id);
   if (!existing) {
@@ -46,7 +46,7 @@ const update = asyncHandler(async (req, res) => {
   }
 
   try {
-    const matricula = await matriculaModel.update(req.params.id, { alunoId, turmaId, status });
+    const matricula = await matriculaModel.update(req.params.id, { alunoId, turmaId });
     res.json({ success: true, data: matricula });
   } catch (error) {
     if (isDuplicateEntry(error)) {
