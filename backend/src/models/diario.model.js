@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 
-const COLUMNS = 'id, codigo, disciplina_id, turma_id, professor_id, cargaHoraria, aulasPrevistas';
+const COLUMNS =
+  'id, codigo, disciplina_id, turma_id, professor_id, carga_horaria AS cargaHoraria, aulas_previstas AS aulasPrevistas';
 
 async function findAll() {
   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM diarios ORDER BY codigo`);
@@ -19,7 +20,7 @@ async function findByCodigo(codigo) {
 
 async function create({ codigo, disciplinaId, turmaId, professorId, cargaHoraria, aulasPrevistas }) {
   const [result] = await pool.query(
-    `INSERT INTO diarios (codigo, disciplina_id, turma_id, professor_id, cargaHoraria, aulasPrevistas)
+    `INSERT INTO diarios (codigo, disciplina_id, turma_id, professor_id, carga_horaria, aulas_previstas)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [codigo, disciplinaId, turmaId, professorId, cargaHoraria ?? null, aulasPrevistas ?? null]
   );
@@ -32,8 +33,8 @@ async function update(id, data) {
     disciplinaId: 'disciplina_id',
     turmaId: 'turma_id',
     professorId: 'professor_id',
-    cargaHoraria: 'cargaHoraria',
-    aulasPrevistas: 'aulasPrevistas'
+    cargaHoraria: 'carga_horaria',
+    aulasPrevistas: 'aulas_previstas'
   };
 
   const columns = [];

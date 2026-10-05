@@ -1,9 +1,25 @@
 const notaFrequenciaModel = require('../models/notaFrequencia.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
-const { isForeignKeyViolation } = require('../utils/dbErrors');
+const { isForeignKeyViolation, isDuplicateEntry } = require('../utils/dbErrors');
 
-const FK_MESSAGE = 'matriculaId ou diarioId inválido';
+function pickFields(body) {
+  return Object.fromEntries(notaFrequenciaModel.FIELDS.map((field) => [field, body[field]]));
+}
+
+async function saveOrBadRequest(work) {
+  try {
+    return await work();
+  } catch (error) {
+    if (isForeignKeyViolation(error)) {
+      throw new ApiError(400, 'matriculaId ou diarioId inválido');
+    }
+    if (isDuplicateEntry(error)) {
+      throw new ApiError(409, 'Já existe nota/frequência para essa matrícula neste diário');
+    }
+    throw error;
+  }
+}
 
 const getAll = asyncHandler(async (req, res) => {
   const notas = await notaFrequenciaModel.findAll();
@@ -21,41 +37,18 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const { matriculaId, diarioId, media, infrequencia } = req.body;
-
-  try {
-    const nota = await notaFrequenciaModel.create({ matriculaId, diarioId, media, infrequencia });
-    res.status(201).json({ success: true, data: nota });
-  } catch (error) {
-    if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, FK_MESSAGE);
-    }
-    throw error;
-  }
+  const nota = await saveOrBadRequest(() => notaFrequenciaModel.create(pickFields(req.body)));
+  res.status(201).json({ success: true, data: nota });
 });
 
 const update = asyncHandler(async (req, res) => {
-  const { matriculaId, diarioId, media, infrequencia } = req.body;
-
   const existing = await notaFrequenciaModel.findById(req.params.id);
   if (!existing) {
     throw new ApiError(404, 'Registro de nota/frequência não encontrado');
   }
 
-  try {
-    const nota = await notaFrequenciaModel.update(req.params.id, {
-      matriculaId,
-      diarioId,
-      media,
-      infrequencia
-    });
-    res.json({ success: true, data: nota });
-  } catch (error) {
-    if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, FK_MESSAGE);
-    }
-    throw error;
-  }
+  const nota = await saveOrBadRequest(() => notaFrequenciaModel.update(req.params.id, pickFields(req.body)));
+  res.json({ success: true, data: nota });
 });
 
 const remove = asyncHandler(async (req, res) => {

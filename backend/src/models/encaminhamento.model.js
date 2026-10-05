@@ -1,74 +1,84 @@
 const pool = require('../config/database');
+const buildSet = require('../utils/buildSet');
 
-const COLUMNS =
-  'id, conselho_id, atendimento_id, aluno_id, categoria, observacoes, descricao_acao, usuario_responsavel_id, status';
+const COLUMNS = `id, aluno_id, turma_id, conselho_id, titulo, categoria, origem, servidor_responsavel_id,
+  descricao_inicial, status, urgente, DATE_FORMAT(prazo, '%Y-%m-%d') AS prazo, data_criacao`;
+
+// turmaId omitido: o banco preenche com a turma do aluno (trigger).
+const FIELD_MAP = {
+  alunoId: 'aluno_id',
+  turmaId: 'turma_id',
+  conselhoId: 'conselho_id',
+  titulo: 'titulo',
+  categoria: 'categoria',
+  origem: 'origem',
+  servidorResponsavelId: 'servidor_responsavel_id',
+  descricaoInicial: 'descricao_inicial',
+  status: 'status',
+  urgente: 'urgente',
+  prazo: 'prazo'
+};
+
+// urgente é TINYINT(1), que o mysql2 devolve como 0/1.
+function toEncaminhamento(row) {
+  return row && { ...row, urgente: Boolean(row.urgente) };
+}
 
 async function findAll() {
-  const [rows] = await pool.query(`SELECT ${COLUMNS} FROM encaminhamentos ORDER BY id DESC`);
-  return rows;
+  const [rows] = await pool.query(`SELECT ${COLUMNS} FROM encaminhamentos ORDER BY data_criacao DESC, id DESC`);
+  return rows.map(toEncaminhamento);
 }
 
 async function findById(id) {
   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM encaminhamentos WHERE id = ?`, [id]);
-  return rows[0] ?? null;
+  return toEncaminhamento(rows[0] ?? null);
 }
 
 async function create(data) {
   const {
-    conselhoId,
-    atendimentoId,
     alunoId,
+    turmaId,
+    conselhoId,
+    titulo,
     categoria,
-    observacoes,
-    descricaoAcao,
-    usuarioResponsavelId,
-    status
+    origem,
+    servidorResponsavelId,
+    descricaoInicial,
+    status,
+    urgente,
+    prazo
   } = data;
 
   const [result] = await pool.query(
     `INSERT INTO encaminhamentos
-       (conselho_id, atendimento_id, aluno_id, categoria, observacoes, descricao_acao,
-        usuario_responsavel_id, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (aluno_id, turma_id, conselho_id, titulo, categoria, origem, servidor_responsavel_id,
+        descricao_inicial, status, urgente, prazo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      conselhoId,
-      atendimentoId,
       alunoId,
-      categoria ?? null,
-      observacoes ?? null,
-      descricaoAcao ?? null,
-      usuarioResponsavelId,
-      status ?? null
+      turmaId ?? null,
+      conselhoId ?? null,
+      titulo,
+      categoria,
+      origem ?? null,
+      servidorResponsavelId ?? null,
+      descricaoInicial ?? null,
+      status ?? 'pendente',
+      urgente ?? false,
+      prazo ?? null
     ]
   );
   return findById(result.insertId);
 }
 
 async function update(id, data) {
-  const fieldMap = {
-    conselhoId: 'conselho_id',
-    atendimentoId: 'atendimento_id',
-    alunoId: 'aluno_id',
-    categoria: 'categoria',
-    observacoes: 'observacoes',
-    descricaoAcao: 'descricao_acao',
-    usuarioResponsavelId: 'usuario_responsavel_id',
-    status: 'status'
-  };
-
-  const columns = [];
-  const values = [];
-
-  for (const [key, column] of Object.entries(fieldMap)) {
-    if (data[key] !== undefined) {
-      columns.push(`${column} = ?`);
-      values.push(data[key]);
-    }
-  }
+  const { columns, values } = buildSet(FIELD_MAP, data, {
+    status: (status) => status ?? 'pendente',
+    urgente: (urgente) => urgente ?? false
+  });
 
   if (columns.length > 0) {
-    values.push(id);
-    await pool.query(`UPDATE encaminhamentos SET ${columns.join(', ')} WHERE id = ?`, values);
+    await pool.query(`UPDATE encaminhamentos SET ${columns.join(', ')} WHERE id = ?`, [...values, id]);
   }
 
   return findById(id);
@@ -80,6 +90,7 @@ async function remove(id) {
 }
 
 module.exports = {
+  FIELDS: Object.keys(FIELD_MAP),
   findAll,
   findById,
   create,

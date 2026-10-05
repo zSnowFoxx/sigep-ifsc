@@ -112,7 +112,7 @@ const remove = asyncHandler(async (req, res) => {
     if (isRowReferenced(error)) {
       throw new ApiError(
         409,
-        'Não é possível excluir: usuário possui diários, registros de conselho, atendimentos ou encaminhamentos'
+        'Não é possível excluir: usuário participa de conselhos ou possui registros docentes'
       );
     }
     throw error;

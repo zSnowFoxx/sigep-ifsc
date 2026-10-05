@@ -60,7 +60,7 @@ const remove = asyncHandler(async (req, res) => {
     await turmaModel.remove(req.params.id);
   } catch (error) {
     if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.code === 'ER_ROW_IS_REFERENCED') {
-      throw new ApiError(409, 'Não é possível excluir: turma possui matrículas, diários ou pautas de conselho');
+      throw new ApiError(409, 'Não é possível excluir: turma possui diários, conselhos, encaminhamentos ou atendimentos');
     }
     throw error;
   }

@@ -1,7 +1,9 @@
 const pool = require('../config/database');
 const withTransaction = require('../utils/transaction');
 
-const PUBLIC_COLUMNS = ['id', 'sigla', 'codigo', 'nome', 'cargaHoraria', 'faseOferta', 'curso_id'];
+const PUBLIC_COLUMNS = [
+  'id', 'sigla', 'codigo', 'nome', 'carga_horaria AS cargaHoraria', 'fase_oferta AS faseOferta', 'curso_id'
+];
 
 async function attachUsuarios(disciplina) {
   if (!disciplina) {
@@ -9,7 +11,7 @@ async function attachUsuarios(disciplina) {
   }
 
   const [rows] = await pool.query(
-    'SELECT usuario_id FROM usuario_disciplinas WHERE disciplina_id = ?',
+    'SELECT usuario_id FROM usuarios_disciplinas WHERE disciplina_id = ?',
     [disciplina.id]
   );
 
@@ -40,14 +42,14 @@ async function findByCodigo(codigo) {
 }
 
 async function setUsuarios(connection, disciplinaId, usuarioIds) {
-  await connection.query('DELETE FROM usuario_disciplinas WHERE disciplina_id = ?', [disciplinaId]);
+  await connection.query('DELETE FROM usuarios_disciplinas WHERE disciplina_id = ?', [disciplinaId]);
 
   if (!usuarioIds || usuarioIds.length === 0) {
     return;
   }
 
   const values = [...new Set(usuarioIds)].map((usuarioId) => [usuarioId, disciplinaId]);
-  await connection.query('INSERT INTO usuario_disciplinas (usuario_id, disciplina_id) VALUES ?', [values]);
+  await connection.query('INSERT INTO usuarios_disciplinas (usuario_id, disciplina_id) VALUES ?', [values]);
 }
 
 async function create(data) {
@@ -55,7 +57,7 @@ async function create(data) {
 
   const id = await withTransaction(async (connection) => {
     const [result] = await connection.query(
-      `INSERT INTO disciplinas (sigla, codigo, nome, cargaHoraria, faseOferta, curso_id)
+      `INSERT INTO disciplinas (sigla, codigo, nome, carga_horaria, fase_oferta, curso_id)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [sigla ?? null, codigo, nome, cargaHoraria ?? null, faseOferta ?? null, cursoId]
     );
@@ -72,8 +74,8 @@ async function update(id, data) {
     sigla: 'sigla',
     codigo: 'codigo',
     nome: 'nome',
-    cargaHoraria: 'cargaHoraria',
-    faseOferta: 'faseOferta',
+    cargaHoraria: 'carga_horaria',
+    faseOferta: 'fase_oferta',
     cursoId: 'curso_id'
   };
 

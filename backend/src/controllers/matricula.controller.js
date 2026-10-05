@@ -1,7 +1,7 @@
 const matriculaModel = require('../models/matricula.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
-const { isForeignKeyViolation } = require('../utils/dbErrors');
+const { isForeignKeyViolation, isDuplicateEntry } = require('../utils/dbErrors');
 
 const FK_MESSAGE = 'alunoId ou turmaId inválido';
 
@@ -27,6 +27,9 @@ const create = asyncHandler(async (req, res) => {
     const matricula = await matriculaModel.create({ alunoId, turmaId, status });
     res.status(201).json({ success: true, data: matricula });
   } catch (error) {
+    if (isDuplicateEntry(error)) {
+      throw new ApiError(409, 'O aluno já está matriculado nessa turma');
+    }
     if (isForeignKeyViolation(error)) {
       throw new ApiError(400, FK_MESSAGE);
     }
@@ -46,6 +49,9 @@ const update = asyncHandler(async (req, res) => {
     const matricula = await matriculaModel.update(req.params.id, { alunoId, turmaId, status });
     res.json({ success: true, data: matricula });
   } catch (error) {
+    if (isDuplicateEntry(error)) {
+      throw new ApiError(409, 'O aluno já está matriculado nessa turma');
+    }
     if (isForeignKeyViolation(error)) {
       throw new ApiError(400, FK_MESSAGE);
     }

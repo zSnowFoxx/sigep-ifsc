@@ -9,7 +9,9 @@ const router = Router();
 router.param('id', validateIdParam);
 router.param('conselhoId', validateIdParam);
 
-router.use('/:conselhoId/pautas', require('./pauta.routes'));
+router.use('/:conselhoId/demandas', require('./conselhoDemanda.routes'));
+router.use('/:conselhoId/registros-docentes', require('./registroDocente.routes'));
+router.use('/:conselhoId/deliberacoes', require('./deliberacao.routes'));
 
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);

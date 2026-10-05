@@ -77,7 +77,7 @@ const remove = asyncHandler(async (req, res) => {
     if (isRowReferenced(error)) {
       throw new ApiError(
         409,
-        'Não é possível excluir: aluno possui matrículas, registros de conselho, atendimentos ou encaminhamentos'
+        'Não é possível excluir: aluno possui registros docentes, deliberações, atendimentos ou encaminhamentos'
       );
     }
     throw error;

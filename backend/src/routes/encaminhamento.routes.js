@@ -7,6 +7,9 @@ const validateIdParam = require('../middlewares/validateIdParam');
 const router = Router();
 
 router.param('id', validateIdParam);
+router.param('encaminhamentoId', validateIdParam);
+
+router.use('/:encaminhamentoId/acompanhamentos', require('./acompanhamento.routes'));
 
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);

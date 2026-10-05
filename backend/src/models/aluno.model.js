@@ -48,7 +48,7 @@ async function setTurmas(connection, alunoId, turmaIds) {
 
   const novas = ids
     .filter((turmaId) => !existentes.has(turmaId))
-    .map((turmaId) => [alunoId, turmaId, 'Matriculado']);
+    .map((turmaId) => [alunoId, turmaId, 'Ativo']);
 
   if (novas.length > 0) {
     await connection.query('INSERT INTO matriculas (aluno_id, turma_id, status) VALUES ?', [novas]);
@@ -59,7 +59,7 @@ async function create({ matricula, nome, email, status, turmaIds }) {
   const id = await withTransaction(async (connection) => {
     const [result] = await connection.query(
       'INSERT INTO alunos (matricula, nome, email, status) VALUES (?, ?, ?, ?)',
-      [matricula, nome, email ?? null, status ?? null]
+      [matricula, nome, email ?? null, status ?? 'Ativo']
     );
 
     if (turmaIds !== undefined) {
@@ -80,7 +80,7 @@ async function update(id, data) {
   for (const field of fields) {
     if (data[field] !== undefined) {
       columns.push(`${field} = ?`);
-      values.push(data[field]);
+      values.push(field === 'status' ? data[field] ?? 'Ativo' : data[field]);
     }
   }
 
@@ -97,46 +97,6 @@ async function update(id, data) {
 
   return findById(id);
 }
-
-// Versão anterior, sem as turmas (matrículas) do aluno.
-// async function findAll() {
-//   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM alunos ORDER BY nome`);
-//   return rows;
-// }
-//
-// async function findById(id) {
-//   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM alunos WHERE id = ?`, [id]);
-//   return rows[0] ?? null;
-// }
-//
-// async function create({ matricula, nome, email, status }) {
-//   const [result] = await pool.query(
-//     'INSERT INTO alunos (matricula, nome, email, status) VALUES (?, ?, ?, ?)',
-//     [matricula, nome, email ?? null, status ?? null]
-//   );
-//   return findById(result.insertId);
-// }
-//
-// async function update(id, data) {
-//   const fields = ['matricula', 'nome', 'email', 'status'];
-//
-//   const columns = [];
-//   const values = [];
-//
-//   for (const field of fields) {
-//     if (data[field] !== undefined) {
-//       columns.push(`${field} = ?`);
-//       values.push(data[field]);
-//     }
-//   }
-//
-//   if (columns.length > 0) {
-//     values.push(id);
-//     await pool.query(`UPDATE alunos SET ${columns.join(', ')} WHERE id = ?`, values);
-//   }
-//
-//   return findById(id);
-// }
 
 async function remove(id) {
   const [result] = await pool.query('DELETE FROM alunos WHERE id = ?', [id]);

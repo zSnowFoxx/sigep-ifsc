@@ -10,8 +10,13 @@ function isDuplicateEntry(error) {
   return error.code === 'ER_DUP_ENTRY';
 }
 
+function isNullViolation(error) {
+  return error.code === 'ER_BAD_NULL_ERROR';
+}
+
 module.exports = {
   isForeignKeyViolation,
   isRowReferenced,
-  isDuplicateEntry
+  isDuplicateEntry,
+  isNullViolation
 };

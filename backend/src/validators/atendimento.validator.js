@@ -1,84 +1,32 @@
-const ApiError = require('../utils/ApiError');
-
-const FIELDS = [
-  'usuarioId',
-  'alunoId',
-  'dataAtendimento',
-  'motivoAtendimento',
-  'motivoContato',
-  'relatoAtendimento'
-];
-
-function isPresent(value) {
-  return value !== undefined && value !== null;
-}
-
-function isNonEmptyString(value, maxLength) {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
-}
-
-function isValidDate(value) {
-  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
-}
+const { isPresent, isNonEmptyString, isValidDate, buildValidators } = require('./rules');
+const { FIELDS } = require('../models/atendimento.model');
 
 function collectErrors(body, isCreate) {
-  const {
-    usuarioId,
-    alunoId,
-    dataAtendimento,
-    motivoAtendimento,
-    motivoContato,
-    relatoAtendimento
-  } = body;
   const errors = [];
 
-  if ((isCreate || usuarioId !== undefined) && !Number.isInteger(usuarioId)) {
-    errors.push('usuarioId é obrigatório e deve ser um número inteiro');
-  }
-  if ((isCreate || alunoId !== undefined) && !Number.isInteger(alunoId)) {
+  if ((isCreate || body.alunoId !== undefined) && !Number.isInteger(body.alunoId)) {
     errors.push('alunoId é obrigatório e deve ser um número inteiro');
   }
-  if (isPresent(dataAtendimento) && !isValidDate(dataAtendimento)) {
+  if (body.turmaId !== undefined && !Number.isInteger(body.turmaId)) {
+    errors.push('turmaId deve ser um número inteiro (omita para usar a turma do aluno)');
+  }
+  if (isPresent(body.servidorId) && !Number.isInteger(body.servidorId)) {
+    errors.push('servidorId deve ser um número inteiro');
+  }
+  if (body.dataAtendimento !== undefined && !isValidDate(body.dataAtendimento)) {
     errors.push('dataAtendimento deve ser uma data válida (ISO 8601)');
   }
-  if (isPresent(motivoAtendimento) && !isNonEmptyString(motivoAtendimento, 255)) {
-    errors.push('motivoAtendimento deve ter no máximo 255 caracteres');
+  if ((isCreate || body.motivo !== undefined) && !isNonEmptyString(body.motivo, 80)) {
+    errors.push('motivo é obrigatório e deve ter no máximo 80 caracteres');
   }
-  if (isPresent(motivoContato) && !isNonEmptyString(motivoContato, 255)) {
-    errors.push('motivoContato deve ter no máximo 255 caracteres');
+  if (isPresent(body.formaContato) && !isNonEmptyString(body.formaContato, 80)) {
+    errors.push('formaContato deve ter no máximo 80 caracteres');
   }
-  if (isPresent(relatoAtendimento) && typeof relatoAtendimento !== 'string') {
-    errors.push('relatoAtendimento deve ser um texto');
+  if ((isCreate || body.relato !== undefined) && !isNonEmptyString(body.relato, 65535)) {
+    errors.push('relato é obrigatório');
   }
 
   return errors;
 }
 
-function validateCreate(req, res, next) {
-  const errors = collectErrors(req.body, true);
-
-  if (errors.length > 0) {
-    return next(new ApiError(400, 'Dados inválidos', errors));
-  }
-
-  next();
-}
-
-function validateUpdate(req, res, next) {
-  const errors = collectErrors(req.body, false);
-
-  if (FIELDS.every((field) => req.body[field] === undefined)) {
-    errors.push('Informe ao menos um campo para atualizar');
-  }
-
-  if (errors.length > 0) {
-    return next(new ApiError(400, 'Dados inválidos', errors));
-  }
-
-  next();
-}
-
-module.exports = {
-  validateCreate,
-  validateUpdate
-};
+module.exports = buildValidators(collectErrors, FIELDS);

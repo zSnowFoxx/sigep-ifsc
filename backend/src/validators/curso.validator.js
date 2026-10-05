@@ -11,8 +11,8 @@ function validateCreate(req, res, next) {
   if (!isNonEmptyString(codigo, 20)) {
     errors.push('codigo é obrigatório e deve ter no máximo 20 caracteres');
   }
-  if (!isNonEmptyString(nome, 100)) {
-    errors.push('nome é obrigatório e deve ter no máximo 100 caracteres');
+  if (!isNonEmptyString(nome, 150)) {
+    errors.push('nome é obrigatório e deve ter no máximo 150 caracteres');
   }
   if (tipo !== undefined && tipo !== null && !isNonEmptyString(tipo, 50)) {
     errors.push('tipo deve ter no máximo 50 caracteres');
@@ -23,8 +23,8 @@ function validateCreate(req, res, next) {
   if (modalidade !== undefined && modalidade !== null && !isNonEmptyString(modalidade, 50)) {
     errors.push('modalidade deve ter no máximo 50 caracteres');
   }
-  if (ppc !== undefined && ppc !== null && !isNonEmptyString(ppc, 20)) {
-    errors.push('ppc deve ter no máximo 20 caracteres');
+  if (ppc !== undefined && ppc !== null && !isNonEmptyString(ppc, 40)) {
+    errors.push('ppc deve ter no máximo 40 caracteres');
   }
   if (fases !== undefined && fases !== null && !Number.isInteger(fases)) {
     errors.push('fases deve ser um número inteiro');
@@ -47,8 +47,8 @@ function validateUpdate(req, res, next) {
   if (codigo !== undefined && !isNonEmptyString(codigo, 20)) {
     errors.push('codigo deve ter no máximo 20 caracteres');
   }
-  if (nome !== undefined && !isNonEmptyString(nome, 100)) {
-    errors.push('nome deve ter no máximo 100 caracteres');
+  if (nome !== undefined && !isNonEmptyString(nome, 150)) {
+    errors.push('nome deve ter no máximo 150 caracteres');
   }
   if (tipo !== undefined && tipo !== null && !isNonEmptyString(tipo, 50)) {
     errors.push('tipo deve ter no máximo 50 caracteres');
@@ -59,8 +59,8 @@ function validateUpdate(req, res, next) {
   if (modalidade !== undefined && modalidade !== null && !isNonEmptyString(modalidade, 50)) {
     errors.push('modalidade deve ter no máximo 50 caracteres');
   }
-  if (ppc !== undefined && ppc !== null && !isNonEmptyString(ppc, 20)) {
-    errors.push('ppc deve ter no máximo 20 caracteres');
+  if (ppc !== undefined && ppc !== null && !isNonEmptyString(ppc, 40)) {
+    errors.push('ppc deve ter no máximo 40 caracteres');
   }
   if (fases !== undefined && fases !== null && !Number.isInteger(fases)) {
     errors.push('fases deve ser um número inteiro');

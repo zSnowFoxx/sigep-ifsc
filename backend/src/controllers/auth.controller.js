@@ -81,11 +81,11 @@ const login = asyncHandler(async (req, res) => {
     throw new ApiError(401, INVALID_CREDENTIALS);
   }
 
-  if (!user.password) {
+  if (!user.senha) {
     throw new ApiError(401, "Usuário sem senha cadastrada. Utilize 'Esqueci minha senha' para criar uma");
   }
 
-  const isPasswordValid = await bcrypt.compare(req.body.senha, user.password);
+  const isPasswordValid = await bcrypt.compare(req.body.senha, user.senha);
   if (!isPasswordValid) {
     throw new ApiError(401, INVALID_CREDENTIALS);
   }
@@ -131,11 +131,11 @@ const changePassword = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Usuário não encontrado');
   }
 
-  if (!user.password) {
+  if (!user.senha) {
     throw new ApiError(400, "Usuário sem senha cadastrada. Utilize 'Esqueci minha senha' para criar uma");
   }
 
-  if (!(await bcrypt.compare(req.body.senhaAtual, user.password))) {
+  if (!(await bcrypt.compare(req.body.senhaAtual, user.senha))) {
     throw new ApiError(400, 'A senha atual está incorreta');
   }
 

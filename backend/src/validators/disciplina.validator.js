@@ -12,14 +12,14 @@ function validateCreate(req, res, next) {
   const { sigla, codigo, nome, cargaHoraria, faseOferta, cursoId, usuarioIds } = req.body;
   const errors = [];
 
-  if (sigla !== undefined && sigla !== null && !isNonEmptyString(sigla, 10)) {
-    errors.push('sigla deve ter no máximo 10 caracteres');
+  if (sigla !== undefined && sigla !== null && !isNonEmptyString(sigla, 20)) {
+    errors.push('sigla deve ter no máximo 20 caracteres');
   }
   if (!isNonEmptyString(codigo, 20)) {
     errors.push('codigo é obrigatório e deve ter no máximo 20 caracteres');
   }
-  if (!isNonEmptyString(nome, 100)) {
-    errors.push('nome é obrigatório e deve ter no máximo 100 caracteres');
+  if (!isNonEmptyString(nome, 150)) {
+    errors.push('nome é obrigatório e deve ter no máximo 150 caracteres');
   }
   if (cargaHoraria !== undefined && cargaHoraria !== null && !isNonEmptyString(cargaHoraria, 10)) {
     errors.push('cargaHoraria deve ter no máximo 10 caracteres');
@@ -45,14 +45,14 @@ function validateUpdate(req, res, next) {
   const { sigla, codigo, nome, cargaHoraria, faseOferta, cursoId, usuarioIds } = req.body;
   const errors = [];
 
-  if (sigla !== undefined && sigla !== null && !isNonEmptyString(sigla, 10)) {
-    errors.push('sigla deve ter no máximo 10 caracteres');
+  if (sigla !== undefined && sigla !== null && !isNonEmptyString(sigla, 20)) {
+    errors.push('sigla deve ter no máximo 20 caracteres');
   }
   if (codigo !== undefined && !isNonEmptyString(codigo, 20)) {
     errors.push('codigo deve ter no máximo 20 caracteres');
   }
-  if (nome !== undefined && !isNonEmptyString(nome, 100)) {
-    errors.push('nome deve ter no máximo 100 caracteres');
+  if (nome !== undefined && !isNonEmptyString(nome, 150)) {
+    errors.push('nome deve ter no máximo 150 caracteres');
   }
   if (cargaHoraria !== undefined && cargaHoraria !== null && !isNonEmptyString(cargaHoraria, 10)) {
     errors.push('cargaHoraria deve ter no máximo 10 caracteres');

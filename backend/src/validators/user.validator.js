@@ -17,10 +17,10 @@ function validateCreate(req, res, next) {
   if (!isNonEmptyString(siape, 7)) {
     errors.push('siape é obrigatório e deve ter no máximo 7 caracteres');
   }
-  if (!isNonEmptyString(nome, 100)) {
-    errors.push('nome é obrigatório e deve ter no máximo 100 caracteres');
+  if (!isNonEmptyString(nome, 150)) {
+    errors.push('nome é obrigatório e deve ter no máximo 150 caracteres');
   }
-  if (!isNonEmptyString(email, 100) || !EMAIL_REGEX.test(email)) {
+  if (!isNonEmptyString(email, 150) || !EMAIL_REGEX.test(email)) {
     errors.push('email é obrigatório e deve ser um e-mail válido');
   }
   if (typeof senha !== 'string' || senha.length < 6) {
@@ -44,10 +44,10 @@ function validateUpdate(req, res, next) {
   const { nome, email, senha, perfilId, funcaoIds } = req.body;
   const errors = [];
 
-  if (nome !== undefined && !isNonEmptyString(nome, 100)) {
-    errors.push('nome deve ter no máximo 100 caracteres');
+  if (nome !== undefined && !isNonEmptyString(nome, 150)) {
+    errors.push('nome deve ter no máximo 150 caracteres');
   }
-  if (email !== undefined && (!isNonEmptyString(email, 100) || !EMAIL_REGEX.test(email))) {
+  if (email !== undefined && (!isNonEmptyString(email, 150) || !EMAIL_REGEX.test(email))) {
     errors.push('email deve ser um e-mail válido');
   }
   if (senha !== undefined && (typeof senha !== 'string' || senha.length < 6)) {
