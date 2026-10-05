@@ -3,7 +3,21 @@ const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const { isForeignKeyViolation } = require('../utils/dbErrors');
 
-const FK_MESSAGE = 'participanteIds contém usuário inexistente';
+function pickFields(body) {
+  const { nome, tipo, status, conselhoOrigemId, dataRealizacao, turmaIds, servidores } = body;
+  return { nome, tipo, status, conselhoOrigemId, dataRealizacao, turmaIds, servidores };
+}
+
+async function saveOrBadRequest(work) {
+  try {
+    return await work();
+  } catch (error) {
+    if (isForeignKeyViolation(error)) {
+      throw new ApiError(400, 'turmaIds, servidores ou conselhoOrigemId contém registro inexistente');
+    }
+    throw error;
+  }
+}
 
 const getAll = asyncHandler(async (req, res) => {
   const conselhos = await conselhoModel.findAll();
@@ -21,50 +35,22 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const { nome, etapa, dataRealizacao, local, status, participanteIds } = req.body;
-
-  try {
-    const conselho = await conselhoModel.create({
-      nome,
-      etapa,
-      dataRealizacao,
-      local,
-      status,
-      participanteIds
-    });
-    res.status(201).json({ success: true, data: conselho });
-  } catch (error) {
-    if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, FK_MESSAGE);
-    }
-    throw error;
-  }
+  const conselho = await saveOrBadRequest(() => conselhoModel.create(pickFields(req.body)));
+  res.status(201).json({ success: true, data: conselho });
 });
 
 const update = asyncHandler(async (req, res) => {
-  const { nome, etapa, dataRealizacao, local, status, participanteIds } = req.body;
-
   const existing = await conselhoModel.findById(req.params.id);
   if (!existing) {
     throw new ApiError(404, 'Conselho não encontrado');
   }
 
-  try {
-    const conselho = await conselhoModel.update(req.params.id, {
-      nome,
-      etapa,
-      dataRealizacao,
-      local,
-      status,
-      participanteIds
-    });
-    res.json({ success: true, data: conselho });
-  } catch (error) {
-    if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, FK_MESSAGE);
-    }
-    throw error;
+  if (req.body.conselhoOrigemId === existing.id) {
+    throw new ApiError(400, 'Um conselho não pode ser a própria origem');
   }
+
+  const conselho = await saveOrBadRequest(() => conselhoModel.update(req.params.id, pickFields(req.body)));
+  res.json({ success: true, data: conselho });
 });
 
 const remove = asyncHandler(async (req, res) => {

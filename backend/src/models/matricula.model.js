@@ -15,7 +15,7 @@ async function findById(id) {
 async function create({ alunoId, turmaId, status }) {
   const [result] = await pool.query(
     'INSERT INTO matriculas (aluno_id, turma_id, status) VALUES (?, ?, ?)',
-    [alunoId, turmaId, status ?? null]
+    [alunoId, turmaId, status ?? 'Ativo']
   );
   return findById(result.insertId);
 }
@@ -29,7 +29,7 @@ async function update(id, data) {
   for (const [key, column] of Object.entries(fieldMap)) {
     if (data[key] !== undefined) {
       columns.push(`${column} = ?`);
-      values.push(data[key]);
+      values.push(key === 'status' ? data[key] ?? 'Ativo' : data[key]);
     }
   }
 

@@ -1,65 +1,46 @@
-const ApiError = require('../utils/ApiError');
+const { isPresent, isNonEmptyString, buildValidators } = require('./rules');
+const { FIELDS } = require('../models/encaminhamento.model');
 
-const ID_FIELDS = ['conselhoId', 'atendimentoId', 'alunoId', 'usuarioResponsavelId'];
-const TEXT_FIELDS = ['observacoes', 'descricaoAcao'];
-const FIELDS = [...ID_FIELDS, ...TEXT_FIELDS, 'categoria', 'status'];
-
-function isPresent(value) {
-  return value !== undefined && value !== null;
-}
-
-function isNonEmptyString(value, maxLength) {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
-}
+const STATUS = ['pendente', 'em-andamento', 'finalizado'];
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function collectErrors(body, isCreate) {
   const errors = [];
 
-  for (const field of ID_FIELDS) {
-    if ((isCreate || body[field] !== undefined) && !Number.isInteger(body[field])) {
-      errors.push(`${field} é obrigatório e deve ser um número inteiro`);
+  if ((isCreate || body.alunoId !== undefined) && !Number.isInteger(body.alunoId)) {
+    errors.push('alunoId é obrigatório e deve ser um número inteiro');
+  }
+  if (body.turmaId !== undefined && !Number.isInteger(body.turmaId)) {
+    errors.push('turmaId deve ser um número inteiro (omita para usar a turma do aluno)');
+  }
+  for (const field of ['conselhoId', 'servidorResponsavelId']) {
+    if (isPresent(body[field]) && !Number.isInteger(body[field])) {
+      errors.push(`${field} deve ser um número inteiro`);
     }
   }
-  for (const field of TEXT_FIELDS) {
-    if (isPresent(body[field]) && typeof body[field] !== 'string') {
-      errors.push(`${field} deve ser um texto`);
-    }
+  if ((isCreate || body.titulo !== undefined) && !isNonEmptyString(body.titulo, 255)) {
+    errors.push('titulo é obrigatório e deve ter no máximo 255 caracteres');
   }
-  if (isPresent(body.categoria) && !isNonEmptyString(body.categoria, 100)) {
-    errors.push('categoria deve ter no máximo 100 caracteres');
+  if ((isCreate || body.categoria !== undefined) && !isNonEmptyString(body.categoria, 80)) {
+    errors.push('categoria é obrigatória e deve ter no máximo 80 caracteres');
   }
-  if (isPresent(body.status) && !isNonEmptyString(body.status, 50)) {
-    errors.push('status deve ter no máximo 50 caracteres');
+  if (isPresent(body.origem) && !isNonEmptyString(body.origem, 80)) {
+    errors.push('origem deve ter no máximo 80 caracteres');
+  }
+  if (isPresent(body.descricaoInicial) && typeof body.descricaoInicial !== 'string') {
+    errors.push('descricaoInicial deve ser um texto');
+  }
+  if (isPresent(body.status) && !STATUS.includes(body.status)) {
+    errors.push(`status deve ser um destes valores: ${STATUS.join(', ')}`);
+  }
+  if (isPresent(body.urgente) && typeof body.urgente !== 'boolean') {
+    errors.push('urgente deve ser um valor booleano');
+  }
+  if (isPresent(body.prazo) && !(DATE_ONLY_REGEX.test(body.prazo) && !Number.isNaN(Date.parse(body.prazo)))) {
+    errors.push('prazo deve ser uma data no formato AAAA-MM-DD');
   }
 
   return errors;
 }
 
-function validateCreate(req, res, next) {
-  const errors = collectErrors(req.body, true);
-
-  if (errors.length > 0) {
-    return next(new ApiError(400, 'Dados inválidos', errors));
-  }
-
-  next();
-}
-
-function validateUpdate(req, res, next) {
-  const errors = collectErrors(req.body, false);
-
-  if (FIELDS.every((field) => req.body[field] === undefined)) {
-    errors.push('Informe ao menos um campo para atualizar');
-  }
-
-  if (errors.length > 0) {
-    return next(new ApiError(400, 'Dados inválidos', errors));
-  }
-
-  next();
-}
-
-module.exports = {
-  validateCreate,
-  validateUpdate
-};
+module.exports = buildValidators(collectErrors, FIELDS);

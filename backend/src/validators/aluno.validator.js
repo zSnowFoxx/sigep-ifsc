@@ -2,6 +2,7 @@ const ApiError = require('../utils/ApiError');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FIELDS = ['matricula', 'nome', 'email', 'status', 'turmaIds'];
+const STATUS = ['Ativo', 'Inativo'];
 
 function isNonEmptyString(value, maxLength) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
@@ -14,18 +15,18 @@ function collectErrors(body, isCreate) {
   if ((isCreate || matricula !== undefined) && !isNonEmptyString(matricula, 20)) {
     errors.push('matricula é obrigatória e deve ter no máximo 20 caracteres');
   }
-  if ((isCreate || nome !== undefined) && !isNonEmptyString(nome, 100)) {
-    errors.push('nome é obrigatório e deve ter no máximo 100 caracteres');
+  if ((isCreate || nome !== undefined) && !isNonEmptyString(nome, 150)) {
+    errors.push('nome é obrigatório e deve ter no máximo 150 caracteres');
   }
   if (
     email !== undefined &&
     email !== null &&
-    (!isNonEmptyString(email, 100) || !EMAIL_REGEX.test(email))
+    (!isNonEmptyString(email, 150) || !EMAIL_REGEX.test(email))
   ) {
-    errors.push('email deve ser um e-mail válido com no máximo 100 caracteres');
+    errors.push('email deve ser um e-mail válido com no máximo 150 caracteres');
   }
-  if (status !== undefined && status !== null && !isNonEmptyString(status, 20)) {
-    errors.push('status deve ter no máximo 20 caracteres');
+  if (status !== undefined && status !== null && !STATUS.includes(status)) {
+    errors.push(`status deve ser um destes valores: ${STATUS.join(', ')}`);
   }
 
   if (turmaIds !== undefined && (!Array.isArray(turmaIds) || !turmaIds.every((id) => Number.isInteger(id)))) {

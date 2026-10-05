@@ -19,12 +19,9 @@ router.use('/diarios', require('./diario.routes'));
 router.use('/alunos', require('./aluno.routes'));
 router.use('/matriculas', require('./matricula.routes'));
 router.use('/notas-frequencias', require('./notaFrequencia.routes'));
-router.use('/situacoes-risco', require('./situacaoRisco.routes'));
 router.use('/conselhos', require('./conselho.routes'));
-router.use('/registros-conselho', require('./registroConselho.routes'));
 router.use('/atendimentos', require('./atendimento.routes'));
 router.use('/encaminhamentos', require('./encaminhamento.routes'));
-router.use('/historico-encaminhamentos', require('./historicoEncaminhamento.routes'));
 router.use('/logs-auditoria', require('./logAuditoria.routes'));
 router.use('/dashboard', require('./dashboard.routes'));
 

@@ -1,7 +1,7 @@
 const { Router } = require('express');
 
-const controller = require('../controllers/pauta.controller');
-const { validateCreate, validateUpdate } = require('../validators/pauta.validator');
+const controller = require('../controllers/conselhoDemanda.controller');
+const { validateCreate, validateUpdate } = require('../validators/conselhoDemanda.validator');
 const validateIdParam = require('../middlewares/validateIdParam');
 
 const router = Router({ mergeParams: true });

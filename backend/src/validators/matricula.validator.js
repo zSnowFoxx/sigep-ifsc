@@ -1,10 +1,7 @@
 const ApiError = require('../utils/ApiError');
 
 const FIELDS = ['alunoId', 'turmaId', 'status'];
-
-function isNonEmptyString(value, maxLength) {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
-}
+const STATUS = ['Ativo', 'Inativo'];
 
 function collectErrors(body, isCreate) {
   const { alunoId, turmaId, status } = body;
@@ -16,8 +13,8 @@ function collectErrors(body, isCreate) {
   if ((isCreate || turmaId !== undefined) && !Number.isInteger(turmaId)) {
     errors.push('turmaId é obrigatório e deve ser um número inteiro');
   }
-  if (status !== undefined && status !== null && !isNonEmptyString(status, 20)) {
-    errors.push('status deve ter no máximo 20 caracteres');
+  if (status !== undefined && status !== null && !STATUS.includes(status)) {
+    errors.push(`status deve ser um destes valores: ${STATUS.join(', ')}`);
   }
 
   return errors;

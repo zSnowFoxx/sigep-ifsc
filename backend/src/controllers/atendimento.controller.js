@@ -1,20 +1,24 @@
 const atendimentoModel = require('../models/atendimento.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
-const { isForeignKeyViolation, isRowReferenced } = require('../utils/dbErrors');
-
-const FK_MESSAGE = 'usuarioId ou alunoId inválido';
+const { isForeignKeyViolation, isNullViolation } = require('../utils/dbErrors');
 
 function pickFields(body) {
-  const {
-    usuarioId,
-    alunoId,
-    dataAtendimento,
-    motivoAtendimento,
-    motivoContato,
-    relatoAtendimento
-  } = body;
-  return { usuarioId, alunoId, dataAtendimento, motivoAtendimento, motivoContato, relatoAtendimento };
+  return Object.fromEntries(atendimentoModel.FIELDS.map((field) => [field, body[field]]));
+}
+
+async function saveOrBadRequest(work) {
+  try {
+    return await work();
+  } catch (error) {
+    if (isNullViolation(error)) {
+      throw new ApiError(400, 'O aluno não está matriculado em nenhuma turma; informe turmaId');
+    }
+    if (isForeignKeyViolation(error)) {
+      throw new ApiError(400, 'alunoId, turmaId ou servidorId inválido');
+    }
+    throw error;
+  }
 }
 
 const getAll = asyncHandler(async (req, res) => {
@@ -33,15 +37,8 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  try {
-    const atendimento = await atendimentoModel.create(pickFields(req.body));
-    res.status(201).json({ success: true, data: atendimento });
-  } catch (error) {
-    if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, FK_MESSAGE);
-    }
-    throw error;
-  }
+  const atendimento = await saveOrBadRequest(() => atendimentoModel.create(pickFields(req.body)));
+  res.status(201).json({ success: true, data: atendimento });
 });
 
 const update = asyncHandler(async (req, res) => {
@@ -50,30 +47,15 @@ const update = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Atendimento não encontrado');
   }
 
-  try {
-    const atendimento = await atendimentoModel.update(req.params.id, pickFields(req.body));
-    res.json({ success: true, data: atendimento });
-  } catch (error) {
-    if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, FK_MESSAGE);
-    }
-    throw error;
-  }
+  const atendimento = await saveOrBadRequest(() => atendimentoModel.update(req.params.id, pickFields(req.body)));
+  res.json({ success: true, data: atendimento });
 });
 
 const remove = asyncHandler(async (req, res) => {
-  const existing = await atendimentoModel.findById(req.params.id);
-  if (!existing) {
-    throw new ApiError(404, 'Atendimento não encontrado');
-  }
+  const removed = await atendimentoModel.remove(req.params.id);
 
-  try {
-    await atendimentoModel.remove(req.params.id);
-  } catch (error) {
-    if (isRowReferenced(error)) {
-      throw new ApiError(409, 'Não é possível excluir: atendimento possui encaminhamentos');
-    }
-    throw error;
+  if (!removed) {
+    throw new ApiError(404, 'Atendimento não encontrado');
   }
 
   res.status(204).send();

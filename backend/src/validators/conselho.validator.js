@@ -1,70 +1,49 @@
-const ApiError = require('../utils/ApiError');
+const { isPresent, isNonEmptyString, isValidDate, isIntegerList, buildValidators } = require('./rules');
 
-const FIELDS = ['nome', 'etapa', 'dataRealizacao', 'local', 'status', 'participanteIds'];
+const FIELDS = ['nome', 'tipo', 'status', 'conselhoOrigemId', 'dataRealizacao', 'turmaIds', 'servidores'];
+const TIPOS = [1, 2];
+const STATUS = ['agendado', 'em_andamento', 'encerrado'];
 
-function isNonEmptyString(value, maxLength) {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
-}
-
-function isValidDate(value) {
-  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
-}
-
-function isIntegerList(value) {
-  return Array.isArray(value) && value.every((id) => Number.isInteger(id));
+function isServidorList(value) {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (s) =>
+        s !== null &&
+        typeof s === 'object' &&
+        Number.isInteger(s.usuarioId) &&
+        (s.presente === undefined || s.presente === null || typeof s.presente === 'boolean')
+    )
+  );
 }
 
 function collectErrors(body, isCreate) {
-  const { nome, etapa, dataRealizacao, local, status, participanteIds } = body;
+  const { nome, tipo, status, conselhoOrigemId, dataRealizacao, turmaIds, servidores } = body;
   const errors = [];
 
-  if ((isCreate || nome !== undefined) && !isNonEmptyString(nome, 150)) {
-    errors.push('nome é obrigatório e deve ter no máximo 150 caracteres');
+  if ((isCreate || nome !== undefined) && !isNonEmptyString(nome, 255)) {
+    errors.push('nome é obrigatório e deve ter no máximo 255 caracteres');
   }
-  if (etapa !== undefined && etapa !== null && !isNonEmptyString(etapa, 50)) {
-    errors.push('etapa deve ter no máximo 50 caracteres');
+  if ((isCreate || tipo !== undefined) && !TIPOS.includes(tipo)) {
+    errors.push('tipo é obrigatório e deve ser 1 (intermediário) ou 2 (final)');
   }
-  if (dataRealizacao !== undefined && dataRealizacao !== null && !isValidDate(dataRealizacao)) {
+  if (isPresent(status) && !STATUS.includes(status)) {
+    errors.push(`status deve ser um destes valores: ${STATUS.join(', ')}`);
+  }
+  if (isPresent(conselhoOrigemId) && !Number.isInteger(conselhoOrigemId)) {
+    errors.push('conselhoOrigemId deve ser um número inteiro');
+  }
+  if (isPresent(dataRealizacao) && !isValidDate(dataRealizacao)) {
     errors.push('dataRealizacao deve ser uma data válida (ISO 8601)');
   }
-  if (local !== undefined && local !== null && !isNonEmptyString(local, 100)) {
-    errors.push('local deve ter no máximo 100 caracteres');
+  if (turmaIds !== undefined && !isIntegerList(turmaIds)) {
+    errors.push('turmaIds deve ser uma lista de números inteiros');
   }
-  if (status !== undefined && status !== null && !isNonEmptyString(status, 50)) {
-    errors.push('status deve ter no máximo 50 caracteres');
-  }
-  if (participanteIds !== undefined && !isIntegerList(participanteIds)) {
-    errors.push('participanteIds deve ser uma lista de números inteiros');
+  if (servidores !== undefined && !isServidorList(servidores)) {
+    errors.push('servidores deve ser uma lista de { usuarioId: número, presente?: boolean }');
   }
 
   return errors;
 }
 
-function validateCreate(req, res, next) {
-  const errors = collectErrors(req.body, true);
-
-  if (errors.length > 0) {
-    return next(new ApiError(400, 'Dados inválidos', errors));
-  }
-
-  next();
-}
-
-function validateUpdate(req, res, next) {
-  const errors = collectErrors(req.body, false);
-
-  if (FIELDS.every((field) => req.body[field] === undefined)) {
-    errors.push('Informe ao menos um campo para atualizar');
-  }
-
-  if (errors.length > 0) {
-    return next(new ApiError(400, 'Dados inválidos', errors));
-  }
-
-  next();
-}
-
-module.exports = {
-  validateCreate,
-  validateUpdate
-};
+module.exports = buildValidators(collectErrors, FIELDS);

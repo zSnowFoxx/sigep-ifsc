@@ -1,7 +1,7 @@
 const pool = require('../config/database');
 const withTransaction = require('../utils/transaction');
 
-const PUBLIC_COLUMNS = ['id', 'siape', 'nome', 'email', 'perfil_id'];
+const PUBLIC_COLUMNS = ['id', 'siape', 'nome', 'email', 'perfil_id', 'curso_id'];
 
 async function attachFuncoes(user) {
   if (!user) {
@@ -9,7 +9,7 @@ async function attachFuncoes(user) {
   }
 
   const [rows] = await pool.query(
-    'SELECT funcao_id FROM usuario_funcoes WHERE usuario_id = ?',
+    'SELECT funcao_id FROM usuarios_funcoes WHERE usuario_id = ?',
     [user.id]
   );
 
@@ -53,13 +53,13 @@ async function findProfileBySiape(siape) {
 
   const [[funcoes], [disciplinas], [cursos]] = await Promise.all([
     pool.query(
-      `SELECT f.nome FROM usuario_funcoes uf
+      `SELECT f.nome FROM usuarios_funcoes uf
        JOIN funcoes f ON f.id = uf.funcao_id
        WHERE uf.usuario_id = ? ORDER BY f.nome`,
       [user.id]
     ),
     pool.query(
-      `SELECT d.nome FROM usuario_disciplinas ud
+      `SELECT d.nome FROM usuarios_disciplinas ud
        JOIN disciplinas d ON d.id = ud.disciplina_id
        WHERE ud.usuario_id = ? ORDER BY d.nome`,
       [user.id]
@@ -80,18 +80,18 @@ async function findProfileBySiape(siape) {
 }
 
 async function updatePassword(id, passwordHash) {
-  await pool.query('UPDATE usuarios SET password = ? WHERE id = ?', [passwordHash, id]);
+  await pool.query('UPDATE usuarios SET senha = ? WHERE id = ?', [passwordHash, id]);
 }
 
 async function setFuncoes(connection, usuarioId, funcaoIds) {
-  await connection.query('DELETE FROM usuario_funcoes WHERE usuario_id = ?', [usuarioId]);
+  await connection.query('DELETE FROM usuarios_funcoes WHERE usuario_id = ?', [usuarioId]);
 
   if (!funcaoIds || funcaoIds.length === 0) {
     return;
   }
 
   const values = [...new Set(funcaoIds)].map((funcaoId) => [usuarioId, funcaoId]);
-  await connection.query('INSERT INTO usuario_funcoes (usuario_id, funcao_id) VALUES ?', [values]);
+  await connection.query('INSERT INTO usuarios_funcoes (usuario_id, funcao_id) VALUES ?', [values]);
 }
 
 async function addDisciplinas(connection, usuarioId, disciplinaIds) {
@@ -100,7 +100,7 @@ async function addDisciplinas(connection, usuarioId, disciplinaIds) {
   }
 
   const values = [...new Set(disciplinaIds)].map((disciplinaId) => [usuarioId, disciplinaId]);
-  await connection.query('INSERT INTO usuario_disciplinas (usuario_id, disciplina_id) VALUES ?', [values]);
+  await connection.query('INSERT INTO usuarios_disciplinas (usuario_id, disciplina_id) VALUES ?', [values]);
 }
 
 // disciplinaIds (disciplinas lecionadas) e cursoIds (cursos coordenados) são usados no autocadastro.
@@ -109,7 +109,7 @@ async function create(data) {
 
   await withTransaction(async (connection) => {
     const [result] = await connection.query(
-      `INSERT INTO usuarios (siape, nome, email, password, perfil_id)
+      `INSERT INTO usuarios (siape, nome, email, senha, perfil_id)
        VALUES (?, ?, ?, ?, ?)`,
       [siape, nome, email, passwordHash, perfilId]
     );
@@ -137,7 +137,7 @@ async function update(siape, data) {
   const fieldMap = {
     nome: 'nome',
     email: 'email',
-    passwordHash: 'password',
+    passwordHash: 'senha',
     perfilId: 'perfil_id'
   };
 

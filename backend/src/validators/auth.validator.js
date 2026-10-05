@@ -13,7 +13,7 @@ function isIntegerList(value) {
 
 function isInstitutionalEmail(email) {
   return (
-    isNonEmptyString(email, 100) &&
+    isNonEmptyString(email, 150) &&
     EMAIL_REGEX.test(email) &&
     email.trim().toLowerCase().endsWith(INSTITUTIONAL_DOMAIN)
   );
@@ -46,7 +46,7 @@ function validateOtpVerify(req, res, next) {
   const { email, codigo } = req.body;
   const errors = [];
 
-  if (!isNonEmptyString(email, 100) || !EMAIL_REGEX.test(email)) {
+  if (!isNonEmptyString(email, 150) || !EMAIL_REGEX.test(email)) {
     errors.push('email é obrigatório e deve ser um e-mail válido');
   }
   if (typeof codigo !== 'string' || !/^\d{6}$/.test(codigo.trim())) {
@@ -63,8 +63,8 @@ function validateRegister(req, res, next) {
   if (!isNonEmptyString(siape, 7)) {
     errors.push('siape é obrigatório e deve ter no máximo 7 caracteres');
   }
-  if (!isNonEmptyString(nome, 100)) {
-    errors.push('nome é obrigatório e deve ter no máximo 100 caracteres');
+  if (!isNonEmptyString(nome, 150)) {
+    errors.push('nome é obrigatório e deve ter no máximo 150 caracteres');
   }
   if (!isInstitutionalEmail(email)) {
     errors.push(`email é obrigatório e deve ser do domínio ${INSTITUTIONAL_DOMAIN}`);
@@ -92,7 +92,7 @@ function validateLogin(req, res, next) {
   const { email, senha } = req.body;
   const errors = [];
 
-  if (!isNonEmptyString(email, 100)) {
+  if (!isNonEmptyString(email, 150)) {
     errors.push('email é obrigatório');
   }
   if (typeof senha !== 'string' || senha.length === 0) {
@@ -105,7 +105,7 @@ function validateLogin(req, res, next) {
 function validateForgotPassword(req, res, next) {
   const errors = [];
 
-  if (!isNonEmptyString(req.body.email, 100) || !EMAIL_REGEX.test(req.body.email)) {
+  if (!isNonEmptyString(req.body.email, 150) || !EMAIL_REGEX.test(req.body.email)) {
     errors.push('email é obrigatório e deve ser um e-mail válido');
   }
 
@@ -116,7 +116,7 @@ function validateResetPassword(req, res, next) {
   const { email, codigo, novaSenha } = req.body;
   const errors = [];
 
-  if (!isNonEmptyString(email, 100) || !EMAIL_REGEX.test(email)) {
+  if (!isNonEmptyString(email, 150) || !EMAIL_REGEX.test(email)) {
     errors.push('email é obrigatório e deve ser um e-mail válido');
   }
   if (typeof codigo !== 'string' || !/^\d{6}$/.test(codigo.trim())) {
@@ -133,7 +133,7 @@ function validateChangePassword(req, res, next) {
   const { email, senhaAtual, novaSenha } = req.body;
   const errors = [];
 
-  if (!isNonEmptyString(email, 100) || !EMAIL_REGEX.test(email)) {
+  if (!isNonEmptyString(email, 150) || !EMAIL_REGEX.test(email)) {
     errors.push('email é obrigatório e deve ser um e-mail válido');
   }
   if (typeof senhaAtual !== 'string' || senhaAtual.length === 0) {

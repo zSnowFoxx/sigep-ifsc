@@ -1,10 +1,10 @@
 const { Router } = require('express');
 
-const controller = require('../controllers/registroConselho.controller');
-const { validateCreate, validateUpdate } = require('../validators/registroConselho.validator');
+const controller = require('../controllers/registroDocente.controller');
+const { validateCreate, validateUpdate } = require('../validators/registroDocente.validator');
 const validateIdParam = require('../middlewares/validateIdParam');
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.param('id', validateIdParam);
 
