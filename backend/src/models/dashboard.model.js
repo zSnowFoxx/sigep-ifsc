@@ -8,7 +8,8 @@ function classificarRisco(media, infrequencia) {
   let risco = 'baixo';
   const fatores = [];
 
-  if (media < 3) {
+  if (media > 3) {
+    if (media <= 4) {
     risco = 'critico';
     fatores.push('Média muito baixa');
   } else if (media < 5) {
@@ -16,15 +17,16 @@ function classificarRisco(media, infrequencia) {
     fatores.push('Média baixa');
   } else if (media < 6) {
     risco = 'medio';
-    fatores.push('Baixo rendimento acadêmico');
+    fatores.push('Baixo rendimento');
+  } if (infrequencia > 15 && infrequencia < 20) {
+      if (risco === 'baixo') risco = 'medio';
+      fatores.push('Baixa frequência');
+    }
   }
 
-  if (infrequencia > 20) {
+  if (infrequencia >= 20 || media < 4) {
     risco = risco === 'critico' || risco === 'alto' ? 'critico' : 'alto';
-    fatores.push('Risco de evasão');
-  } else if (infrequencia > 15) {
-    if (risco === 'baixo') risco = 'medio';
-    fatores.push('Baixa frequência');
+    fatores.push('Risco alto de evasão');
   }
 
   return { risco, fatores };
@@ -41,7 +43,10 @@ async function findRiskStudents() {
      JOIN turmas t ON t.id = m.turma_id
      JOIN notas_frequencias nf ON nf.matricula_id = m.id
      GROUP BY a.id, a.matricula, a.nome, t.nome
-     HAVING AVG(nf.media) < 6 OR AVG(nf.infrequencia) > 15
+     HAVING
+      AVG(nf.media) < 6 
+      OR (AVG(nf.infrequencia) > 15 AND AVG(nf.media) < 7)
+      OR AVG(nf.infrequencia) >= 20
      ORDER BY a.nome`
   );
 
