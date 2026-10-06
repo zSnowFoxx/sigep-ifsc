@@ -1,18 +1,13 @@
-import type { ElementType } from "react";
-
-// ── 1. Modos e Navegação ─────────────────────────────────────────────────────
-export type ModoConselho = "intermediario" | "final";
 export type TabId = 1 | 2 | 3 | 4;
 
-export interface TabDef {
-  id: TabId;
-  label: string;
-  icon: ElementType;
-  short: string;
-  displayNum: number;
-}
+export type ConselhoMode = "intermediario" | "final";
 
-// ── 2. Participantes e Turmas ────────────────────────────────────────────────
+export type EncStatus = "pendente" | "em-andamento" | "finalizado";
+
+export type GravidadeDemanda = "nao-urgente" | "urgente" | "critica";
+
+export type EncEvolucaoTipo = "criacao" | "triagem" | "relato" | "conclusao";
+
 export interface Professor {
   nome: string;
   disciplina: string;
@@ -28,15 +23,27 @@ export interface Aluno {
   turma?: string;
 }
 
-export interface TurmaData {
-  nome: string;
-  alunosList: Aluno[];
-  coord: string;
-  semestre: string;
+export interface EncItemData {
+  id: number;
+  titulo: string;
+  categoria: string;
+  aluno: string;
+  matricula: string;
+  turma: string;
+  status: EncStatus;
+  data: string;
+  servidor: string;
+  descricao: string;
 }
 
-// ── 3. Demandas Coletivas da Turma (Aba 2) ────────────────────────────────────
-export type GravidadeDemanda = "nao-urgente" | "urgente" | "critica";
+export interface AlunoEval {
+  risco: boolean;
+  obs: string;
+  encaminhamento: string;
+  acao: string;
+  servidor: string;
+  saved: boolean;
+}
 
 export interface DemandaItem {
   id: number;
@@ -55,8 +62,14 @@ export interface TurmaForm {
   registros: string;
 }
 
-// ── 4. Disciplinas e Avaliação Discente (Aba 4) ──────────────────────────────
-export interface DisciplinaData {
+export interface TurmaData {
+  nome: string;
+  alunosList: Aluno[];
+  coord: string;
+  semestre: string;
+}
+
+export interface Disciplina {
   nome: string;
   professor: string;
   ch: number;
@@ -65,18 +78,6 @@ export interface DisciplinaData {
   faltasJust: number;
   faltasNaoJust: number;
 }
-
-export interface AlunoEval {
-  risco: boolean;
-  obs: string;
-  encaminhamento: string;
-  acao: string;
-  servidor: string;
-  saved: boolean;
-}
-
-// ── 5. Registros Docentes e Encaminhamentos (Aba 3) ─────────────────────────
-export type OpcaoEncaminhamento = "novo" | "existente" | null;
 
 export interface RegistroDocente {
   id: number;
@@ -88,44 +89,35 @@ export interface RegistroDocente {
   docente: string;
   data: string;
   descricao: string;
-  encOpcao: OpcaoEncaminhamento;
+  encOpcao: "novo" | "existente" | null;
   encId: number | null;
 }
 
-export type StatusEncaminhamento = "pendente" | "em-andamento" | "finalizado";
-
-export interface EncItemData {
+export interface Enc {
   id: number;
-  titulo: string;
   categoria: string;
-  aluno: string;
-  matricula: string;
-  turma: string;
-  status: StatusEncaminhamento;
-  data: string;
-  servidor: string;
   descricao: string;
+  servidor: string;
 }
-
-export type TipoEncEvolucao = "criacao" | "triagem" | "relato" | "conclusao";
 
 export interface EncEvolucao {
   data: string;
   autor: string;
   texto: string;
-  tipo: TipoEncEvolucao;
+  tipo: EncEvolucaoTipo;
 }
 
-export interface EncAtivoAluno {
-  id: number;
-  categoria: string;
-  descricao: string;
-  servidor: string;
-}
 
-// ── 6. Props do Componente Principal ─────────────────────────────────────────
+export type TabDef = { 
+    id: TabId; 
+    label: string; 
+    icon: React.ElementType; 
+    short: string; 
+    displayNum: number 
+};
+
 export interface ConselhoDeClasseProps {
   onNavigate?: (page: number) => void;
   onBack?: () => void;
-  mode?: ModoConselho;
+  mode?: ConselhoMode;
 }

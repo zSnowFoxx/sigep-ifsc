@@ -151,7 +151,7 @@ export default function App() {
                   onEnterConselho={(tipo) => { setConselhoTipo(tipo); setConselhoMode("workspace"); }}
                 />
               ) : (
-                <ConselhoDeClasse onNavigate={setActiveNav} onBack={() => setConselhoMode("list")} mode={conselhoTipo} />
+                <ConselhoDeClasse onBack={() => setConselhoMode("list")} mode={conselhoTipo} />
               )
             )}
 
