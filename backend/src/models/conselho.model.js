@@ -75,8 +75,8 @@ async function setServidores(connection, conselhoId, servidores) {
     ids
   ]);
   await connection.query(
-    `INSERT INTO conselhos_servidores (conselho_id, usuario_id, presente) VALUES ? AS novo
-     ON DUPLICATE KEY UPDATE presente = COALESCE(novo.presente, conselhos_servidores.presente)`,
+    `INSERT INTO conselhos_servidores (conselho_id, usuario_id, presente) VALUES ?
+     ON DUPLICATE KEY UPDATE presente = COALESCE(VALUES(presente), conselhos_servidores.presente)`,
     [servidores.map((s) => [conselhoId, s.usuarioId, s.presente ?? null])]
   );
 }

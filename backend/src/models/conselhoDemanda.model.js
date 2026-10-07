@@ -16,10 +16,18 @@ const FIELD_MAP = {
 // mysql2 expande objetos/arrays ligados a "?", então colunas JSON precisam ir serializadas.
 const toJsonArray = (value) => JSON.stringify(value ?? []);
 
-async function attachDemandasGerais(demandas) {
-  if (demandas.length === 0) {
-    return demandas;
+const fromJsonArray = (value) => (typeof value === 'string' ? JSON.parse(value) : value ?? []);
+
+async function attachDemandasGerais(rows) {
+  if (rows.length === 0) {
+    return rows;
   }
+
+  const demandas = rows.map((row) => ({
+    ...row,
+    pontos_positivos: fromJsonArray(row.pontos_positivos),
+    dificuldades_apontadas: fromJsonArray(row.dificuldades_apontadas)
+  }));
 
   const [gerais] = await pool.query(
     `SELECT id, conselho_demanda_id, situacao, gravidade
