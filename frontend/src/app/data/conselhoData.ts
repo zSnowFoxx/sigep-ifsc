@@ -1,4 +1,5 @@
-import type { Professor, Aluno, TurmaData, EncItemData, Disciplina } from "../types/conselho";
+import type { Professor, Aluno, TurmaData, EncItemData, Disciplina, ReuniaoAberta, ReuniaoRealizada, Participante } from "../types/conselho";
+import { initialCards } from "../data/encaminhamentosData";
 
 export const professores: Professor[] = [
   { nome: "Prof. Ricardo Alves",   disciplina: "Algoritmos e Programação",   cargo: "Professor",         presente: true  },
@@ -45,12 +46,7 @@ export const turmasData: TurmaData[] = [
   { nome: "Mecatrônica - 3ª Fase", alunosList: alunosTurmaB, coord: "Prof. Eduardo Santos", semestre: "2026.1" },
 ];
 
-export const mockEncaminhamentos: EncItemData[] = [
-  { id: 100, titulo: "Apoio pedagógico — João Silva",        categoria: "Dificuldade de aprendizagem", aluno: "João Silva",       matricula: "202110806528", turma: "TDS - 2ª Fase",         status: "em-andamento", data: "10/05/2026", servidor: "Coord. Pedagógica — Profa. Renata Dias", descricao: "Aluno com dificuldades contínuas em Algoritmos e Banco de Dados." },
-  { id: 101, titulo: "Acompanhamento — Lucas Mendes",        categoria: "Baixa frequência",            aluno: "Lucas Mendes",     matricula: "202210812788",  turma: "TDS - 2ª Fase",         status: "pendente",     data: "15/05/2026", servidor: "NAE — Psic. Carlos Lima",               descricao: "Frequência abaixo do mínimo exigido por questões de saúde." },
-  { id: 102, titulo: "Atendimento NAE — Breno Cavalcante",   categoria: "Saúde / Bem-estar",           aluno: "Breno Cavalcante", matricula: "202310871234",  turma: "Mecatrônica - 3ª Fase", status: "pendente",     data: "20/05/2026", servidor: "NAE — Psic. Carlos Lima",               descricao: "Aluno relatou problemas de saúde mental impactando desempenho." },
-  { id: 103, titulo: "Reforço — Maria Oliveira",             categoria: "Desempenho acadêmico",        aluno: "Maria Oliveira",   matricula: "202210809911",  turma: "TDS - 2ª Fase",         status: "finalizado",   data: "28/04/2026", servidor: "Monitoria — Dept. Técnico",             descricao: "Aluna com alta frequência mas notas abaixo da média." },
-];
+export const mockEncaminhamentos: EncItemData[] = initialCards;
 
 export const disciplinasData: Record<string, Disciplina[]> = {
   "202110806528": [
@@ -140,3 +136,178 @@ export const ENC_TIPO_CONF = {
   relato:    { color: "#2563eb",        label: "Relato",    dot: "bg-blue-500" },
   conclusao: { color: "#15803d",        label: "Conclusão", dot: "bg-emerald-500" },
 } as const;
+
+
+// Conselhos Lista
+
+export const reunioesAbertasMock: ReuniaoAberta[] = [
+  {
+    id: 1,
+    titulo:
+      "Conselho de Classe Intermediário — Curso Técnico em Desenvolvimento de Sistemas",
+    etapa: "Intermediário",
+    curso: "Técnico Integrado",
+    status: "em_andamento",
+    criadoEm: "24/06",
+    docentes: 9,
+    rascunho: true,
+    turmas: ["TDS - 2ª Fase", "Mecatrônica - 3ª Fase"],
+    progresso: 20,
+  },
+  {
+    id: 2,
+    titulo: "Pré-Conselho — Mecatrônica 4ª Fase",
+    etapa: "Pré-Conselho",
+    curso: "Técnico Integrado",
+    status: "agendado",
+    data: "02/07/2026",
+    hora: "14:00",
+    docentes: 11,
+    rascunho: false,
+    turmas: ["Mecatrônica - 4ª Fase"],
+    progresso: 0,
+  },
+  {
+    id: 3,
+    titulo: "Conselho Final — Administração 1ª e 2ª Fase",
+    etapa: "Final",
+    curso: "Técnico Integrado",
+    status: "agendado",
+    data: "10/07/2026",
+    hora: "09:00",
+    docentes: 14,
+    rascunho: false,
+    turmas: ["Administração - 1ª Fase", "Administração - 2ª Fase"],
+    progresso: 0,
+  },
+  {
+    id: 4,
+    titulo: "Pré-Conselho — Informática para Internet 3ª Fase",
+    etapa: "Pré-Conselho",
+    curso: "Técnico Integrado",
+    status: "agendado",
+    data: "08/07/2026",
+    hora: "14:00",
+    docentes: 9,
+    rascunho: false,
+    turmas: ["Informática - 3ª Fase"],
+    progresso: 0,
+  },
+];
+
+export const reunioesRealizadasMock: ReuniaoRealizada[] = [
+  {
+    id: 10,
+    titulo: "Conselho Intermediário — Técnico em Administração 3ª e 4ª Fase",
+    etapa: "Intermediário",
+    curso: "Técnico Integrado",
+    data: "10/06/2026",
+    docentes: 13,
+    ata: "Ata_Adm_3_4_Intermediario_2026.pdf",
+  },
+  {
+    id: 11,
+    titulo: "Pré-Conselho — Mecatrônica 2ª Fase",
+    etapa: "Pré-Conselho",
+    curso: "Técnico Integrado",
+    data: "03/06/2026",
+    docentes: 10,
+    ata: "Ata_Meca_2_PreConselho_2026.pdf",
+  },
+  {
+    id: 12,
+    titulo: "Conselho Final — TDS 3ª e 4ª Fase",
+    etapa: "Final",
+    curso: "Técnico Integrado",
+    data: "28/05/2026",
+    docentes: 15,
+    ata: "Ata_TDS_3_4_Final_2026.pdf",
+  },
+  {
+    id: 13,
+    titulo: "Conselho Intermediário — Informática para Internet 1ª Fase",
+    etapa: "Intermediário",
+    curso: "Técnico Integrado",
+    data: "20/05/2026",
+    docentes: 8,
+    ata: "Ata_Info_1_Intermediario_2026.pdf",
+  },
+];
+
+export const etapaColors: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  "Pré-Conselho": {
+    bg: "#f0f9ff",
+    text: "#0369a1",
+    border: "#bae6fd",
+  },
+  Intermediário: {
+    bg: "#fdf4ff",
+    text: "#7e22ce",
+    border: "#e9d5ff",
+  },
+  Final: { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" },
+};
+
+export const turmasDisponiveis = [
+  "TDS - 1ª Fase",
+  "TDS - 2ª Fase",
+  "TDS - 3ª Fase",
+  "TDS - 4ª Fase",
+  "Mecatrônica - 1ª Fase",
+  "Mecatrônica - 2ª Fase",
+  "Mecatrônica - 3ª Fase",
+  "Mecatrônica - 4ª Fase",
+  "Administração - 1ª Fase",
+  "Administração - 2ª Fase",
+  "Informática - 1ª Fase",
+  "Informática - 2ª Fase",
+  "Informática - 3ª Fase",
+];
+
+export const conselhosOrigem = [
+  "Pré-Conselho - TDS 1ª e 2ª Fase (Concluído em 10/05)",
+  "Pré-Conselho - Mecatrônica 4ª Fase (Concluído em 03/06)",
+  "Conselho Intermediário - Administração 3ª e 4ª Fase (Concluído em 10/06)",
+];
+
+export const defaultParticipantes: Participante[] = [
+  {
+    id: 1,
+    nome: "Prof. Alberto",
+    label: "TDS 1ª - Importado",
+    tipo: "importado",
+  },
+  {
+    id: 2,
+    nome: "Prof. Marcos",
+    label: "TDS 2ª - Importado",
+    tipo: "importado",
+  },
+  {
+    id: 3,
+    nome: "Prof. Roberto",
+    label: "Convidado - Manual",
+    tipo: "manual",
+  },
+  {
+    id: 4,
+    nome: "Tec. Claudia",
+    label: "Equipe NAE - Manual",
+    tipo: "manual",
+  },
+];
+
+export const servidoresCatalogo = [
+  "Prof. Ana Costa",
+  "Prof. Ricardo Alves",
+  "Profa. Camila Torres",
+  "Prof. Henrique Lopes",
+  "Profa. Sandra Melo",
+  "Prof. Fábio Carvalho",
+  "Profa. Juliana Neves",
+  "Profa. Renata Dias",
+  "Carlos Lima (Psicólogo)",
+];

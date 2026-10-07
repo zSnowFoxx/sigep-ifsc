@@ -16,12 +16,11 @@ import ConselhoHeader from "../components/Conselho/Abas/ConselhoHeader";
 // Importação de Modals
 import ModalRegistro from "../components/Conselho/Modals/ModalRegistro";
 import ModalEncaminhamento from "../components/Conselho/Modals/ModalEncaminhamento";
-import ModalDetalhes from "../components/Conselho/Modals/ModalDetalhes";
+import EncaminhamentosCard from "../components/Encaminhamentos/EncaminhamentosCard";
 
 // Importação de tipos e data (enquanto não conectado com servidor)
-import type { EncItemData, AlunoEval, ConselhoDeClasseProps, TabId, EncEvolucao, Enc, TabDef } from "../types/conselho";
+import type { EncItemData, AlunoEval, ConselhoDeClasseProps, TabId, TabDef, TurmaForm } from "../types/conselho";
 import { professores, alunos, alunosTurmaB, turmasData, PONTOS_PRESET, DIFIC_PRESET, mockEncaminhamentos, defaultDisciplinas, disciplinasData,
-  ENC_CATEGORIA_CORES, ENC_TIPO_CONF,
  } from "../data/conselhoData";
 
 
@@ -37,17 +36,6 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
   );
 
   // Tab 2 — Demandas Gerais (per-turma structured form)
-  interface DemandaItem { id: number; situacao: string; gravidade: "nao-urgente" | "urgente" | "critica" }
-  interface TurmaForm {
-    representantes: string;
-    sintese: string;
-    pontosPositivos: string[];
-    customPontos: string[];
-    dificuldades: string[];
-    customDificuldades: string[];
-    demandas: DemandaItem[];
-    registros: string;
-  }
   const emptyForm = (): TurmaForm => ({
     representantes: "", sintese: "",
     pontosPositivos: [], customPontos: [],
@@ -121,15 +109,61 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
     if (!nrAluno || !nrTitulo || !nrCategoria || !nrDescricao) return;
     const newReg: RegistroDocente = { id: registroIdRef.current++, titulo: nrTitulo, categoria: nrCategoria, aluno: nrAluno, matricula: nrMatricula, turma: nrTurma, docente: nrDocente, data: todayFmt, descricao: nrDescricao, encOpcao: nrEncOpcao, encId: nrEncId };
     setRegistros((prev) => [...prev, newReg]);
-    if (nrEncOpcao === "novo") setEncList((prev) => [...prev, { id: encItemIdRef.current++, titulo: `Encaminhamento — ${nrAluno}`, categoria: nrCategoria, aluno: nrAluno, matricula: nrMatricula, turma: nrTurma, status: "pendente", data: todayFmt, servidor: "", descricao: nrDescricao }]);
+    if (nrEncOpcao === "novo") {
+      setEncList((prev) => [
+        ...prev,
+        {
+          id: encItemIdRef.current++,
+          titulo: `Encaminhamento — ${nrAluno}`,
+          aluno: nrAluno,
+          matricula: nrMatricula,
+          turma: nrTurma,
+          origem: "Conselho de Classe",
+          categoria: nrCategoria,
+          responsavel: "", // ou o nome do docente/servidor, ex: docenteLogado
+          descricao: nrDescricao,
+          urgente: false,
+          status: "pendente",
+          parecer: "",
+          evolucoes: [
+            {
+              data: todayFmt,
+              autor: "Conselho de Classe", // ou o autor do registro
+              texto: nrDescricao || "Encaminhamento gerado no Conselho de Classe.",
+              tipo: "criacao",
+            },
+          ],
+        },
+      ]);
+    }
     setNrAluno(""); setNrMatricula(""); setNrTurma(""); setNrDocente("Prof. Ricardo Alves"); setNrTitulo(""); setNrCategoria(""); setNrDescricao(""); setNrEncOpcao(null); setNrEncId(null); setNrDiscManual({}); setNovoRegOpen(false);
   };
   const submitNovoEnc = () => {
     if (!neAluno || !neTitulo || !neCategoria) return;
     const newId = encItemIdRef.current++;
-    const newEnc: EncItemData = { id: newId, titulo: neTitulo, categoria: neCategoria, aluno: neAluno, matricula: neMatricula, turma: neTurma, status: "pendente", data: todayFmt, servidor: neServidor, descricao: neDescricao };
+    const newEnc: EncItemData = {
+      id: newId,
+      titulo: neTitulo,
+      aluno: neAluno,
+      matricula: neMatricula,
+      turma: neTurma,
+      origem: "Conselho de Classe", // ou "Geral"
+      categoria: neCategoria,
+      responsavel: neServidor, // neServidor é atribuído ao responsavel
+      descricao: neDescricao,
+      urgente: false,
+      status: "pendente",
+      parecer: "",
+      evolucoes: [
+        {
+          data: todayFmt,
+          autor: neServidor || "Sistema",
+          texto: neDescricao || "Encaminhamento registrado.",
+          tipo: "criacao",
+        },
+      ],
+    };
     setEncList((prev) => [...prev, newEnc]);
-    setEncEvolucoes((prev) => ({ ...prev, [newId]: [{ data: todayFmt, autor: neServidor || "Sistema", texto: neDescricao, tipo: "criacao" as const }] }));
     setNeAluno(""); setNeMatricula(""); setNeTurma(""); setNeTitulo(""); setNeCategoria(""); setNeDescricao(""); setNeServidor(""); setNovoEncOpen(false);
   };
 
@@ -143,17 +177,17 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
   const closeEncDetail = () => { setSelectedEnc(null); setEncFinalizando(false); };
   const saveEncRelato = () => {
     if (!selectedEnc || !encNovoRelato.trim()) return;
-    const ev: EncEvolucao = { data: todayFmt, autor: "Prof. Ricardo Alves", texto: encNovoRelato.trim(), tipo: "relato" };
-    setEncEvolucoes((prev) => ({ ...prev, [selectedEnc.id]: [...(prev[selectedEnc.id] ?? []), ev] }));
     setEncNovoRelato("");
     setEncSavedRelato(true);
   };
   const finalizarEncDetail = () => {
     if (!selectedEnc || !encParecerFinal.trim()) return;
-    const ev: EncEvolucao = { data: todayFmt, autor: "Prof. Ricardo Alves", texto: encParecerFinal.trim(), tipo: "conclusao" };
-    setEncEvolucoes((prev) => ({ ...prev, [selectedEnc.id]: [...(prev[selectedEnc.id] ?? []), ev] }));
-    setEncList((prev) => prev.map((e) => e.id === selectedEnc.id ? { ...e, status: "finalizado" } : e));
-    setSelectedEnc((prev) => prev ? { ...prev, status: "finalizado" } : null);
+    setEncList((prev) =>
+      prev.map((e) => (e.id === selectedEnc.id ? { ...e, status: "concluido" } : e))
+    );
+    setSelectedEnc((prev) =>
+      prev ? { ...prev, status: "concluido" } : null
+    );
     setEncFinalizando(false);
     setEncParecerFinal("");
   };
@@ -168,9 +202,6 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
   const [abonoText, setAbonoText] = useState("");
 
   // Per-student encaminhamentos list
-  const [encAtivos, setEncAtivos] = useState<Record<string, Enc[]>>({});
-  const [encModalOpen, setEncModalOpen] = useState(false);
-  const encNextId    = useRef(1);
   const demandaIdRef = useRef(1);
 
   // Tab 3 — Registros e Encaminhamentos
@@ -210,8 +241,7 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
   const [encSavedRelato, setEncSavedRelato] = useState(false);
   const [encFinalizando, setEncFinalizando] = useState(false);
   const [encParecerFinal, setEncParecerFinal] = useState("");
-  const [encEvolucoes, setEncEvolucoes] = useState<Record<number, EncEvolucao[]>>(
-    Object.fromEntries(mockEncaminhamentos.map((e) => [e.id, [{ data: e.data, autor: e.servidor || "Sistema", texto: e.descricao, tipo: "criacao" as const }]]))
+    Object.fromEntries(mockEncaminhamentos.map((e) => [e.id, e.evolucoes ?? []])
   );
 
   const totalAlunos  = alunos.length + alunosTurmaB.length;
@@ -326,11 +356,6 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
             abonoText={abonoText}
             setAbonoText={setAbonoText}
             updateEval={updateEval}
-            encAtivos={encAtivos}
-            setEncAtivos={setEncAtivos}
-            encModalOpen={encModalOpen}
-            setEncModalOpen={setEncModalOpen}
-            encNextId={encNextId}
             saveEval={saveEval}
           />
         )}
@@ -401,23 +426,20 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
 
       {/* ── Modal: Detalhes do Encaminhamento ──────────────────────────────── */}
       {selectedEnc && (
-          <ModalDetalhes
-            selectedEnc={selectedEnc}
-            closeEncDetail={closeEncDetail}
-            ENC_CATEGORIA_CORES={ENC_CATEGORIA_CORES}
-            encEvolucoes={encEvolucoes}
-            ENC_TIPO_CONF={ENC_TIPO_CONF}
-            encNovoRelato={encNovoRelato}
-            setEncNovoRelato={setEncNovoRelato}
-            encSavedRelato={encSavedRelato}
-            setEncSavedRelato={setEncSavedRelato}
-            encFinalizando={encFinalizando}
-            setEncFinalizando={setEncFinalizando}
-            encParecerFinal={encParecerFinal}
-            setEncParecerFinal={setEncParecerFinal}
-            saveEncRelato={saveEncRelato}
-            finalizarEncDetail={finalizarEncDetail}
-          />
+        <EncaminhamentosCard
+          selected={selectedEnc}
+          onClose={closeEncDetail}
+          novoRelato={encNovoRelato}
+          setNovoRelato={setEncNovoRelato}
+          savedRelato={encSavedRelato}
+          setSavedRelato={setEncSavedRelato}
+          saveRelato={saveEncRelato}
+          finalizando={encFinalizando}
+          setFinalizando={setEncFinalizando}
+          parecerFinal={encParecerFinal}
+          setParecerFinal={setEncParecerFinal}
+          finalizar={finalizarEncDetail}
+        />
       )}
 
     </div>

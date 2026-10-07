@@ -1,12 +1,12 @@
+import type React from "react";
+
+// Re-exportação para manter compatibilidade com arquivos que importavam de conselho.ts
+export type { Encaminhamento as EncItemData, Evolucao as EncEvolucao, Enc, EncStatus, EncEvolucaoTipo } from "./encaminhamentos";
+
 export type TabId = 1 | 2 | 3 | 4;
-
 export type ConselhoMode = "intermediario" | "final";
-
-export type EncStatus = "pendente" | "em-andamento" | "finalizado";
-
 export type GravidadeDemanda = "nao-urgente" | "urgente" | "critica";
-
-export type EncEvolucaoTipo = "criacao" | "triagem" | "relato" | "conclusao";
+export type EtapaConselho = "Intermediário" | "Pré-Conselho" | "Final";
 
 export interface Professor {
   nome: string;
@@ -21,19 +21,6 @@ export interface Aluno {
   atencao: boolean;
   risco?: boolean;
   turma?: string;
-}
-
-export interface EncItemData {
-  id: number;
-  titulo: string;
-  categoria: string;
-  aluno: string;
-  matricula: string;
-  turma: string;
-  status: EncStatus;
-  data: string;
-  servidor: string;
-  descricao: string;
 }
 
 export interface AlunoEval {
@@ -93,31 +80,60 @@ export interface RegistroDocente {
   encId: number | null;
 }
 
-export interface Enc {
-  id: number;
-  categoria: string;
-  descricao: string;
-  servidor: string;
-}
-
-export interface EncEvolucao {
-  data: string;
-  autor: string;
-  texto: string;
-  tipo: EncEvolucaoTipo;
-}
-
-
-export type TabDef = { 
-    id: TabId; 
-    label: string; 
-    icon: React.ElementType; 
-    short: string; 
-    displayNum: number 
+export type TabDef = {
+  id: TabId;
+  label: string;
+  icon: React.ElementType;
+  short: string;
+  displayNum: number;
 };
 
 export interface ConselhoDeClasseProps {
   onNavigate?: (page: number) => void;
   onBack?: () => void;
   mode?: ConselhoMode;
+}
+
+export interface ReuniaoAberta {
+  id: number;
+  titulo: string;
+  etapa: EtapaConselho;
+  curso: string;
+  status: "em_andamento" | "agendado";
+  criadoEm?: string;
+  data?: string;
+  hora?: string;
+  docentes: number;
+  rascunho: boolean;
+  turmas: string[];
+  progresso: number;
+}
+
+export interface ReuniaoRealizada {
+  id: number;
+  titulo: string;
+  etapa: EtapaConselho;
+  curso: string;
+  data: string;
+  docentes: number;
+  ata: string;
+}
+
+export interface Participante {
+  id: number;
+  nome: string;
+  label: string;
+  tipo: "importado" | "manual";
+}
+
+export type ReuniaoBrief = {
+  id: number;
+  titulo: string;
+  turmas: string[];
+  criadoEm?: string;
+  data?: string;
+};
+
+export interface PropsConselhosLista {
+  onEnterConselho: (tipo: "intermediario" | "final") => void;
 }
