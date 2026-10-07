@@ -82,8 +82,8 @@ export function EncaminhamentosLista({
                     </td>
                     <td className="px-4 py-3">
                       {e.status === "pendente" && <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Pendente</span>}
-                      {e.status === "em-andamento" && <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Em andamento</span>}
-                      {e.status === "finalizado" && <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Finalizado</span>}
+                      {e.status === "andamento" && <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Em andamento</span>}
+                      {e.status === "concluido" && <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Finalizado</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3 justify-end">

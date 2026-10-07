@@ -1,4 +1,4 @@
-import type { TurmaData, TurmaForm } from "../../../types/conselho";
+import type { GravidadeDemanda, TurmaData, TurmaForm } from "../../../types/conselho";
 import { DemandasTurma } from "./Demandas/DemandasTurma";
 import { DemandasPautas } from "./Demandas/DemandasPautas";
 
@@ -9,7 +9,6 @@ interface ConselhoDemandasProps {
   currentTurmaD: TurmaData;
   isInter: boolean;
   editFields: Set<string>;
-  setEditFields: (fields: Set<string>) => void;
   toggleEditField: (field: string) => void;
   form: TurmaForm;
   updateForm: (fields: Partial<TurmaForm>) => void;
@@ -18,7 +17,9 @@ interface ConselhoDemandasProps {
   allDific: string[];
   toggleDific: (item: string) => void;
   removeDemanda: (id: number) => void;
-  addDemanda?: () => void;
+  addDemanda: (situacao: string, gravidade: GravidadeDemanda) => void;
+  salvando: boolean;
+  onSalvar: () => void;
 }
 
 export default function ConselhoDemandas({
@@ -28,7 +29,6 @@ export default function ConselhoDemandas({
   currentTurmaD,
   isInter,
   editFields,
-  setEditFields,
   toggleEditField,
   form,
   updateForm,
@@ -38,6 +38,8 @@ export default function ConselhoDemandas({
   toggleDific,
   removeDemanda,
   addDemanda,
+  salvando,
+  onSalvar,
 }: ConselhoDemandasProps) {
   return (
     <div className="h-full overflow-y-auto">
@@ -54,7 +56,6 @@ export default function ConselhoDemandas({
           activeTurmaIdx={activeTurmaIdx}
           isInter={isInter}
           editFields={editFields}
-          setEditFields={setEditFields}
           toggleEditField={toggleEditField}
           form={form}
           updateForm={updateForm}
@@ -64,6 +65,8 @@ export default function ConselhoDemandas({
           toggleDific={toggleDific}
           removeDemanda={removeDemanda}
           addDemanda={addDemanda}
+          salvando={salvando}
+          onSalvar={onSalvar}
         />
       </div>
     </div>

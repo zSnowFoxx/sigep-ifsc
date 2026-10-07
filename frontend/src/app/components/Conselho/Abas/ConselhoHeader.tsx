@@ -8,34 +8,40 @@ import {
 } from "lucide-react";
 
 import type { TabDef, TabId } from "../../../types/conselho";
+import { formatData, formatHora } from "../../../services/conselhoService";
 
 interface ConselhoHeaderProps {
-  // funções
   onBack?: () => void;
+  onSalvar: () => void;
+  onEncerrar: () => void;
+  salvando: boolean;
   isInter: boolean;
+  titulo: string;
+  dataRealizacao: string | null;
+  coordenadores: string[];
   savedCount: number;
   totalAlunos: number;
-  alunos: any[];
-  alunosTurmaB: any[];
   presentCount: number;
-  professores: any[];
+  totalParticipantes: number;
   visibleTabs: TabDef[];
   activeTab: TabId;
   setActiveTab: (tabId: TabId) => void;
   tab2HasContent: boolean;
-
-  // dados
 }
 
 export default function ConselhoHeader({
   onBack,
+  onSalvar,
+  onEncerrar,
+  salvando,
   isInter,
+  titulo,
+  dataRealizacao,
+  coordenadores,
   savedCount,
   totalAlunos,
-  alunos,
-  alunosTurmaB,
   presentCount,
-  professores,
+  totalParticipantes,
   visibleTabs,
   activeTab,
   setActiveTab,
@@ -87,8 +93,9 @@ export default function ConselhoHeader({
                 </button>
                 {/* Salvar alterações — solid green */}
                 <button
-                  onClick={onBack}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+                  onClick={onSalvar}
+                  disabled={salvando}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
                   style={{ background: "var(--primary)" }}
                 >
                   <svg
@@ -103,15 +110,16 @@ export default function ConselhoHeader({
                     <polyline points="17 21 17 13 7 13 7 21" />
                     <polyline points="7 3 7 8 15 8" />
                   </svg>
-                  Salvar alterações
+                  {salvando ? "Salvando..." : "Salvar alterações"}
                 </button>
               </>
             ) : (
               <>
                 {/* Salvar Sessão — ghost outline */}
                 <button
-                  onClick={onBack}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all hover:bg-[#e8f0eb] active:scale-[0.98]"
+                  onClick={onSalvar}
+                  disabled={salvando}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all hover:bg-[#e8f0eb] active:scale-[0.98] disabled:opacity-50"
                   style={{
                     borderColor: "var(--primary)",
                     color: "var(--primary)",
@@ -129,11 +137,13 @@ export default function ConselhoHeader({
                     <polyline points="17 21 17 13 7 13 7 21" />
                     <polyline points="7 3 7 8 15 8" />
                   </svg>
-                  Salvar Sessão
+                  {salvando ? "Salvando..." : "Salvar Sessão"}
                 </button>
                 {/* Encerrar — solid green */}
                 <button
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+                  onClick={onEncerrar}
+                  disabled={salvando}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
                   style={{ background: "var(--primary)" }}
                 >
                   <svg
@@ -177,21 +187,20 @@ export default function ConselhoHeader({
         {/* Row 1 — title + metadata */}
         <div className="pb-4">
           <h1 className="text-xl font-bold text-white leading-snug mb-2">
-            Conselho de Classe Intermediário — Curso Técnico em Desenvolvimento de
-            Sistemas
+            {titulo}
           </h1>
           <div className="flex items-center gap-5 flex-wrap">
             {isInter ? (
               <>
                 <span className="flex items-center gap-1.5 text-xs text-white/85">
                   <Users size={13} className="shrink-0 text-white/70" />
-                  {alunos.length + alunosTurmaB.length} alunos
+                  {totalAlunos} alunos
                 </span>
                 <span className="flex items-center gap-1.5 text-xs text-white/85">
                   <UserCheck size={13} className="shrink-0 text-white/70" />
                   Coord.:{" "}
                   <span className="font-semibold text-white ml-0.5">
-                    Profa. Renata Dias
+                    {coordenadores.join(", ") || "—"}
                   </span>
                 </span>
               </>
@@ -199,15 +208,17 @@ export default function ConselhoHeader({
               <>
                 <span className="flex items-center gap-1.5 text-xs text-white/85">
                   <Calendar size={13} className="shrink-0 text-white/70" />
-                  25/06/2026
+                  {dataRealizacao ? formatData(dataRealizacao) : "Data a definir"}
                 </span>
-                <span className="flex items-center gap-1.5 text-xs text-white/85">
-                  <Clock size={13} className="shrink-0 text-white/70" />
-                  14h00
-                </span>
+                {dataRealizacao && (
+                  <span className="flex items-center gap-1.5 text-xs text-white/85">
+                    <Clock size={13} className="shrink-0 text-white/70" />
+                    {formatHora(dataRealizacao).replace(":", "h")}
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 text-xs text-white/85">
                   <Users size={13} className="shrink-0 text-white/70" />
-                  {presentCount} de {professores.length} participantes presentes
+                  {presentCount} de {totalParticipantes} participantes presentes
                 </span>
               </>
             )}
@@ -273,7 +284,7 @@ export default function ConselhoHeader({
                       color: active ? "var(--primary)" : "white",
                     }}
                   >
-                    {presentCount}/{professores.length}
+                    {presentCount}/{totalParticipantes}
                   </span>
                 )}
                 {tab.id === 4 && savedCount > 0 && (

@@ -7,7 +7,6 @@ interface ModalAbonoProps {
   abonoText: string;
   setAbonoText: React.Dispatch<React.SetStateAction<string>>;
   alunos: Aluno[];
-  alunosTurmaB: Aluno[];
 }
 
 export function ModalAbono({
@@ -16,11 +15,10 @@ export function ModalAbono({
   abonoText,
   setAbonoText,
   alunos,
-  alunosTurmaB,
 }: ModalAbonoProps) {
   if (!abonomat) return null;
 
-  const alunoNome = [...alunos, ...alunosTurmaB].find((a) => a.matricula === abonomat)?.nome;
+  const alunoNome = alunos.find((a) => a.matricula === abonomat)?.nome;
 
   return (
     <div

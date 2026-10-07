@@ -1,4 +1,3 @@
-import React from "react";
 import type { Professor } from "../../../types/conselho";
 import { ParticipantesBarra } from "./Participantes/ParticipantesBarra";
 import { ParticipantesLista } from "./Participantes/ParticipantesLista";
@@ -6,16 +5,14 @@ import { ParticipantesFooter } from "./Participantes/ParticipantesFooter";
 
 interface ConselhoParticipantesProps {
   professores: Professor[];
-  presenteToggle: Record<number, boolean>;
-  setPresenteToggle: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  onTogglePresenca: (index: number) => void;
 }
 
 export default function ConselhoParticipantes({
   professores,
-  presenteToggle,
-  setPresenteToggle,
+  onTogglePresenca,
 }: ConselhoParticipantesProps) {
-  const presentCount = Object.values(presenteToggle).filter(Boolean).length;
+  const presentCount = professores.filter((p) => p.presente).length;
 
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
@@ -27,8 +24,7 @@ export default function ConselhoParticipantes({
 
         <ParticipantesLista
           professores={professores}
-          presenteToggle={presenteToggle}
-          setPresenteToggle={setPresenteToggle}
+          onTogglePresenca={onTogglePresenca}
         />
 
         <ParticipantesFooter />

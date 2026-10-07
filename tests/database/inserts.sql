@@ -1374,3 +1374,27 @@ INSERT IGNORE INTO notas_frequencias (id, matricula_id, diario_id, media, infreq
   (455, 455, 30, 8.7, 9),
   (456, 456, 30, 3.9, 42),
   (457, 457, 30, 8.1, 26);
+
+
+-- =====================================================================
+-- Conselhos de classe
+-- tipo: 1 = Intermediário, 2 = Final
+-- =====================================================================
+
+INSERT IGNORE INTO conselhos_lista (id, nome, tipo, status, conselho_origem_id, data_realizacao) VALUES
+  (1, 'Conselho Intermediário — TDS 2026.1',          1, 'em_andamento', NULL, NULL),
+  (2, 'Conselho Intermediário — Mecatrônica 2026.1',  1, 'encerrado',    NULL, '2026-06-10 14:00:00'),
+  (3, 'Conselho Final — Mecatrônica 2026.1',          2, 'agendado',     2,    '2026-07-10 09:00:00'),
+  (4, 'Conselho Final — TDS 2025.2',                  2, 'encerrado',    NULL, '2026-05-28 09:00:00');
+
+INSERT IGNORE INTO conselhos_turmas (conselho_id, turma_id) VALUES
+  (1, 1), (1, 2),
+  (2, 6), (2, 7),
+  (3, 6), (3, 7),
+  (4, 3);
+
+INSERT IGNORE INTO conselhos_servidores (conselho_id, usuario_id, presente) VALUES
+  (1, 2, NULL), (1, 3, NULL), (1, 5, NULL),
+  (2, 2, TRUE), (2, 3, TRUE), (2, 6, TRUE),
+  (3, 2, NULL), (3, 3, NULL), (3, 6, NULL),
+  (4, 2, TRUE), (4, 3, FALSE), (4, 5, TRUE);

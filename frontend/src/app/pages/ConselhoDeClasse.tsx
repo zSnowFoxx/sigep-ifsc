@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Users,
   ClipboardList,
@@ -18,61 +18,185 @@ import ModalRegistro from "../components/Conselho/Modals/ModalRegistro";
 import ModalEncaminhamento from "../components/Conselho/Modals/ModalEncaminhamento";
 import EncaminhamentosCard from "../components/Encaminhamentos/EncaminhamentosCard";
 
-// Importação de tipos e data (enquanto não conectado com servidor)
-import type { EncItemData, AlunoEval, ConselhoDeClasseProps, TabId, TabDef, TurmaForm } from "../types/conselho";
-import { professores, alunos, alunosTurmaB, turmasData, PONTOS_PRESET, DIFIC_PRESET, mockEncaminhamentos, defaultDisciplinas, disciplinasData,
- } from "../data/conselhoData";
-
+import type {
+  AlunoEval,
+  ConselhoDeClasseProps,
+  EncItemData,
+  GravidadeDemanda,
+  Professor,
+  RegistroDocente,
+  TabDef,
+  TabId,
+  TurmaForm,
+} from "../types/conselho";
+import { PONTOS_PRESET, DIFIC_PRESET } from "../data/conselhoData";
+import {
+  adicionarAcompanhamento,
+  carregarConselho,
+  conselhosService,
+  criarEncaminhamento,
+  criarRegistro,
+  finalizarEncaminhamento,
+  salvarDeliberacao,
+  salvarDemanda,
+  salvarPresencas,
+  toTurmaForm,
+  turmaFormVazio,
+  type DadosConselho,
+} from "../services/conselhoService";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeClasseProps) {
+export default function ConselhoDeClasse({ conselhoId, onBack, mode = "final" }: ConselhoDeClasseProps) {
   const isInter = mode === "intermediario";
   const [activeTab, setActiveTab] = useState<TabId>(isInter ? 2 : 4);
 
+  const [dados, setDados] = useState<DadosConselho | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
   // Tab 1 — Participantes
-  const [presenteToggle, setPresenteToggle] = useState<Record<number, boolean>>(
-    Object.fromEntries(professores.map((p, i) => [i, p.presente]))
-  );
+  const [participantes, setParticipantes] = useState<Professor[]>([]);
 
-  // Tab 2 — Demandas Gerais (per-turma structured form)
-  const emptyForm = (): TurmaForm => ({
-    representantes: "", sintese: "",
-    pontosPositivos: [], customPontos: [],
-    dificuldades: [], customDificuldades: [],
-    demandas: [], registros: "",
-  });
-  const [turmaForms, setTurmaForms] = useState<TurmaForm[]>([emptyForm(), emptyForm()]);
+  // Tab 2 — Demandas Gerais (formulário por turma)
+  const [turmaForms, setTurmaForms] = useState<TurmaForm[]>([]);
+  const [turmasComDemanda, setTurmasComDemanda] = useState<Set<number>>(new Set());
   const [activeTurmaIdx, setActiveTurmaIdx] = useState(0);
-  const [demandaOpen, setDemandaOpen] = useState(false);
-  const [demandaSit, setDemandaSit] = useState("");
-  const [demandaGrav, setDemandaGrav] = useState<"nao-urgente" | "urgente" | "critica">("nao-urgente");
   const [editFields, setEditFields] = useState<Set<string>>(new Set());
+  // Ids provisórios (negativos) para demandas ainda não salvas.
+  const demandaIdRef = useRef(-1);
 
-  // Tab 3 — Avaliação
-  const [groupAOpen, setGroupAOpen] = useState(true);
-  const [groupBOpen, setGroupBOpen] = useState(false);
-  const [selectedAluno, setSelectedAluno] = useState<string>(alunos[0].matricula);
-  const [avaliacoes, setAvaliacoes] = useState<Record<string, AlunoEval>>(
-    Object.fromEntries(
-      [...alunos, ...alunosTurmaB.map((a) => ({ ...a, risco: false }))].map((a) => [
-        a.matricula,
-        { risco: a.risco ?? false, obs: "", encaminhamento: "", acao: "", servidor: "", saved: false },
-      ])
-    )
-  );
+  // Tab 4 — Avaliação
+  const [openTurmas, setOpenTurmas] = useState<Record<number, boolean>>({});
+  const [selectedAluno, setSelectedAluno] = useState("");
+  const [avaliacoes, setAvaliacoes] = useState<Record<string, AlunoEval>>({});
+  const [deliberacaoIds, setDeliberacaoIds] = useState<Record<string, number>>({});
+  const [selectedDisc, setSelectedDisc] = useState<Record<string, number>>({});
+  // Retificadas e abono não têm onde ser gravados no banco: valem só enquanto a tela está aberta.
+  const [retificadas, setRetificadas] = useState<Record<string, string>>({});
+  const [abonomat, setAbonomat] = useState<string | null>(null);
+  const [abonoText, setAbonoText] = useState("");
 
-  const updateEval = (mat: string, field: keyof AlunoEval, value: string | boolean) => {
-    setAvaliacoes((prev) => ({ ...prev, [mat]: { ...prev[mat], [field]: value, saved: false } }));
+  // Tab 3 — Registros e Encaminhamentos
+  const [registros, setRegistros] = useState<RegistroDocente[]>([]);
+  const [encList, setEncList] = useState<EncItemData[]>([]);
+  const [novoRegOpen, setNovoRegOpen] = useState(false);
+  const [nrMatricula, setNrMatricula] = useState("");
+  const [nrDocenteId, setNrDocenteId] = useState<number | null>(null);
+  const [nrTitulo, setNrTitulo] = useState("");
+  const [nrCategoria, setNrCategoria] = useState("");
+  const [nrDescricao, setNrDescricao] = useState("");
+  const [nrEncOpcao, setNrEncOpcao] = useState<"novo" | "existente" | null>(null);
+  const [nrEncId, setNrEncId] = useState<number | null>(null);
+  const [novoEncOpen, setNovoEncOpen] = useState(false);
+  const [neMatricula, setNeMatricula] = useState("");
+  const [neTitulo, setNeTitulo] = useState("");
+  const [neCategoria, setNeCategoria] = useState("");
+  const [neDescricao, setNeDescricao] = useState("");
+  const [neServidorId, setNeServidorId] = useState("");
+
+  // Enc detail modal state
+  const [selectedEnc, setSelectedEnc] = useState<EncItemData | null>(null);
+  const [encNovoRelato, setEncNovoRelato] = useState("");
+  const [encSavedRelato, setEncSavedRelato] = useState(false);
+  const [encFinalizando, setEncFinalizando] = useState(false);
+  const [encParecerFinal, setEncParecerFinal] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+    carregarConselho(conselhoId)
+      .then((d) => {
+        if (!ativo) return;
+        const deliberacaoPorAluno = new Map(d.deliberacoes.map((x) => [x.aluno_id, x]));
+        setDados(d);
+        setParticipantes(d.participantes);
+        setTurmaForms(d.turmas.map((t) => toTurmaForm(d.demandas.find((x) => x.turma_id === t.id), t.alunosList)));
+        setTurmasComDemanda(new Set(d.demandas.map((x) => x.turma_id)));
+        setOpenTurmas(d.turmas[0] ? { [d.turmas[0].id]: true } : {});
+        setSelectedAluno((d.turmas[0]?.alunosList[0] ?? d.alunos[0])?.matricula ?? "");
+        setAvaliacoes(
+          Object.fromEntries(
+            d.alunos.map((a) => {
+              const deliberacao = deliberacaoPorAluno.get(a.id);
+              return [
+                a.matricula,
+                { risco: a.risco ?? false, obs: deliberacao?.alteracoes_realizadas ?? "", encaminhamento: "", acao: "", servidor: "", saved: !!deliberacao },
+              ];
+            })
+          )
+        );
+        setDeliberacaoIds(
+          Object.fromEntries(d.alunos.flatMap((a) => {
+            const deliberacao = deliberacaoPorAluno.get(a.id);
+            return deliberacao ? [[a.matricula, deliberacao.id]] : [];
+          }))
+        );
+        setRegistros(d.registros);
+        setEncList(d.encaminhamentos);
+        setNrDocenteId(d.usuarioLogadoId);
+      })
+      .catch((err) => ativo && setErro(err instanceof Error ? err.message : "Erro ao carregar o conselho."))
+      .finally(() => ativo && setLoading(false));
+    return () => {
+      ativo = false;
+    };
+  }, [conselhoId]);
+
+  // Executa uma gravação mostrando o estado de "salvando" e a mensagem de erro, se houver.
+  const executar = async (acao: () => Promise<void>) => {
+    setSalvando(true);
+    setErro("");
+    try {
+      await acao();
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao salvar.");
+    } finally {
+      setSalvando(false);
+    }
   };
 
-  const saveEval = (mat: string) => {
-    setAvaliacoes((prev) => ({ ...prev, [mat]: { ...prev[mat], saved: true } }));
+  // Registros e encaminhamentos mudam juntos (criar registro pode criar encaminhamento).
+  const recarregarListas = async () => {
+    const d = await carregarConselho(conselhoId);
+    setRegistros(d.registros);
+    setEncList(d.encaminhamentos);
+    setSelectedEnc((prev) => (prev ? d.encaminhamentos.find((e) => e.id === prev.id) ?? prev : null));
   };
 
-  // Tab 2 helpers
+  if (loading || !dados) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <p className={`text-sm ${erro ? "font-semibold text-red-600" : "text-muted-foreground"}`}>
+          {erro || "Carregando conselho..."}
+        </p>
+        {erro && (
+          <button onClick={onBack} className="text-xs font-semibold" style={{ color: "var(--primary)" }}>
+            Voltar para a Central de Conselhos
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const { conselho, turmas, alunos } = dados;
+  const autorId = dados.usuarioLogadoId;
+  const alunoPorMatricula = (matricula: string) => alunos.find((a) => a.matricula === matricula);
+
+  // ── Tab 1 helpers ──
+  const togglePresenca = (index: number) => {
+    const anteriores = participantes;
+    const novos = participantes.map((p, i) => (i === index ? { ...p, presente: !p.presente } : p));
+    setParticipantes(novos);
+    salvarPresencas(conselhoId, novos).catch((err) => {
+      setParticipantes(anteriores);
+      setErro(err instanceof Error ? err.message : "Erro ao salvar a presença.");
+    });
+  };
+
+  // ── Tab 2 helpers ──
   const updateForm = (patch: Partial<TurmaForm>) =>
-    setTurmaForms((prev) => prev.map((f, i) => i === activeTurmaIdx ? { ...f, ...patch } : f));
+    setTurmaForms((prev) => prev.map((f, i) => (i === activeTurmaIdx ? { ...f, ...patch } : f)));
   const togglePonto = (item: string) => {
     const cur = turmaForms[activeTurmaIdx].pontosPositivos;
     updateForm({ pontosPositivos: cur.includes(item) ? cur.filter((x) => x !== item) : [...cur, item] });
@@ -81,90 +205,95 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
     const cur = turmaForms[activeTurmaIdx].dificuldades;
     updateForm({ dificuldades: cur.includes(item) ? cur.filter((x) => x !== item) : [...cur, item] });
   };
-  const addDemanda = () => {
-    if (!demandaSit.trim()) return;
-    updateForm({ demandas: [...turmaForms[activeTurmaIdx].demandas, { id: demandaIdRef.current++, situacao: demandaSit.trim(), gravidade: demandaGrav }] });
-    setDemandaSit(""); setDemandaGrav("nao-urgente"); setDemandaOpen(false);
+  const addDemanda = (situacao: string, gravidade: GravidadeDemanda) => {
+    if (!situacao.trim()) return;
+    updateForm({
+      demandas: [...turmaForms[activeTurmaIdx].demandas, { id: demandaIdRef.current--, situacao: situacao.trim(), gravidade }],
+    });
   };
   const removeDemanda = (id: number) =>
     updateForm({ demandas: turmaForms[activeTurmaIdx].demandas.filter((d) => d.id !== id) });
   const toggleEditField = (field: string) =>
-    setEditFields((prev) => { const n = new Set(prev); n.has(field) ? n.delete(field) : n.add(field); return n; });
+    setEditFields((prev) => { const n = new Set(prev); if (n.has(field)) n.delete(field); else n.add(field); return n; });
 
-  // Tab 3 helpers
-  const selectNrAluno = (nome: string) => {
-    setNrAluno(nome);
-    const found = [...alunos.map((a) => ({ ...a, turma: turmasData[0].nome })), ...alunosTurmaB.map((a) => ({ ...a, risco: false, turma: turmasData[1].nome }))].find((a) => a.nome === nome);
-    if (found) { setNrMatricula(found.matricula); setNrTurma(found.turma); }
-    else { setNrMatricula(""); setNrTurma(""); }
-  };
-  const selectNeAluno = (nome: string) => {
-    setNeAluno(nome);
-    const found = [...alunos.map((a) => ({ ...a, turma: turmasData[0].nome })), ...alunosTurmaB.map((a) => ({ ...a, risco: false, turma: turmasData[1].nome }))].find((a) => a.nome === nome);
-    if (found) { setNeMatricula(found.matricula); setNeTurma(found.turma); }
-    else { setNeMatricula(""); setNeTurma(""); }
-  };
-  const todayFmt = new Date().toLocaleDateString("pt-BR");
-  const submitNovoRegistro = () => {
-    if (!nrAluno || !nrTitulo || !nrCategoria || !nrDescricao) return;
-    const newReg: RegistroDocente = { id: registroIdRef.current++, titulo: nrTitulo, categoria: nrCategoria, aluno: nrAluno, matricula: nrMatricula, turma: nrTurma, docente: nrDocente, data: todayFmt, descricao: nrDescricao, encOpcao: nrEncOpcao, encId: nrEncId };
-    setRegistros((prev) => [...prev, newReg]);
-    if (nrEncOpcao === "novo") {
-      setEncList((prev) => [
-        ...prev,
-        {
-          id: encItemIdRef.current++,
-          titulo: `Encaminhamento — ${nrAluno}`,
-          aluno: nrAluno,
-          matricula: nrMatricula,
-          turma: nrTurma,
-          origem: "Conselho de Classe",
-          categoria: nrCategoria,
-          responsavel: "", // ou o nome do docente/servidor, ex: docenteLogado
-          descricao: nrDescricao,
-          urgente: false,
-          status: "pendente",
-          parecer: "",
-          evolucoes: [
-            {
-              data: todayFmt,
-              autor: "Conselho de Classe", // ou o autor do registro
-              texto: nrDescricao || "Encaminhamento gerado no Conselho de Classe.",
-              tipo: "criacao",
-            },
-          ],
-        },
-      ]);
+  // Turmas sem nada preenchido e ainda sem registro no banco não são gravadas.
+  const salvarDemandas = async (indices: number[]) => {
+    for (const i of indices) {
+      const turma = turmas[i];
+      const existe = turmasComDemanda.has(turma.id);
+      if (!existe && turmaFormVazio(turmaForms[i])) continue;
+      const salva = await salvarDemanda(conselhoId, turma, turmaForms[i], existe);
+      setTurmasComDemanda((prev) => new Set(prev).add(turma.id));
+      setTurmaForms((prev) => prev.map((f, j) => (j === i ? toTurmaForm(salva, turma.alunosList) : f)));
     }
-    setNrAluno(""); setNrMatricula(""); setNrTurma(""); setNrDocente("Prof. Ricardo Alves"); setNrTitulo(""); setNrCategoria(""); setNrDescricao(""); setNrEncOpcao(null); setNrEncId(null); setNrDiscManual({}); setNovoRegOpen(false);
   };
+  const todasAsTurmas = turmas.map((_, i) => i);
+
+  const salvarEVoltar = () =>
+    executar(async () => {
+      await salvarDemandas(todasAsTurmas);
+      onBack?.();
+    });
+
+  const encerrar = () => {
+    if (!window.confirm("Encerrar este conselho? Ele passará para o histórico de realizados.")) return;
+    executar(async () => {
+      await salvarDemandas(todasAsTurmas);
+      await conselhosService.update(conselhoId, { status: "encerrado" });
+      onBack?.();
+    });
+  };
+
+  // ── Tab 3 helpers ──
+  const resetNovoRegistro = () => {
+    setNrMatricula(""); setNrDocenteId(autorId); setNrTitulo(""); setNrCategoria(""); setNrDescricao("");
+    setNrEncOpcao(null); setNrEncId(null); setNovoRegOpen(false);
+  };
+  const submitNovoRegistro = () => {
+    const aluno = alunoPorMatricula(nrMatricula);
+    if (!aluno || nrDocenteId === null || !nrTitulo.trim() || !nrCategoria || !nrDescricao.trim()) return;
+    executar(async () => {
+      let encaminhamentoId = nrEncOpcao === "existente" ? nrEncId : null;
+      if (nrEncOpcao === "novo") {
+        encaminhamentoId = await criarEncaminhamento({
+          conselhoId,
+          alunoId: aluno.id,
+          titulo: `Encaminhamento — ${aluno.nome}`,
+          categoria: nrCategoria,
+          servidorResponsavelId: null,
+          descricao: nrDescricao,
+          autorId,
+        });
+      }
+      await criarRegistro(conselhoId, {
+        alunoId: aluno.id,
+        docenteId: nrDocenteId,
+        titulo: nrTitulo.trim(),
+        categoria: nrCategoria,
+        registro: nrDescricao.trim(),
+        encaminhamentoId,
+      });
+      await recarregarListas();
+      resetNovoRegistro();
+    });
+  };
+
   const submitNovoEnc = () => {
-    if (!neAluno || !neTitulo || !neCategoria) return;
-    const newId = encItemIdRef.current++;
-    const newEnc: EncItemData = {
-      id: newId,
-      titulo: neTitulo,
-      aluno: neAluno,
-      matricula: neMatricula,
-      turma: neTurma,
-      origem: "Conselho de Classe", // ou "Geral"
-      categoria: neCategoria,
-      responsavel: neServidor, // neServidor é atribuído ao responsavel
-      descricao: neDescricao,
-      urgente: false,
-      status: "pendente",
-      parecer: "",
-      evolucoes: [
-        {
-          data: todayFmt,
-          autor: neServidor || "Sistema",
-          texto: neDescricao || "Encaminhamento registrado.",
-          tipo: "criacao",
-        },
-      ],
-    };
-    setEncList((prev) => [...prev, newEnc]);
-    setNeAluno(""); setNeMatricula(""); setNeTurma(""); setNeTitulo(""); setNeCategoria(""); setNeDescricao(""); setNeServidor(""); setNovoEncOpen(false);
+    const aluno = alunoPorMatricula(neMatricula);
+    if (!aluno || !neTitulo.trim() || !neCategoria) return;
+    executar(async () => {
+      await criarEncaminhamento({
+        conselhoId,
+        alunoId: aluno.id,
+        titulo: neTitulo.trim(),
+        categoria: neCategoria,
+        servidorResponsavelId: neServidorId ? Number(neServidorId) : null,
+        descricao: neDescricao,
+        autorId,
+      });
+      await recarregarListas();
+      setNeMatricula(""); setNeTitulo(""); setNeCategoria(""); setNeDescricao(""); setNeServidorId(""); setNovoEncOpen(false);
+    });
   };
 
   const openEncDetail = (enc: EncItemData) => {
@@ -177,83 +306,52 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
   const closeEncDetail = () => { setSelectedEnc(null); setEncFinalizando(false); };
   const saveEncRelato = () => {
     if (!selectedEnc || !encNovoRelato.trim()) return;
-    setEncNovoRelato("");
-    setEncSavedRelato(true);
+    executar(async () => {
+      await adicionarAcompanhamento(selectedEnc.id, autorId, "relato", encNovoRelato.trim());
+      await recarregarListas();
+      setEncNovoRelato("");
+      setEncSavedRelato(true);
+    });
   };
   const finalizarEncDetail = () => {
     if (!selectedEnc || !encParecerFinal.trim()) return;
-    setEncList((prev) =>
-      prev.map((e) => (e.id === selectedEnc.id ? { ...e, status: "concluido" } : e))
-    );
-    setSelectedEnc((prev) =>
-      prev ? { ...prev, status: "concluido" } : null
-    );
-    setEncFinalizando(false);
-    setEncParecerFinal("");
+    executar(async () => {
+      await finalizarEncaminhamento(selectedEnc.id, autorId, encParecerFinal.trim());
+      await recarregarListas();
+      setEncFinalizando(false);
+      setEncParecerFinal("");
+    });
   };
 
+  // ── Tab 4 helpers ──
+  const updateEval = (mat: string, field: keyof AlunoEval, value: string | boolean) => {
+    setAvaliacoes((prev) => ({ ...prev, [mat]: { ...prev[mat], [field]: value, saved: false } }));
+  };
+  const saveEval = (mat: string) => {
+    const aluno = alunoPorMatricula(mat);
+    const texto = avaliacoes[mat]?.obs.trim();
+    if (!aluno) return;
+    if (!texto) {
+      setErro("Escreva o parecer do colegiado antes de salvar.");
+      return;
+    }
+    executar(async () => {
+      const salva = await salvarDeliberacao(conselhoId, aluno.id, texto, deliberacaoIds[mat]);
+      setDeliberacaoIds((prev) => ({ ...prev, [mat]: salva.id }));
+      setAvaliacoes((prev) => ({ ...prev, [mat]: { ...prev[mat], saved: true } }));
+    });
+  };
 
-  // Discipline selector — keyed by student matricula
-  const [selectedDisc, setSelectedDisc] = useState<Record<string, number>>({});
-  // Retificada overrides — keyed by "matricula|disciplina"
-  const [retificadas, setRetificadas] = useState<Record<string, string>>({});
-  // Abono modal
-  const [abonomat, setAbonomat] = useState<string | null>(null);
-  const [abonoText, setAbonoText] = useState("");
-
-  // Per-student encaminhamentos list
-  const demandaIdRef = useRef(1);
-
-  // Tab 3 — Registros e Encaminhamentos
-  interface RegistroDocente {
-    id: number; titulo: string; categoria: string;
-    aluno: string; matricula: string; turma: string;
-    docente: string; data: string; descricao: string;
-    encOpcao: "novo" | "existente" | null; encId: number | null;
-  }
-  const [registros, setRegistros] = useState<RegistroDocente[]>([]);
-  const [novoRegOpen, setNovoRegOpen] = useState(false);
-  const [nrAluno, setNrAluno] = useState("");
-  const [nrMatricula, setNrMatricula] = useState("");
-  const [nrTurma, setNrTurma] = useState("");
-  const [nrDocente, setNrDocente] = useState("Prof. Ricardo Alves");
-  const [nrTitulo, setNrTitulo] = useState("");
-  const [nrCategoria, setNrCategoria] = useState("");
-  const [nrDescricao, setNrDescricao] = useState("");
-  const [nrEncOpcao, setNrEncOpcao] = useState<"novo" | "existente" | null>(null);
-  const [nrEncId, setNrEncId] = useState<number | null>(null);
-  const [nrDiscManual, setNrDiscManual] = useState<Record<string, { nota: string; freq: string }>>({});
-  const registroIdRef = useRef(1);
-  const [novoEncOpen, setNovoEncOpen] = useState(false);
-  const [neAluno, setNeAluno] = useState("");
-  const [neMatricula, setNeMatricula] = useState("");
-  const [neTurma, setNeTurma] = useState("");
-  const [neTitulo, setNeTitulo] = useState("");
-  const [neCategoria, setNeCategoria] = useState("");
-  const [neDescricao, setNeDescricao] = useState("");
-  const [neServidor, setNeServidor] = useState("");
-  const [encList, setEncList] = useState<EncItemData[]>(mockEncaminhamentos);
-  const encItemIdRef = useRef(200);
-
-  // Enc detail modal state
-  const [selectedEnc, setSelectedEnc] = useState<EncItemData | null>(null);
-  const [encNovoRelato, setEncNovoRelato] = useState("");
-  const [encSavedRelato, setEncSavedRelato] = useState(false);
-  const [encFinalizando, setEncFinalizando] = useState(false);
-  const [encParecerFinal, setEncParecerFinal] = useState("");
-    Object.fromEntries(mockEncaminhamentos.map((e) => [e.id, e.evolucoes ?? []])
-  );
-
-  const totalAlunos  = alunos.length + alunosTurmaB.length;
+  const totalAlunos  = alunos.length;
   const savedCount   = Object.values(avaliacoes).filter((e) => e.saved).length;
-  const presentCount = Object.values(presenteToggle).filter(Boolean).length;
+  const presentCount = participantes.filter((p) => p.presente).length;
 
   // Tab 2 computed shortcuts
   const form           = turmaForms[activeTurmaIdx];
-  const currentTurmaD  = turmasData[activeTurmaIdx];
-  const allPontos      = [...PONTOS_PRESET, ...form.customPontos];
-  const allDific       = [...DIFIC_PRESET, ...form.customDificuldades];
-  const tab2HasContent  = turmaForms.some((f) => f.sintese || f.representantes || f.demandas.length > 0 || f.pontosPositivos.length > 0);
+  const currentTurmaD  = turmas[activeTurmaIdx];
+  const allPontos      = form ? [...PONTOS_PRESET, ...form.customPontos] : [];
+  const allDific       = form ? [...DIFIC_PRESET, ...form.customDificuldades] : [];
+  const tab2HasContent = turmaForms.some((f) => f.sintese || f.representantes || f.demandas.length > 0 || f.pontosPositivos.length > 0);
 
   // Dynamic tab list based on mode
   const visibleTabs: TabDef[] = isInter
@@ -274,18 +372,31 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
       {/* ── Top Header Bar ─────────────────────────────────────────────────── */}
       <ConselhoHeader
         onBack={onBack}
+        onSalvar={salvarEVoltar}
+        onEncerrar={encerrar}
+        salvando={salvando}
         isInter={isInter}
+        titulo={conselho.nome}
+        dataRealizacao={conselho.data_realizacao}
+        coordenadores={dados.coordenadores}
         savedCount={savedCount}
         totalAlunos={totalAlunos}
-        alunos={alunos}
-        alunosTurmaB={alunosTurmaB}
         presentCount={presentCount}
-        professores={professores}
+        totalParticipantes={participantes.length}
         visibleTabs={visibleTabs}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         tab2HasContent={tab2HasContent}
       />
+
+      {erro && (
+        <div className="shrink-0 px-6 py-2.5 bg-red-50 border-b border-red-200 flex items-center justify-between gap-4">
+          <p className="text-xs font-semibold text-red-700">{erro}</p>
+          <button onClick={() => setErro("")} className="text-xs text-red-700 hover:underline shrink-0">
+            Fechar
+          </button>
+        </div>
+      )}
 
       {/* ── Tab Content ────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -293,32 +404,41 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
         {/* ── TAB 1: Participantes ─────────────────────────────────────────── */}
         {activeTab === 1 && (
           <ConselhoParticipantes
-            professores={professores}
-            presenteToggle={presenteToggle}
-            setPresenteToggle={setPresenteToggle}
+            professores={participantes}
+            onTogglePresenca={togglePresenca}
           />
         )}
 
         {/* ── TAB 2: Demandas Gerais ────────────────────────────────────────── */}
         {activeTab === 2 && (
-          <ConselhoDemandas
-            turmasData={turmasData}
-            activeTurmaIdx={activeTurmaIdx}
-            setActiveTurmaIdx={setActiveTurmaIdx}
-            currentTurmaD={currentTurmaD}
-            isInter={isInter}
-            editFields={editFields}
-            setEditFields={setEditFields}
-            toggleEditField={toggleEditField}
-            form={form}
-            updateForm={updateForm}
-            allPontos={allPontos}
-            togglePonto={togglePonto}
-            allDific={allDific}
-            toggleDific={toggleDific}
-            removeDemanda={removeDemanda}
-            addDemanda={addDemanda}
-          />
+          currentTurmaD && form ? (
+            <ConselhoDemandas
+              turmasData={turmas}
+              activeTurmaIdx={activeTurmaIdx}
+              setActiveTurmaIdx={setActiveTurmaIdx}
+              currentTurmaD={currentTurmaD}
+              isInter={isInter}
+              editFields={editFields}
+              toggleEditField={toggleEditField}
+              form={form}
+              updateForm={updateForm}
+              allPontos={allPontos}
+              togglePonto={togglePonto}
+              allDific={allDific}
+              toggleDific={toggleDific}
+              removeDemanda={removeDemanda}
+              addDemanda={addDemanda}
+              salvando={salvando}
+              onSalvar={() =>
+                executar(async () => {
+                  await salvarDemandas([activeTurmaIdx]);
+                  setEditFields(new Set());
+                })
+              }
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-16">Este conselho não tem turmas vinculadas.</p>
+          )
         )}
 
         {/* ── TAB 3: Registros e Encaminhamentos ──────────────────────────── */}
@@ -326,7 +446,7 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
           <ConselhosRegistros
             registros={registros}
             encList={encList}
-            turmasData={turmasData}
+            turmasData={turmas}
             setNovoRegOpen={setNovoRegOpen}
             setNovoEncOpen={setNovoEncOpen}
             openEncDetail={openEncDetail}
@@ -337,16 +457,13 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
         {activeTab === 4 && (
           <ConselhoAvaliacao
             avaliacoes={avaliacoes}
+            turmas={turmas}
             alunos={alunos}
-            alunosTurmaB={alunosTurmaB}
-            groupAOpen={groupAOpen}
-            setGroupAOpen={setGroupAOpen}
-            groupBOpen={groupBOpen}
-            setGroupBOpen={setGroupBOpen}
+            openTurmas={openTurmas}
+            setOpenTurmas={setOpenTurmas}
             selectedAluno={selectedAluno}
             setSelectedAluno={setSelectedAluno}
-            disciplinasData={disciplinasData}
-            defaultDisciplinas={defaultDisciplinas}
+            disciplinasData={dados.disciplinas}
             selectedDisc={selectedDisc}
             setSelectedDisc={setSelectedDisc}
             retificadas={retificadas}
@@ -357,6 +474,7 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
             setAbonoText={setAbonoText}
             updateEval={updateEval}
             saveEval={saveEval}
+            salvando={salvando}
           />
         )}
       </div>
@@ -364,62 +482,47 @@ export default function ConselhoDeClasse({ onBack, mode = "final" }: ConselhoDeC
       {/* ── Modal: Novo Registro Docente ────────────────────────────────────── */}
       {novoRegOpen && (
         <ModalRegistro
-          novoRegOpen={novoRegOpen}
           setNovoRegOpen={setNovoRegOpen}
-          nrAluno={nrAluno}
-          selectNrAluno={selectNrAluno}
-          nrDocente={nrDocente}
-          setNrDocente={setNrDocente}
-          todayFmt={todayFmt}
-          nrTurma={nrTurma}
+          alunos={alunos}
+          servidores={dados.servidores}
+          disciplinasData={dados.disciplinas}
+          nrMatricula={nrMatricula}
+          setNrMatricula={setNrMatricula}
+          nrDocenteId={nrDocenteId}
+          setNrDocenteId={setNrDocenteId}
           nrTitulo={nrTitulo}
           setNrTitulo={setNrTitulo}
           nrCategoria={nrCategoria}
           setNrCategoria={setNrCategoria}
           nrDescricao={nrDescricao}
           setNrDescricao={setNrDescricao}
-          nrMatricula={nrMatricula}
-          nrDiscManual={nrDiscManual}
-          setNrDiscManual={setNrDiscManual}
           nrEncOpcao={nrEncOpcao}
           setNrEncOpcao={setNrEncOpcao}
           nrEncId={nrEncId}
           setNrEncId={setNrEncId}
           encList={encList}
+          salvando={salvando}
           submitNovoRegistro={submitNovoRegistro}
-          novoEncOpen={novoEncOpen}
-          setNovoEncOpen={setNovoEncOpen}
-          neAluno={neAluno}
-          selectNeAluno={selectNeAluno}
-          neTurma={neTurma}
-          neTitulo={neTitulo}
-          setNeTitulo={setNeTitulo}
-          neCategoria={neCategoria}
-          setNeCategoria={setNeCategoria}
-          neServidor={neServidor}
-          setNeServidor={setNeServidor}
-          neDescricao={neDescricao}
-          setNeDescricao={setNeDescricao}
-          submitNovoEnc={submitNovoEnc}
         />
       )}
 
       {/* ── Modal: Novo Encaminhamento ──────────────────────────────────────── */}
       {novoEncOpen && (
         <ModalEncaminhamento
-          novoEncOpen={novoEncOpen}
           setNovoEncOpen={setNovoEncOpen}
-          neAluno={neAluno}
-          selectNeAluno={selectNeAluno}
-          neTurma={neTurma}
+          alunos={alunos}
+          servidores={dados.servidores}
+          neMatricula={neMatricula}
+          setNeMatricula={setNeMatricula}
           neTitulo={neTitulo}
           setNeTitulo={setNeTitulo}
           neCategoria={neCategoria}
           setNeCategoria={setNeCategoria}
-          neServidor={neServidor}
-          setNeServidor={setNeServidor}
+          neServidorId={neServidorId}
+          setNeServidorId={setNeServidorId}
           neDescricao={neDescricao}
           setNeDescricao={setNeDescricao}
+          salvando={salvando}
           submitNovoEnc={submitNovoEnc}
         />
       )}

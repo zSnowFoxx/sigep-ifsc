@@ -7,8 +7,8 @@ interface ParecerQualitativoProps {
   currentEval: AlunoEval;
   updateEval: (matricula: string, field: keyof AlunoEval, value: any) => void;
   saveEval: (matricula: string) => void;
+  salvando: boolean;
   alunos: Aluno[];
-  alunosTurmaB: Aluno[];
   setSelectedAluno: (matricula: string) => void;
   encForm: { categoria: string; descricao: string; servidor: string };
   setEncForm: React.Dispatch<React.SetStateAction<{ categoria: string; descricao: string; servidor: string }>>;
@@ -19,8 +19,8 @@ export function ParecerQualitativo({
   currentEval,
   updateEval,
   saveEval,
+  salvando,
   alunos,
-  alunosTurmaB,
   setSelectedAluno,
 }: ParecerQualitativoProps) {
   return (
@@ -32,7 +32,7 @@ export function ParecerQualitativo({
       </div>
 
       <div className="px-5 py-4 space-y-5">
-        {/* Toggle de Risco */}
+        {/* Toggle de Risco (calculado pelas notas e frequências; vale só nesta sessão, não é gravado) */}
         <div
           className="flex items-center justify-between p-4 rounded-xl border transition-all"
           style={{
@@ -47,7 +47,7 @@ export function ParecerQualitativo({
               <p className={`text-sm font-semibold ${currentEval.risco ? "text-orange-800" : "text-foreground"}`}>
                 Sinalizar Risco Iminente de Evasão Escolar
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Ativa alerta prioritário no painel de monitoramento (RF06)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Calculado pelas notas e frequências; vale apenas durante este conselho</p>
             </div>
           </div>
           <button
@@ -88,9 +88,8 @@ export function ParecerQualitativo({
             {currentEval.saved && (
               <button
                 onClick={() => {
-                  const allAlunos = [...alunos, ...alunosTurmaB];
-                  const idx = allAlunos.findIndex((a) => a.matricula === current.matricula);
-                  if (idx < allAlunos.length - 1) setSelectedAluno(allAlunos[idx + 1].matricula);
+                  const idx = alunos.findIndex((a) => a.matricula === current.matricula);
+                  if (idx < alunos.length - 1) setSelectedAluno(alunos[idx + 1].matricula);
                 }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-border text-foreground hover:bg-muted transition-colors"
               >
@@ -99,11 +98,12 @@ export function ParecerQualitativo({
             )}
             <button
               onClick={() => saveEval(current.matricula)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+              disabled={salvando}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
               style={{ background: "var(--primary)" }}
             >
               <Save size={13} />
-              Salvar Parecer
+              {salvando ? "Salvando..." : "Salvar Parecer"}
             </button>
           </div>
         </div>

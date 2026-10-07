@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ClipboardList, Pencil, Plus, Trash2, CheckCircle2 } from "lucide-react";
-import type { TurmaData, TurmaForm } from "../../../../types/conselho";
+import type { GravidadeDemanda, TurmaData, TurmaForm } from "../../../../types/conselho";
 import { AdicionarDemanda } from "./AdicionarDemanda";
 
 interface DemandasPautasProps {
@@ -8,7 +8,6 @@ interface DemandasPautasProps {
   activeTurmaIdx: number;
   isInter: boolean;
   editFields: Set<string>;
-  setEditFields: (fields: Set<string>) => void;
   toggleEditField: (field: string) => void;
   form: TurmaForm;
   updateForm: (fields: Partial<TurmaForm>) => void;
@@ -17,7 +16,9 @@ interface DemandasPautasProps {
   allDific: string[];
   toggleDific: (item: string) => void;
   removeDemanda: (id: number) => void;
-  addDemanda?: () => void;
+  addDemanda: (situacao: string, gravidade: GravidadeDemanda) => void;
+  salvando: boolean;
+  onSalvar: () => void;
 }
 
 export function DemandasPautas({
@@ -25,7 +26,6 @@ export function DemandasPautas({
   activeTurmaIdx,
   isInter,
   editFields,
-  setEditFields,
   toggleEditField,
   form,
   updateForm,
@@ -35,6 +35,8 @@ export function DemandasPautas({
   toggleDific,
   removeDemanda,
   addDemanda,
+  salvando,
+  onSalvar,
 }: DemandasPautasProps) {
   const [newPontoText, setNewPontoText] = useState("");
   const [newDificText, setNewDificText] = useState("");
@@ -85,7 +87,7 @@ export function DemandasPautas({
                 ))}
               </datalist>
               <p className="text-xs text-muted-foreground mt-1.5">
-                Sugestões: selecione da lista ou escreva livremente.
+                Selecione um aluno da turma na lista.
               </p>
             </>
           ) : (
@@ -448,12 +450,13 @@ export function DemandasPautas({
           {!isInter && (
             <div className="flex justify-end mt-6 pt-4 border-t border-border">
               <button
-                onClick={() => setEditFields(new Set())}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+                onClick={onSalvar}
+                disabled={salvando}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
                 style={{ background: "var(--primary)" }}
               >
                 <CheckCircle2 size={14} />
-                Salvar alterações
+                {salvando ? "Salvando..." : "Salvar alterações"}
               </button>
             </div>
           )}

@@ -7,46 +7,53 @@ import {
   Pencil,
   UserCheck,
 } from "lucide-react";
-import type { ReuniaoBrief, Participante, ReuniaoAberta } from "../../../types/conselho";
+import type { Conselho } from "../../../types/conselho";
 import {
-  turmasDisponiveis,
-  defaultParticipantes,
-  servidoresCatalogo,
-} from "../../../data/conselhoData";
+  toDataRealizacao,
+  type ConselhoRefs,
+  type ServidorRef,
+  type TurmaRef,
+} from "../../../services/conselhoService";
 
 interface AgendarConselhoProps {
-  agendarFinalFor: ReuniaoBrief | null;
+  agendarFinalFor: Conselho | null;
+  refs: ConselhoRefs;
   onClose: () => void;
-  onConfirm: (novoFinal: ReuniaoAberta, reuniaoId: number) => void;
+  onConfirm: (dados: {
+    origemId: number;
+    nome: string;
+    turmaIds: number[];
+    servidorIds: number[];
+    dataRealizacao: string;
+  }) => Promise<void>;
 }
 
 export function AgendarConselho({
   agendarFinalFor,
+  refs,
   onClose,
   onConfirm,
 }: AgendarConselhoProps) {
   const [afNomeEdit, setAfNomeEdit] = useState(false);
   const [afNome, setAfNome] = useState("");
   const [afTurmasEdit, setAfTurmasEdit] = useState(false);
-  const [afTurmas, setAfTurmas] = useState<string[]>([]);
+  const [afTurmas, setAfTurmas] = useState<TurmaRef[]>([]);
   const [afTurmaInput, setAfTurmaInput] = useState("");
   const [afTurmaOpen, setAfTurmaOpen] = useState(false);
   const [afData, setAfData] = useState("");
   const [afHora, setAfHora] = useState("");
   const [afPartBusca, setAfPartBusca] = useState("");
   const [afPartOpen, setAfPartOpen] = useState(false);
-  const [afParticipantes, setAfParticipantes] = useState<Participante[]>(
-    defaultParticipantes
-  );
+  const [afParticipantes, setAfParticipantes] = useState<ServidorRef[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (agendarFinalFor) {
-      setAfNome(
-        agendarFinalFor.titulo
-          .replace("Intermediário", "Final")
-          .replace("Conselho de Classe Intermediário", "Conselho Final")
+      setAfNome(agendarFinalFor.nome.replace("Intermediário", "Final"));
+      setAfTurmas(
+        refs.turmas.filter((t) => agendarFinalFor.turmaIds.includes(t.id))
       );
-      setAfTurmas([...agendarFinalFor.turmas]);
       setAfData("");
       setAfHora("");
       setAfNomeEdit(false);
@@ -55,58 +62,56 @@ export function AgendarConselho({
       setAfTurmaOpen(false);
       setAfPartBusca("");
       setAfPartOpen(false);
-      setAfParticipantes(defaultParticipantes);
+      setAfParticipantes(
+        refs.servidores.filter((s) =>
+          agendarFinalFor.servidores.some((x) => x.usuarioId === s.id)
+        )
+      );
+      setError("");
     }
-  }, [agendarFinalFor]);
+  }, [agendarFinalFor, refs]);
 
   if (!agendarFinalFor) return null;
 
   const removeAfParticipante = (id: number) =>
     setAfParticipantes((prev) => prev.filter((p) => p.id !== id));
 
-  const addAfParticipante = (nome: string) => {
-    if (afParticipantes.some((p) => p.nome === nome)) return;
-    setAfParticipantes((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        nome,
-        label: "Convidado - Manual",
-        tipo: "manual",
-      },
-    ]);
+  const addAfParticipante = (servidor: ServidorRef) => {
+    if (afParticipantes.some((p) => p.id === servidor.id)) return;
+    setAfParticipantes((prev) => [...prev, servidor]);
     setAfPartBusca("");
     setAfPartOpen(false);
   };
 
-  const afTurmasSugeridas = turmasDisponiveis.filter(
+  const afTurmasSugeridas = refs.turmas.filter(
     (t) =>
-      !afTurmas.includes(t) &&
-      t.toLowerCase().includes(afTurmaInput.toLowerCase())
+      !afTurmas.some((x) => x.id === t.id) &&
+      t.nome.toLowerCase().includes(afTurmaInput.toLowerCase())
   );
 
-  const afPartSugeridos = servidoresCatalogo.filter(
+  const afPartSugeridos = refs.servidores.filter(
     (s) =>
-      !afParticipantes.some((p) => p.nome === s) &&
-      s.toLowerCase().includes(afPartBusca.toLowerCase())
+      !afParticipantes.some((p) => p.id === s.id) &&
+      s.nome.toLowerCase().includes(afPartBusca.toLowerCase())
   );
 
-  const handleConfirm = () => {
-    const novoFinal: ReuniaoAberta = {
-      id: agendarFinalFor.id + 1000,
-      titulo: afNome,
-      etapa: "Final",
-      curso: "Técnico Integrado",
-      status: "agendado",
-      data: afData,
-      hora: afHora,
-      docentes: afParticipantes.length,
-      rascunho: false,
-      turmas: afTurmas,
-      progresso: 0,
-    };
-    onConfirm(novoFinal, agendarFinalFor.id);
-    onClose();
+  const handleConfirm = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await onConfirm({
+        origemId: agendarFinalFor.id,
+        nome: afNome.trim(),
+        turmaIds: afTurmas.map((t) => t.id),
+        servidorIds: afParticipantes.map((p) => p.id),
+        dataRealizacao: toDataRealizacao(afData, afHora),
+      });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao agendar o conselho.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -206,18 +211,18 @@ export function AgendarConselho({
                       >
                         {afTurmas.map((t) => (
                           <span
-                            key={t}
+                            key={t.id}
                             className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
                             style={{
                               background: "var(--secondary)",
                               color: "var(--primary)",
                             }}
                           >
-                            {t}
+                            {t.nome}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setAfTurmas((p) => p.filter((x) => x !== t));
+                                setAfTurmas((p) => p.filter((x) => x.id !== t.id));
                               }}
                               className="hover:text-red-500 transition-colors"
                             >
@@ -243,7 +248,7 @@ export function AgendarConselho({
                         <div className="mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-10 relative">
                           {afTurmasSugeridas.slice(0, 5).map((t) => (
                             <button
-                              key={t}
+                              key={t.id}
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 setAfTurmas((p) => [...p, t]);
@@ -256,7 +261,7 @@ export function AgendarConselho({
                                 size={11}
                                 className="text-muted-foreground shrink-0"
                               />{" "}
-                              {t}
+                              {t.nome}
                             </button>
                           ))}
                         </div>
@@ -266,10 +271,10 @@ export function AgendarConselho({
                     <div className="flex flex-wrap gap-1.5">
                       {afTurmas.map((t) => (
                         <span
-                          key={t}
+                          key={t.id}
                           className="text-xs bg-[#f0f2f5] text-foreground px-2 py-0.5 rounded-md font-medium"
                         >
-                          {t}
+                          {t.nome}
                         </span>
                       ))}
                     </div>
@@ -351,8 +356,8 @@ export function AgendarConselho({
             </div>
             <div className="px-4 py-3 space-y-3 bg-card">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Professores das turmas vinculadas foram importados
-                automaticamente. Adicione ou remova conforme necessário.
+                Os participantes do conselho intermediário foram mantidos.
+                Adicione ou remova conforme necessário.
               </p>
               <div className="relative">
                 <UserCheck
@@ -374,7 +379,7 @@ export function AgendarConselho({
                   <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-10">
                     {afPartSugeridos.slice(0, 5).map((s) => (
                       <button
-                        key={s}
+                        key={s.id}
                         onMouseDown={(e) => {
                           e.preventDefault();
                           addAfParticipante(s);
@@ -385,7 +390,7 @@ export function AgendarConselho({
                           size={11}
                           className="text-muted-foreground shrink-0"
                         />{" "}
-                        {s}
+                        {s.nome}
                       </button>
                     ))}
                   </div>
@@ -399,19 +404,11 @@ export function AgendarConselho({
                   <span
                     key={p.id}
                     className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border"
-                    style={
-                      p.tipo === "importado"
-                        ? {
-                            background: "var(--secondary)",
-                            color: "var(--primary)",
-                            borderColor: "var(--accent)",
-                          }
-                        : {
-                            background: "#fdf4ff",
-                            color: "#7e22ce",
-                            borderColor: "#e9d5ff",
-                          }
-                    }
+                    style={{
+                      background: "var(--secondary)",
+                      color: "var(--primary)",
+                      borderColor: "var(--accent)",
+                    }}
                   >
                     {p.nome}
                     <button
@@ -432,6 +429,10 @@ export function AgendarConselho({
           </div>
         </div>
 
+        {error && (
+          <p className="px-6 pb-3 text-xs font-semibold text-red-600">{error}</p>
+        )}
+
         {/* Footer */}
         <div
           className="px-6 py-4 border-t border-border flex gap-2 shrink-0 rounded-b-2xl"
@@ -444,7 +445,7 @@ export function AgendarConselho({
             Cancelar
           </button>
           <button
-            disabled={!afData || !afHora}
+            disabled={!afData || !afHora || !afNome.trim() || saving}
             onClick={handleConfirm}
             className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
@@ -453,7 +454,7 @@ export function AgendarConselho({
               boxShadow: "0 4px 12px rgba(15,74,35,0.25)",
             }}
           >
-            Agendar e convocar participantes
+            {saving ? "Agendando..." : "Agendar e convocar participantes"}
           </button>
         </div>
       </div>

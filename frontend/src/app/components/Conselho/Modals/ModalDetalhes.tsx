@@ -78,9 +78,9 @@ export default function ModalDetalhes({
                 >
                   {selectedEnc.categoria}
                 </span>
-                {selectedEnc.servidor && (
+                {selectedEnc.responsavel && (
                   <span className="text-xs text-white/60 flex items-center gap-1">
-                    <UserCheck size={10} /> {selectedEnc.servidor}
+                    <UserCheck size={10} /> {selectedEnc.responsavel}
                   </span>
                 )}
               </div>
@@ -128,7 +128,7 @@ export default function ModalDetalhes({
           </div>
 
           {/* Add relato */}
-          {selectedEnc.status !== "finalizado" && (
+          {selectedEnc.status !== "concluido" && (
             <div className="mt-6 pt-5 border-t border-border space-y-3">
               <label className="block text-xs font-semibold text-foreground">
                 Adicionar Novo Relato de Evolução / Acompanhamento
@@ -172,7 +172,7 @@ export default function ModalDetalhes({
         </div>
 
         {/* Footer — active */}
-        {selectedEnc.status !== "finalizado" && (
+        {selectedEnc.status !== "concluido" && (
           <div className="px-6 py-4 border-t border-border bg-[#f7f8fa] flex items-center gap-2 shrink-0">
             <button
               onClick={saveEncRelato}
@@ -210,7 +210,7 @@ export default function ModalDetalhes({
         )}
 
         {/* Footer — concluido */}
-        {selectedEnc.status === "finalizado" && (
+        {selectedEnc.status === "concluido" && (
           <div className="px-6 py-4 border-t border-border bg-emerald-50 shrink-0">
             <div className="flex items-start gap-2">
               <CheckCircle2 size={14} className="text-emerald-600 mt-0.5 shrink-0" />

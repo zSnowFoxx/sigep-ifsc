@@ -1,22 +1,15 @@
-import React from "react";
 import { Users, CheckCircle, Circle } from "lucide-react";
 import type { Professor } from "../../../../types/conselho";
 
 interface ParticipantesListaProps {
   professores: Professor[];
-  presenteToggle: Record<number, boolean>;
-  setPresenteToggle: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  onTogglePresenca: (index: number) => void;
 }
 
 export function ParticipantesLista({
   professores,
-  presenteToggle,
-  setPresenteToggle,
+  onTogglePresenca,
 }: ParticipantesListaProps) {
-  const handleToggle = (index: number) => {
-    setPresenteToggle((prev) => ({ ...prev, [index]: !prev[index] }));
-  };
-
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <div className="px-5 py-3 border-b border-border flex items-center gap-2">
@@ -26,7 +19,7 @@ export function ParticipantesLista({
       </div>
       <div className="divide-y divide-border">
         {professores.map((p, i) => {
-          const isPresent = presenteToggle[i];
+          const isPresent = p.presente;
           const initials = p.nome
             .split(" ")
             .filter((n) => n.length > 2)
@@ -36,9 +29,9 @@ export function ParticipantesLista({
 
           return (
             <div
-              key={i}
+              key={p.usuarioId}
               className="flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-[#f7f8fa] transition-colors"
-              onClick={() => handleToggle(i)}
+              onClick={() => onTogglePresenca(i)}
             >
               <div className="shrink-0">
                 {isPresent ? (
@@ -61,8 +54,7 @@ export function ParticipantesLista({
                   {p.nome}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {p.cargo}
-                  {p.disciplina !== "—" ? ` · ${p.disciplina}` : ""}
+                  {[p.cargo, p.disciplina !== "—" ? p.disciplina : ""].filter(Boolean).join(" · ")}
                 </p>
               </div>
               <span

@@ -9,7 +9,7 @@ import {
   CircleDot,
   Calendar,
 } from "lucide-react";
-import type { ReuniaoBrief, ReuniaoAberta } from "../../../types/conselho";
+import type { ConselhoMode, ReuniaoBrief, ReuniaoAberta } from "../../../types/conselho";
 import { etapaColors } from "../../../data/conselhoData";
 
 interface ListaAtivosProps {
@@ -17,7 +17,7 @@ interface ListaAtivosProps {
   filteredInter: ReuniaoAberta[];
   filteredFinais: ReuniaoAberta[];
   onAgendarFinal: (reuniao: ReuniaoBrief) => void;
-  onEnterConselho: (tipo: "intermediario" | "final") => void;
+  onEnterConselho: (tipo: ConselhoMode, conselhoId: number) => void;
 }
 
 export function ListaAtivos({
@@ -129,7 +129,7 @@ export function ListaAtivos({
                           Agendar conselho final
                         </button>
                         <button
-                          onClick={() => onEnterConselho("intermediario")}
+                          onClick={() => onEnterConselho("intermediario", r.id)}
                           className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
                           style={{ background: "var(--primary)" }}
                         >
@@ -283,7 +283,7 @@ export function ListaAtivos({
                         <div className="shrink-0 flex flex-col gap-2 items-end">
                           {isAndamento ? (
                             <button
-                              onClick={() => onEnterConselho("final")}
+                              onClick={() => onEnterConselho("final", r.id)}
                               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
                               style={{
                                 background: "var(--primary)",
@@ -294,7 +294,7 @@ export function ListaAtivos({
                             </button>
                           ) : (
                             <button
-                              onClick={() => onEnterConselho("final")}
+                              onClick={() => onEnterConselho("final", r.id)}
                               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-[#e8f0eb] active:scale-[0.98] border-2"
                               style={{
                                 borderColor: "var(--primary)",

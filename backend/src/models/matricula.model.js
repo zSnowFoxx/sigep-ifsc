@@ -29,6 +29,7 @@ async function update(id, data) {
   for (const [key, column] of Object.entries(fieldMap)) {
     if (data[key] !== undefined) {
       columns.push(`${column} = ?`);
+      values.push(data[key]);
     }
   }
 

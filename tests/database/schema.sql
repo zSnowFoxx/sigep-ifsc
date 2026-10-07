@@ -74,10 +74,17 @@ CREATE TABLE IF NOT EXISTS cursos (
   CONSTRAINT fk_cursos_coordenador FOREIGN KEY (coordenador_id) REFERENCES usuarios (id) ON DELETE SET NULL
 );
 
--- usuarios e cursos se referenciam mutuamente, por isso esta FK vem depois
-ALTER TABLE usuarios DROP FOREIGN KEY IF EXISTS fk_usuarios_curso;
-ALTER TABLE usuarios
-  ADD CONSTRAINT fk_usuarios_curso FOREIGN KEY (curso_id) REFERENCES cursos (id) ON DELETE SET NULL;
+-- usuarios e cursos se referenciam mutuamente, por isso esta FK vem depois.
+-- O MySQL 8.0 não tem DROP/ADD ... IF [NOT] EXISTS para FKs: a checagem mantém o script reexecutável.
+SET @sql = IF(
+  (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+   WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'usuarios' AND CONSTRAINT_NAME = 'fk_usuarios_curso') = 0,
+  'ALTER TABLE usuarios ADD CONSTRAINT fk_usuarios_curso FOREIGN KEY (curso_id) REFERENCES cursos (id) ON DELETE SET NULL',
+  'DO 0'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS disciplinas (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -120,11 +127,23 @@ CREATE TABLE IF NOT EXISTS matriculas (
   id       INT UNSIGNED             NOT NULL AUTO_INCREMENT,
   aluno_id INT UNSIGNED             NOT NULL,
   turma_id INT UNSIGNED             NOT NULL,
+  status   ENUM('Ativo', 'Inativo') NOT NULL DEFAULT 'Ativo',
   PRIMARY KEY (id),
   UNIQUE KEY uq_matriculas_aluno_turma (aluno_id, turma_id),
   CONSTRAINT fk_matriculas_aluno FOREIGN KEY (aluno_id) REFERENCES alunos (id) ON DELETE CASCADE,
   CONSTRAINT fk_matriculas_turma FOREIGN KEY (turma_id) REFERENCES turmas (id) ON DELETE CASCADE
 );
+
+-- Bancos criados antes da coluna status: o backend e fn_turma_do_aluno dependem dela.
+SET @sql = IF(
+  (SELECT COUNT(*) FROM information_schema.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'matriculas' AND COLUMN_NAME = 'status') = 0,
+  'ALTER TABLE matriculas ADD COLUMN status ENUM(''Ativo'', ''Inativo'') NOT NULL DEFAULT ''Ativo'' AFTER turma_id',
+  'DO 0'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Diários de classe (disciplina x turma x professor)
 CREATE TABLE IF NOT EXISTS diarios (

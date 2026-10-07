@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { Aluno, AlunoEval, Disciplina } from "../../../types/conselho";
+import type { Aluno, AlunoEval, Disciplina, TurmaData } from "../../../types/conselho";
 
 import { ListaAlunos } from "./Avaliacao/ListaAlunos";
 import { AvaliacaoHeader } from "./Avaliacao/AvaliacaoHeader";
@@ -9,16 +9,13 @@ import { ParecerQualitativo } from "./Avaliacao/ParecerQualitativo";
 
 interface ConselhoAvaliacaoProps {
   avaliacoes: Record<string, AlunoEval>;
+  turmas: TurmaData[];
   alunos: Aluno[];
-  alunosTurmaB: Aluno[];
-  groupAOpen: boolean;
-  setGroupAOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  groupBOpen: boolean;
-  setGroupBOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  openTurmas: Record<number, boolean>;
+  setOpenTurmas: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
   selectedAluno: string;
   setSelectedAluno: (matricula: string) => void;
   disciplinasData: Record<string, Disciplina[]>;
-  defaultDisciplinas: Disciplina[];
   selectedDisc: Record<string, number>;
   setSelectedDisc: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   retificadas: Record<string, string>;
@@ -29,20 +26,18 @@ interface ConselhoAvaliacaoProps {
   setAbonoText: React.Dispatch<React.SetStateAction<string>>;
   updateEval: (matricula: string, field: keyof AlunoEval, value: any) => void;
   saveEval: (matricula: string) => void;
+  salvando: boolean;
 }
 
 export default function ConselhoAvaliacao({
   avaliacoes,
+  turmas,
   alunos,
-  alunosTurmaB,
-  groupAOpen,
-  setGroupAOpen,
-  groupBOpen,
-  setGroupBOpen,
+  openTurmas,
+  setOpenTurmas,
   selectedAluno,
   setSelectedAluno,
   disciplinasData,
-  defaultDisciplinas,
   selectedDisc,
   setSelectedDisc,
   retificadas,
@@ -52,27 +47,33 @@ export default function ConselhoAvaliacao({
   abonoText,
   setAbonoText,
   updateEval,
-  saveEval
+  saveEval,
+  salvando,
 }: ConselhoAvaliacaoProps) {
-  const current = [...alunos, ...alunosTurmaB].find((a) => a.matricula === selectedAluno) ?? alunos[0];
-  const currentEval = avaliacoes[selectedAluno] ?? { saved: false, risco: false, obs: "" };
+  const current = alunos.find((a) => a.matricula === selectedAluno) ?? alunos[0];
+  const currentEval = avaliacoes[current?.matricula] ?? { saved: false, risco: false, obs: "", encaminhamento: "", acao: "", servidor: "" };
   const [encForm, setEncForm] = useState({ categoria: "", descricao: "", servidor: "" });
+
+  if (!current) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-16">
+        Nenhum aluno matriculado nas turmas deste conselho.
+      </p>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden">
       {/* Sidebar - Lista de Alunos */}
       <ListaAlunos
-        alunos={alunos}
-        alunosTurmaB={alunosTurmaB}
+        turmas={turmas}
+        totalAlunos={alunos.length}
         avaliacoes={avaliacoes}
-        groupAOpen={groupAOpen}
-        setGroupAOpen={setGroupAOpen}
-        groupBOpen={groupBOpen}
-        setGroupBOpen={setGroupBOpen}
-        selectedAluno={selectedAluno}
+        openTurmas={openTurmas}
+        setOpenTurmas={setOpenTurmas}
+        selectedAluno={current.matricula}
         setSelectedAluno={setSelectedAluno}
         disciplinasData={disciplinasData}
-        defaultDisciplinas={defaultDisciplinas}
       />
 
       {/* Painel de Avaliação Principal */}
@@ -82,9 +83,8 @@ export default function ConselhoAvaliacao({
 
         {/* Desempenho e Disciplinas */}
         <AvaliacaoDesempenho
-          selectedAluno={selectedAluno}
+          selectedAluno={current.matricula}
           disciplinasData={disciplinasData}
-          defaultDisciplinas={defaultDisciplinas}
           selectedDisc={selectedDisc}
           setSelectedDisc={setSelectedDisc}
           retificadas={retificadas}
@@ -100,7 +100,6 @@ export default function ConselhoAvaliacao({
           abonoText={abonoText}
           setAbonoText={setAbonoText}
           alunos={alunos}
-          alunosTurmaB={alunosTurmaB}
         />
 
         {/* Parecer Qualitativo, Encaminhamentos e Deliberações */}
@@ -109,8 +108,8 @@ export default function ConselhoAvaliacao({
           currentEval={currentEval}
           updateEval={updateEval}
           saveEval={saveEval}
+          salvando={salvando}
           alunos={alunos}
-          alunosTurmaB={alunosTurmaB}
           setSelectedAluno={setSelectedAluno}
           encForm={encForm}
           setEncForm={setEncForm}

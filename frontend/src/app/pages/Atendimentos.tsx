@@ -334,7 +334,7 @@ export default function Atendimentos({ initialStudent, onClearInitialStudent }: 
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((a, i) => {
+                  filtered.map((a) => {
                     const MotivoIcon = motivoIcons[a.motivo] ?? HeartHandshake;
                     const colors = motivoColors[a.motivo] ?? motivoColors["Outro"];
                     return (

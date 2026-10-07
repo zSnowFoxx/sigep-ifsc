@@ -1,72 +1,69 @@
 import { useState } from "react";
 import { ClipboardList, X, Tag, UserCheck } from "lucide-react";
-import { turmasDisponiveis } from "../../../data/conselhoData";
+import {
+  coordenadoresDasTurmas,
+  type ConselhoRefs,
+  type TurmaRef,
+} from "../../../services/conselhoService";
 
 interface CriarConselhoProps {
   isOpen: boolean;
+  refs: ConselhoRefs;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (dados: { nome: string; turmaIds: number[]; servidorIds: number[] }) => Promise<void>;
 }
 
 export function CriarConselho({
   isOpen,
+  refs,
   onClose,
   onConfirm,
 }: CriarConselhoProps) {
   const [fNome, setFNome] = useState("");
-  const [fTurmas, setFTurmas] = useState<string[]>([
-    "TDS - 1ª Fase",
-    "TDS - 2ª Fase",
-  ]);
+  const [fTurmas, setFTurmas] = useState<TurmaRef[]>([]);
   const [fTurmaInput, setFTurmaInput] = useState("");
   const [fTurmaOpen, setFTurmaOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   if (!isOpen) return null;
 
-  const removeTurma = (t: string) =>
-    setFTurmas((prev) => prev.filter((x) => x !== t));
+  const removeTurma = (id: number) =>
+    setFTurmas((prev) => prev.filter((x) => x.id !== id));
 
-  const addTurma = (t: string) => {
-    if (!fTurmas.includes(t)) setFTurmas((prev) => [...prev, t]);
+  const addTurma = (t: TurmaRef) => {
+    if (!fTurmas.some((x) => x.id === t.id)) setFTurmas((prev) => [...prev, t]);
     setFTurmaInput("");
     setFTurmaOpen(false);
   };
 
-  const turmasSugeridas = turmasDisponiveis.filter(
+  const turmasSugeridas = refs.turmas.filter(
     (t) =>
-      !fTurmas.includes(t) &&
-      t.toLowerCase().includes(fTurmaInput.toLowerCase())
+      !fTurmas.some((x) => x.id === t.id) &&
+      t.nome.toLowerCase().includes(fTurmaInput.toLowerCase())
   );
 
-  const cursoMap: Record<string, { curso: string; coordenador: string }> = {
-    TDS: {
-      curso: "Técnico em Desenvolvimento de Sistemas",
-      coordenador: "Prof. Ricardo Alves",
-    },
-    Mecatrônica: {
-      curso: "Técnico em Mecatrônica",
-      coordenador: "Profa. Camila Torres",
-    },
-    Administração: {
-      curso: "Técnico em Administração",
-      coordenador: "Prof. Henrique Lopes",
-    },
-    Informática: {
-      curso: "Técnico em Informática para Internet",
-      coordenador: "Profa. Sandra Melo",
-    },
-  };
+  const turmaIds = fTurmas.map((t) => t.id);
+  const coordenadores = coordenadoresDasTurmas(turmaIds, refs);
 
-  const cursosPresentes = Array.from(
-    new Set(
-      fTurmas
-        .map((t) => {
-          const match = Object.keys(cursoMap).find((k) => t.startsWith(k));
-          return match ?? null;
-        })
-        .filter(Boolean)
-    )
-  ) as string[];
+  const handleConfirm = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await onConfirm({
+        nome: fNome.trim(),
+        turmaIds,
+        servidorIds: coordenadores.map((c) => c.id),
+      });
+      setFNome("");
+      setFTurmas([]);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar o conselho.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div
@@ -142,18 +139,18 @@ export function CriarConselho({
             >
               {fTurmas.map((t) => (
                 <span
-                  key={t}
+                  key={t.id}
                   className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
                   style={{
                     background: "var(--secondary)",
                     color: "var(--primary)",
                   }}
                 >
-                  {t}
+                  {t.nome}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeTurma(t);
+                      removeTurma(t.id);
                     }}
                     className="hover:text-red-500 transition-colors"
                   >
@@ -177,7 +174,7 @@ export function CriarConselho({
               <div className="mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-10 relative">
                 {turmasSugeridas.slice(0, 6).map((t) => (
                   <button
-                    key={t}
+                    key={t.id}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       addTurma(t);
@@ -185,7 +182,7 @@ export function CriarConselho({
                     className="w-full text-left px-3 py-2 text-sm hover:bg-[#f7f8fa] transition-colors border-b border-border last:border-0 flex items-center gap-2"
                   >
                     <Tag size={11} className="text-muted-foreground shrink-0" />
-                    {t}
+                    {t.nome}
                   </button>
                 ))}
               </div>
@@ -193,7 +190,7 @@ export function CriarConselho({
           </div>
 
           {/* Coordenadores Convocados */}
-          {fTurmas.length > 0 && (
+          {coordenadores.length > 0 && (
             <div className="rounded-xl border border-[#d1fae5] bg-[#f0fdf4] px-4 py-3.5 space-y-2.5">
               <div className="flex items-center gap-2 mb-1">
                 <UserCheck size={13} style={{ color: "var(--primary)" }} />
@@ -201,36 +198,28 @@ export function CriarConselho({
                   Coordenador(es) de Curso Convocados
                 </span>
               </div>
-              {cursosPresentes.map((k) => {
-                const info = cursoMap[k];
-                return (
-                  <div
-                    key={k}
-                    className="flex items-center justify-between bg-white rounded-lg border border-[#bbf7d0] px-3 py-2.5"
+              {coordenadores.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between bg-white rounded-lg border border-[#bbf7d0] px-3 py-2.5"
+                >
+                  <p className="text-xs font-bold text-foreground">{c.nome}</p>
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      background: "#dcfce7",
+                      color: "#15803d",
+                      border: "1px solid #86efac",
+                    }}
                   >
-                    <div>
-                      <p className="text-xs font-bold text-foreground">
-                        {info.coordenador}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {info.curso}
-                      </p>
-                    </div>
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "#dcfce7",
-                        color: "#15803d",
-                        border: "1px solid #86efac",
-                      }}
-                    >
-                      Convocado
-                    </span>
-                  </div>
-                );
-              })}
+                    Convocado
+                  </span>
+                </div>
+              ))}
             </div>
           )}
+
+          {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
         </div>
 
         {/* Footer */}
@@ -245,11 +234,8 @@ export function CriarConselho({
             Cancelar
           </button>
           <button
-            disabled={!fNome || fTurmas.length === 0}
-            onClick={() => {
-              onClose();
-              onConfirm();
-            }}
+            disabled={!fNome.trim() || fTurmas.length === 0 || saving}
+            onClick={handleConfirm}
             className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background:
@@ -257,7 +243,7 @@ export function CriarConselho({
               boxShadow: "0 4px 12px rgba(15,74,35,0.25)",
             }}
           >
-            Criar e visualizar conselho
+            {saving ? "Criando..." : "Criar e visualizar conselho"}
           </button>
         </div>
       </div>

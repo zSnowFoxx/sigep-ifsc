@@ -1,7 +1,11 @@
 import type { Professor, Aluno, TurmaData, EncItemData, Disciplina, ReuniaoAberta, ReuniaoRealizada, Participante } from "../types/conselho";
 import { initialCards } from "../data/encaminhamentosData";
 
-export const professores: Professor[] = [
+// Formatos sem os ids do banco, usados só por estes dados de exemplo.
+type AlunoExemplo = Omit<Aluno, "id">;
+type TurmaExemplo = Omit<TurmaData, "id" | "alunosList"> & { alunosList: AlunoExemplo[] };
+
+export const professores: Omit<Professor, "usuarioId">[] = [
   { nome: "Prof. Ricardo Alves",   disciplina: "Algoritmos e Programação",   cargo: "Professor",         presente: true  },
   { nome: "Profa. Camila Torres",  disciplina: "Matemática Aplicada",         cargo: "Professora",        presente: true  },
   { nome: "Prof. Henrique Lopes",  disciplina: "Inglês Técnico",              cargo: "Professor",         presente: true  },
@@ -13,7 +17,7 @@ export const professores: Professor[] = [
   { nome: "Ana Costa",             disciplina: "—",                           cargo: "Pedagoga",          presente: true  },
 ];
 
-export const alunos: Aluno[] = [
+export const alunos: AlunoExemplo[] = [
   { matricula: "202110806528", nome: "João Silva",           atencao: true,  risco: true  },
   { matricula: "202210809911", nome: "Maria Oliveira",       atencao: true,  risco: false },
   { matricula: "202310804422", nome: "Carlos Souza",         atencao: true,  risco: true  },
@@ -28,7 +32,7 @@ export const alunos: Aluno[] = [
   { matricula: "202310801198", nome: "Tatiane Lima",         atencao: false, risco: false },
 ];
 
-export const alunosTurmaB: Aluno[] = [
+export const alunosTurmaB: AlunoExemplo[] = [
   { matricula: "202210870011", nome: "Amanda Silveira",     atencao: false, risco: false },
   { matricula: "202310871234", nome: "Breno Cavalcante",    atencao: true,  risco: false },
   { matricula: "202110872005", nome: "Cristina Duarte",     atencao: false, risco: false },
@@ -41,7 +45,7 @@ export const alunosTurmaB: Aluno[] = [
   { matricula: "202210879683", nome: "Otávio Ribeiro",      atencao: true,  risco: false },
 ];
 
-export const turmasData: TurmaData[] = [
+export const turmasData: TurmaExemplo[] = [
   { nome: "TDS - 2ª Fase",         alunosList: alunos,       coord: "Profa. Renata Dias",   semestre: "2026.1" },
   { nome: "Mecatrônica - 3ª Fase", alunosList: alunosTurmaB, coord: "Prof. Eduardo Santos", semestre: "2026.1" },
 ];

@@ -24,6 +24,7 @@ export default function App() {
   const [activeNav, setActiveNav] = useState(0);
   const [conselhoMode, setConselhoMode] = useState<"list" | "workspace">("list");
   const [conselhoTipo, setConselhoTipo] = useState<"intermediario" | "final">("intermediario");
+  const [conselhoId, setConselhoId] = useState<number | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [importarOpen, setImportarOpen] = useState(false);
   const [naeStudent, setNaeStudent] = useState<{ matricula: string; nome: string; turma: string } | null>(null);
@@ -147,11 +148,18 @@ export default function App() {
 
             {activeNav === 1 && (
               conselhoMode === "list" ? (
-                <ConselhosLista 
-                  onEnterConselho={(tipo) => { setConselhoTipo(tipo); setConselhoMode("workspace"); }}
+                <ConselhosLista
+                  onEnterConselho={(tipo, id) => { setConselhoTipo(tipo); setConselhoId(id); setConselhoMode("workspace"); }}
                 />
               ) : (
-                <ConselhoDeClasse onBack={() => setConselhoMode("list")} mode={conselhoTipo} />
+                conselhoId !== null && (
+                  <ConselhoDeClasse
+                    key={conselhoId}
+                    conselhoId={conselhoId}
+                    onBack={() => setConselhoMode("list")}
+                    mode={conselhoTipo}
+                  />
+                )
               )
             )}
 

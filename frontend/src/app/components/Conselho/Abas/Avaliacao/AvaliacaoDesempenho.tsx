@@ -6,7 +6,6 @@ import { PainelDisciplinas } from "./PainelDisciplinas";
 interface AvaliacaoDesempenhoProps {
   selectedAluno: string;
   disciplinasData: Record<string, Disciplina[]>;
-  defaultDisciplinas: Disciplina[];
   selectedDisc: Record<string, number>;
   setSelectedDisc: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   retificadas: Record<string, string>;
@@ -18,7 +17,6 @@ interface AvaliacaoDesempenhoProps {
 export function AvaliacaoDesempenho({
   selectedAluno,
   disciplinasData,
-  defaultDisciplinas,
   selectedDisc,
   setSelectedDisc,
   retificadas,
@@ -26,9 +24,17 @@ export function AvaliacaoDesempenho({
   setAbonomat,
   setAbonoText,
 }: AvaliacaoDesempenhoProps) {
-  const discs = disciplinasData[selectedAluno] ?? defaultDisciplinas;
+  const discs = disciplinasData[selectedAluno] ?? [];
   const discIdx = selectedDisc[selectedAluno] ?? 0;
   const disc = discs[discIdx] ?? discs[0];
+
+  if (!disc) {
+    return (
+      <div className="bg-card rounded-xl border border-dashed border-border px-5 py-8 text-center">
+        <p className="text-sm text-muted-foreground">Nenhuma nota ou frequência registrada para este aluno.</p>
+      </div>
+    );
+  }
 
   const globalMedia = discs.reduce((s, d) => s + d.nota, 0) / discs.length;
   const globalCH = discs.reduce((s, d) => s + d.ch, 0);

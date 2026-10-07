@@ -60,17 +60,21 @@ export function ListaHistorico({
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Users size={10} /> {r.docentes} docentes
                   </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <FileText size={10} /> {r.ata}
-                  </span>
+                  {r.ata && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <FileText size={10} /> {r.ata}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors">
-                  <Download size={12} />
-                  Baixar Ata (PDF)
-                </button>
+                {r.ata && (
+                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors">
+                    <Download size={12} />
+                    Baixar Ata (PDF)
+                  </button>
+                )}
                 {r.etapa !== "Final" && (
                   <button
                     onClick={onOpenCriarConselho}

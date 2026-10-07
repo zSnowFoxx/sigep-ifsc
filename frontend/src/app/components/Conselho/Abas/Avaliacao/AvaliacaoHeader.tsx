@@ -38,7 +38,7 @@ export function AvaliacaoHeader({ current, currentEval }: AvaliacaoHeaderProps) 
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5" style={{ fontFamily: "monospace" }}>
-            Matrícula: {current.matricula}&ensp;·&ensp;{"TDS - 2ª Fase"}
+            Matrícula: {current.matricula}&ensp;·&ensp;{current.turma}
           </p>
         </div>
       </div>

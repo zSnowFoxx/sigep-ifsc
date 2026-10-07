@@ -13,27 +13,30 @@ const FIELD_MAP = {
   dataRealizacao: 'data_realizacao'
 };
 
-async function attachRelacoes(conselho) {
-  if (!conselho) {
-    return conselho;
+async function attachRelacoes(conselhos) {
+  if (conselhos.length === 0) {
+    return conselhos;
   }
 
+  const ids = conselhos.map((c) => c.id);
   const [[turmas], [servidores]] = await Promise.all([
-    pool.query('SELECT turma_id FROM conselhos_turmas WHERE conselho_id = ? ORDER BY turma_id', [conselho.id]),
+    pool.query('SELECT conselho_id, turma_id FROM conselhos_turmas WHERE conselho_id IN (?) ORDER BY turma_id', [ids]),
     pool.query(
-      'SELECT usuario_id, presente FROM conselhos_servidores WHERE conselho_id = ? ORDER BY usuario_id',
-      [conselho.id]
+      'SELECT conselho_id, usuario_id, presente FROM conselhos_servidores WHERE conselho_id IN (?) ORDER BY usuario_id',
+      [ids]
     )
   ]);
 
-  return {
+  return conselhos.map((conselho) => ({
     ...conselho,
-    turmaIds: turmas.map((row) => row.turma_id),
-    servidores: servidores.map((row) => ({
-      usuarioId: row.usuario_id,
-      presente: row.presente === null ? null : Boolean(row.presente)
-    }))
-  };
+    turmaIds: turmas.filter((row) => row.conselho_id === conselho.id).map((row) => row.turma_id),
+    servidores: servidores
+      .filter((row) => row.conselho_id === conselho.id)
+      .map((row) => ({
+        usuarioId: row.usuario_id,
+        presente: row.presente === null ? null : Boolean(row.presente)
+      }))
+  }));
 }
 
 // Mantém as turmas que continuam: remover uma turma apaga as demandas dela neste conselho.
@@ -80,12 +83,13 @@ async function setServidores(connection, conselhoId, servidores) {
 
 async function findAll() {
   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM conselhos_lista ORDER BY data_criacao DESC, id DESC`);
-  return Promise.all(rows.map(attachRelacoes));
+  return attachRelacoes(rows);
 }
 
 async function findById(id) {
   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM conselhos_lista WHERE id = ?`, [id]);
-  return attachRelacoes(rows[0] ?? null);
+  const [conselho] = await attachRelacoes(rows);
+  return conselho ?? null;
 }
 
 async function create(data) {

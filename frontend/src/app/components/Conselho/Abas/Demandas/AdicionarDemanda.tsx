@@ -1,19 +1,18 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import type { GravidadeDemanda } from "../../../../types/conselho";
 
 interface AdicionarDemandaProps {
-  addDemanda?: () => void;
+  addDemanda: (situacao: string, gravidade: GravidadeDemanda) => void;
 }
 
 export function AdicionarDemanda({ addDemanda }: AdicionarDemandaProps) {
   const [demandaOpen, setDemandaOpen] = useState(false);
   const [demandaSit, setDemandaSit] = useState("");
-  const [demandaGrav, setDemandaGrav] = useState<"nao-urgente" | "urgente" | "critica">("nao-urgente");
+  const [demandaGrav, setDemandaGrav] = useState<GravidadeDemanda>("nao-urgente");
 
   const handleAdd = () => {
-    if (addDemanda) {
-      addDemanda();
-    }
+    addDemanda(demandaSit, demandaGrav);
     setDemandaOpen(false);
     setDemandaSit("");
     setDemandaGrav("nao-urgente");
@@ -61,7 +60,7 @@ export function AdicionarDemanda({ addDemanda }: AdicionarDemandaProps) {
         <label className="block text-xs font-semibold text-muted-foreground mb-1">Gravidade</label>
         <select
           value={demandaGrav}
-          onChange={(e) => setDemandaGrav(e.target.value as "nao-urgente" | "urgente" | "critica")}
+          onChange={(e) => setDemandaGrav(e.target.value as GravidadeDemanda)}
           className="w-full text-sm px-3 py-2 rounded-lg border border-border bg-white outline-none focus:border-primary cursor-pointer"
         >
           <option value="nao-urgente">Não urgente</option>
