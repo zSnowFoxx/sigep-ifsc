@@ -1,8 +1,23 @@
 const pool = require('../config/database');
 const buildSet = require('../utils/buildSet');
 
-const COLUMNS = `id, aluno_id, turma_id, conselho_id, titulo, categoria, origem, servidor_responsavel_id,
-  descricao_inicial, status, urgente, DATE_FORMAT(prazo, '%Y-%m-%d') AS prazo, data_criacao`;
+// Colunas da tabela + dados para exibição (aluno, turma, responsável e resumo da linha do tempo).
+const COLUMNS = `e.id, e.aluno_id, e.turma_id, e.conselho_id, e.titulo, e.categoria, e.origem,
+  e.servidor_responsavel_id, e.descricao_inicial, e.status, e.urgente,
+  DATE_FORMAT(e.prazo, '%Y-%m-%d') AS prazo, e.data_criacao,
+  a.nome AS aluno_nome, a.matricula AS aluno_matricula, t.nome AS turma_nome,
+  u.nome AS servidor_responsavel_nome,
+  (SELECT COUNT(*) FROM encaminhamentos_acompanhamento ac WHERE ac.encaminhamento_id = e.id) AS total_acompanhamentos,
+  (SELECT MAX(ac.data_registro) FROM encaminhamentos_acompanhamento ac
+    WHERE ac.encaminhamento_id = e.id AND ac.tipo = 'relato') AS ultimo_relato,
+  (SELECT ac.relato FROM encaminhamentos_acompanhamento ac
+    WHERE ac.encaminhamento_id = e.id AND ac.tipo = 'conclusao'
+    ORDER BY ac.data_registro DESC, ac.id DESC LIMIT 1) AS parecer`;
+
+const FROM = `FROM encaminhamentos e
+  JOIN alunos a ON a.id = e.aluno_id
+  JOIN turmas t ON t.id = e.turma_id
+  LEFT JOIN usuarios u ON u.id = e.servidor_responsavel_id`;
 
 // turmaId omitido: o banco preenche com a turma do aluno (trigger).
 const FIELD_MAP = {
@@ -25,12 +40,12 @@ function toEncaminhamento(row) {
 }
 
 async function findAll() {
-  const [rows] = await pool.query(`SELECT ${COLUMNS} FROM encaminhamentos ORDER BY data_criacao DESC, id DESC`);
+  const [rows] = await pool.query(`SELECT ${COLUMNS} ${FROM} ORDER BY e.data_criacao DESC, e.id DESC`);
   return rows.map(toEncaminhamento);
 }
 
 async function findById(id) {
-  const [rows] = await pool.query(`SELECT ${COLUMNS} FROM encaminhamentos WHERE id = ?`, [id]);
+  const [rows] = await pool.query(`SELECT ${COLUMNS} ${FROM} WHERE e.id = ?`, [id]);
   return toEncaminhamento(rows[0] ?? null);
 }
 

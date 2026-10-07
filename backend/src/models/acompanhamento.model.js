@@ -1,7 +1,8 @@
 const pool = require('../config/database');
 const buildSet = require('../utils/buildSet');
 
-const COLUMNS = 'id, encaminhamento_id, autor_id, tipo, relato, data_registro';
+const COLUMNS = `ac.id, ac.encaminhamento_id, ac.autor_id, u.nome AS autor_nome, ac.tipo, ac.relato, ac.data_registro`;
+const FROM = 'FROM encaminhamentos_acompanhamento ac LEFT JOIN usuarios u ON u.id = ac.autor_id';
 
 const FIELD_MAP = {
   autorId: 'autor_id',
@@ -11,8 +12,8 @@ const FIELD_MAP = {
 
 async function findAllByEncaminhamento(encaminhamentoId) {
   const [rows] = await pool.query(
-    `SELECT ${COLUMNS} FROM encaminhamentos_acompanhamento
-     WHERE encaminhamento_id = ? ORDER BY data_registro, id`,
+    `SELECT ${COLUMNS} ${FROM}
+     WHERE ac.encaminhamento_id = ? ORDER BY ac.data_registro, ac.id`,
     [encaminhamentoId]
   );
   return rows;
@@ -20,7 +21,7 @@ async function findAllByEncaminhamento(encaminhamentoId) {
 
 async function findOne(encaminhamentoId, id) {
   const [rows] = await pool.query(
-    `SELECT ${COLUMNS} FROM encaminhamentos_acompanhamento WHERE encaminhamento_id = ? AND id = ?`,
+    `SELECT ${COLUMNS} ${FROM} WHERE ac.encaminhamento_id = ? AND ac.id = ?`,
     [encaminhamentoId, id]
   );
   return rows[0] ?? null;

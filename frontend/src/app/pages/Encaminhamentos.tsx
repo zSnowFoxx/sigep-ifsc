@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   X,
   Clock,
@@ -21,164 +21,16 @@ import {
   Sparkles,
 } from "lucide-react";
 
-type Status = "pendente" | "andamento" | "concluido";
+import { encaminhamentosService } from "../services/encaminhamentosService";
+import type { Encaminhamento, Status } from "../types/encaminhamentos";
 
-interface Evolucao {
-  data: string;
-  autor: string;
-  texto: string;
-  tipo: "criacao" | "triagem" | "relato" | "conclusao";
-}
-
-interface Encaminhamento {
-  id: number;
-  aluno: string;
-  matricula: string;
-  turma: string;
-  origem: string;
-  categoria: string;
-  responsavel: string;
-  prazo?: string;
-  ultimoRelato?: string;
-  urgente: boolean;
-  status: Status;
-  parecer: string;
-  evolucoes: Evolucao[];
-}
-
-const initialCards: Encaminhamento[] = [
-  {
-    id: 1042,
-    aluno: "João Silva",
-    matricula: "202110806528",
-    turma: "TDS - 2ª Fase",
-    origem: "Conselho Intermediário",
-    categoria: "Apoio Pedagógico",
-    responsavel: "Coordenação TDS",
-    prazo: "05/07/2026",
-    urgente: true,
-    status: "pendente",
-    parecer: "",
-    evolucoes: [
-      { data: "25/06/2026", autor: "Prof. Marcos", texto: "Criado automaticamente via Deliberação do Conselho de Classe Intermediário.", tipo: "criacao" },
-      { data: "26/06/2026", autor: "Coord. Pedagógica", texto: "Triagem realizada. Atribuído para Coordenação Pedagógica TDS.", tipo: "triagem" },
-    ],
-  },
-  {
-    id: 1039,
-    aluno: "Carlos Souza",
-    matricula: "202310804422",
-    turma: "Mecatrônica - 4ª Fase",
-    origem: "Painel de Risco (RF06)",
-    categoria: "Assistência Estudantil",
-    responsavel: "Serviço Social",
-    prazo: "10/07/2026",
-    urgente: true,
-    status: "pendente",
-    parecer: "",
-    evolucoes: [
-      { data: "23/06/2026", autor: "Sistema SIGEP", texto: "Encaminhamento gerado automaticamente a partir de alerta de risco iminente de evasão no Painel RF06.", tipo: "criacao" },
-    ],
-  },
-  {
-    id: 1035,
-    aluno: "Ana Beatriz Ferreira",
-    matricula: "202110801345",
-    turma: "TDS - 3ª Fase",
-    origem: "Atendimento NAE",
-    categoria: "Acompanhamento Psicológico",
-    responsavel: "Setor de Psicologia",
-    prazo: "15/07/2026",
-    urgente: false,
-    status: "pendente",
-    parecer: "",
-    evolucoes: [
-      { data: "20/06/2026", autor: "Ana Costa (Pedagoga)", texto: "Aluna encaminhada para acompanhamento psicológico após atendimento NAE de acolhimento.", tipo: "criacao" },
-    ],
-  },
-  {
-    id: 1028,
-    aluno: "Maria Oliveira",
-    matricula: "202210809911",
-    turma: "TDS - 1ª Fase",
-    origem: "Atendimento Voluntário NAE",
-    categoria: "Assistência Estudantil",
-    responsavel: "Setor de Psicologia",
-    prazo: "12/07/2026",
-    ultimoRelato: "22/06",
-    urgente: false,
-    status: "andamento",
-    parecer: "",
-    evolucoes: [
-      { data: "15/06/2026", autor: "Carlos Lima (Psicólogo)", texto: "Aluna buscou o NAE espontaneamente relatando dificuldades emocionais. Encaminhada ao acompanhamento psicológico contínuo.", tipo: "criacao" },
-      { data: "18/06/2026", autor: "Profa. Renata Dias", texto: "Triagem confirmada. Prioridade média. Atribuído ao Setor de Psicologia.", tipo: "triagem" },
-      { data: "22/06/2026", autor: "Carlos Lima (Psicólogo)", texto: "Segunda sessão realizada. Aluna demonstra melhora na gestão emocional. Técnicas de respiração e organização de rotina apresentadas. Próxima sessão em 29/06.", tipo: "relato" },
-    ],
-  },
-  {
-    id: 1021,
-    aluno: "Fernanda Costa",
-    matricula: "202310807654",
-    turma: "Administração - 1ª Fase",
-    origem: "Conselho de Classe",
-    categoria: "Monitoria / Nivelamento",
-    responsavel: "Dept. Acadêmico",
-    prazo: "30/06/2026",
-    ultimoRelato: "20/06",
-    urgente: false,
-    status: "andamento",
-    parecer: "",
-    evolucoes: [
-      { data: "10/06/2026", autor: "Prof. Ricardo Alves", texto: "Encaminhada para monitoria em Matemática Aplicada após desempenho abaixo da média no 1º bimestre.", tipo: "criacao" },
-      { data: "12/06/2026", autor: "Coord. Pedagógica", texto: "Aluna incluída no grupo de monitoria às segundas e quartas, 17h.", tipo: "triagem" },
-      { data: "20/06/2026", autor: "Monitor Técnico", texto: "Frequência regular nas sessões. Aluna apresentando melhora progressiva em cálculo proporcional.", tipo: "relato" },
-    ],
-  },
-  {
-    id: 1015,
-    aluno: "Lucas Santos",
-    matricula: "202110809302",
-    turma: "TDS - 4ª Fase",
-    origem: "Pré-Conselho",
-    categoria: "Monitoria / Nivelamento",
-    responsavel: "Prof. Alberto",
-    urgente: false,
-    status: "concluido",
-    parecer: "Aluno concluiu o ciclo de monitoria com desempenho satisfatório. Média recuperada para 6.8. Nenhum acompanhamento adicional necessário no momento.",
-    evolucoes: [
-      { data: "01/06/2026", autor: "Prof. Alberto", texto: "Encaminhamento originado em reunião de pré-conselho. Aluno com dificuldades em Banco de Dados.", tipo: "criacao" },
-      { data: "03/06/2026", autor: "Coord. Pedagógica", texto: "Triagem concluída. Atribuído ao Prof. Alberto para monitoria individualizada.", tipo: "triagem" },
-      { data: "14/06/2026", autor: "Prof. Alberto", texto: "4 sessões realizadas. Aluno demonstra evolução significativa nos conceitos de normalização.", tipo: "relato" },
-      { data: "22/06/2026", autor: "Prof. Alberto", texto: "Encaminhamento concluído. Aluno aprovado no módulo prático. Parecer de desfecho registrado.", tipo: "conclusao" },
-    ],
-  },
-  {
-    id: 1008,
-    aluno: "Rafael Rocha",
-    matricula: "202110809002",
-    turma: "TDS - 3ª Fase",
-    origem: "Atendimento NAE",
-    categoria: "Apoio Pedagógico",
-    responsavel: "Coord. Pedagógica",
-    urgente: false,
-    status: "concluido",
-    parecer: "Questão de indisciplina mediada com sucesso. Acordo formalizado entre aluno e professor. Situação regularizada sem ocorrências subsequentes.",
-    evolucoes: [
-      { data: "28/05/2026", autor: "Profa. Camila Torres", texto: "Aluno encaminhado após conflito com professor em sala de aula.", tipo: "criacao" },
-      { data: "29/05/2026", autor: "Coord. Pedagógica", texto: "Mediação realizada. Aluno e professor reunidos para diálogo.", tipo: "triagem" },
-      { data: "10/06/2026", autor: "Coord. Pedagógica", texto: "Encerrado após período de observação sem novas ocorrências.", tipo: "conclusao" },
-    ],
-  },
-];
-
-const colConfig: Record<Status, { label: string; icon: React.ElementType; color: string; bg: string; headerBg: string; count: number }> = {
+const colConfig: Record<Status, { label: string; icon: React.ElementType; color: string; bg: string; headerBg: string }> = {
   pendente: {
     label: "Pendentes / Triagem",
     icon: Clock,
     color: "#b45309",
     bg: "#fffbeb",
     headerBg: "#fef3c7",
-    count: 8,
   },
   andamento: {
     label: "Em Acompanhamento",
@@ -186,7 +38,6 @@ const colConfig: Record<Status, { label: string; icon: React.ElementType; color:
     color: "#1d4ed8",
     bg: "#eff6ff",
     headerBg: "#dbeafe",
-    count: 15,
   },
   concluido: {
     label: "Concluídos",
@@ -194,7 +45,6 @@ const colConfig: Record<Status, { label: string; icon: React.ElementType; color:
     color: "#15803d",
     bg: "#f0fdf4",
     headerBg: "#dcfce7",
-    count: 34,
   },
 };
 
@@ -213,8 +63,24 @@ const categoriaColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function Encaminhamentos() {
-  const [cards, setCards] = useState<Encaminhamento[]>(initialCards);
+  const [cards, setCards] = useState<Encaminhamento[]>([]);
   const [selected, setSelected] = useState<Encaminhamento | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const loadCards = async () => {
+    try {
+      setCards(await encaminhamentosService.getAll());
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar encaminhamentos.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadCards(); }, []);
 
   // Filter toolbar state
   const [filterSearch,    setFilterSearch]    = useState("");
@@ -223,9 +89,9 @@ export default function Encaminhamentos() {
   const [filterOrigem,    setFilterOrigem]    = useState("");
   const [filterUrgentes,  setFilterUrgentes]  = useState(false);
 
-  const categorias  = [...new Set(initialCards.map((c) => c.categoria))];
-  const setores     = [...new Set(initialCards.map((c) => c.responsavel))];
-  const origens     = [...new Set(initialCards.map((c) => c.origem))];
+  const categorias  = [...new Set(cards.map((c) => c.categoria))];
+  const setores     = [...new Set(cards.map((c) => c.responsavel))];
+  const origens     = [...new Set(cards.map((c) => c.origem))];
 
   const matchesFilter = (card: Encaminhamento) => {
     const q = filterSearch.toLowerCase();
@@ -242,55 +108,68 @@ export default function Encaminhamentos() {
   const [finalizando, setFinalizando] = useState(false);
   const [savedRelato, setSavedRelato] = useState(false);
 
-  const openModal = (card: Encaminhamento) => {
+  const openModal = async (card: Encaminhamento) => {
     setSelected(card);
     setNovoRelato("");
     setParecerFinal(card.parecer);
     setFinalizando(false);
     setSavedRelato(false);
+    setError("");
+    try {
+      const evolucoes = await encaminhamentosService.getEvolucoes(card.id);
+      setSelected((cur) => (cur?.id === card.id ? { ...card, evolucoes } : cur));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar o histórico.");
+    }
   };
 
-  const saveRelato = () => {
-    if (!novoRelato.trim() || !selected) return;
-    const hoje = new Date().toLocaleDateString("pt-BR");
-    const updated = cards.map((c) =>
-      c.id === selected.id
-        ? {
-            ...c,
-            ultimoRelato: hoje.slice(0, 5),
-            evolucoes: [
-              ...c.evolucoes,
-              { data: hoje, autor: "Servidor (Equipe Pedagógica)", texto: novoRelato, tipo: "relato" as const },
-            ],
-          }
-        : c
-    );
-    setCards(updated);
-    setSelected(updated.find((c) => c.id === selected.id) ?? null);
-    setNovoRelato("");
-    setSavedRelato(true);
-    setTimeout(() => setSavedRelato(false), 2500);
+  const closeModal = () => { setSelected(null); setFinalizando(false); };
+
+  // Registra a entrada na linha do tempo e recarrega os cards e o histórico do selecionado.
+  const refreshSelected = async (id: number) => {
+    await loadCards();
+    const evolucoes = await encaminhamentosService.getEvolucoes(id);
+    setSelected((cur) => (cur?.id === id ? { ...cur, evolucoes } : cur));
   };
 
-  const finalizar = () => {
-    if (!parecerFinal.trim() || !selected) return;
-    const hoje = new Date().toLocaleDateString("pt-BR");
-    const updated = cards.map((c) =>
-      c.id === selected.id
-        ? {
-            ...c,
-            status: "concluido" as Status,
-            parecer: parecerFinal,
-            evolucoes: [
-              ...c.evolucoes,
-              { data: hoje, autor: "Servidor (Equipe Pedagógica)", texto: `Encaminhamento finalizado. Parecer: ${parecerFinal}`, tipo: "conclusao" as const },
-            ],
-          }
-        : c
-    );
-    setCards(updated);
-    setSelected(null);
-    setFinalizando(false);
+  const saveRelato = async () => {
+    if (!novoRelato.trim() || !selected || saving) return;
+    setSaving(true);
+    try {
+      const autorId = await encaminhamentosService.getAutorId();
+      await encaminhamentosService.addAcompanhamento(selected.id, "relato", novoRelato.trim(), autorId);
+      // O primeiro relato de um encaminhamento pendente move o card para "Em Acompanhamento".
+      let status = selected.status;
+      if (status === "pendente") {
+        await encaminhamentosService.updateStatus(selected.id, "andamento");
+        status = "andamento";
+      }
+      setSelected((cur) => (cur ? { ...cur, status } : cur));
+      await refreshSelected(selected.id);
+      setNovoRelato("");
+      setSavedRelato(true);
+      setTimeout(() => setSavedRelato(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar o relato.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const finalizar = async () => {
+    if (!parecerFinal.trim() || !selected || saving) return;
+    setSaving(true);
+    try {
+      const autorId = await encaminhamentosService.getAutorId();
+      await encaminhamentosService.addAcompanhamento(selected.id, "conclusao", parecerFinal.trim(), autorId);
+      await encaminhamentosService.updateStatus(selected.id, "concluido");
+      await loadCards();
+      closeModal();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao finalizar o encaminhamento.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const byStatus = (s: Status) => cards.filter((c) => c.status === s);
@@ -329,7 +208,7 @@ export default function Encaminhamentos() {
                 >
                   <Icon size={13} />
                   {cfg.label.split(" /")[0].split(" ")[0]}:&nbsp;
-                  <span className="font-bold">{byStatus(s).length > 0 ? byStatus(s).length : cfg.count - byStatus(s).length + byStatus(s).length}</span>
+                  <span className="font-bold">{byStatus(s).length}</span>
                 </div>
               );
             })}
@@ -406,6 +285,13 @@ export default function Encaminhamentos() {
           )}
         </div>
       </div>
+
+      {error && (
+        <div className="mx-6 mt-3 px-3 py-2 text-xs rounded-lg bg-red-50 border border-red-200 text-red-700 shrink-0">
+          {error}
+        </div>
+      )}
+      {loading && <p className="px-6 pt-3 text-xs text-muted-foreground shrink-0">Carregando encaminhamentos...</p>}
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
@@ -537,7 +423,7 @@ export default function Encaminhamentos() {
                           {/* Footer */}
                           <div className="flex items-center justify-between pt-1 border-t border-border">
                             <span className="text-xs text-muted-foreground">
-                              {card.evolucoes.length} entrada{card.evolucoes.length !== 1 ? "s" : ""}
+                              {card.totalEvolucoes} entrada{card.totalEvolucoes !== 1 ? "s" : ""}
                             </span>
                             <span className="text-xs font-semibold flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--primary)" }}>
                               Ver histórico <ChevronRight size={11} />
@@ -558,7 +444,7 @@ export default function Encaminhamentos() {
       {selected && (
         <div
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] flex items-center justify-center"
-          onClick={() => { setSelected(null); setFinalizando(false); }}
+          onClick={closeModal}
         >
           <div
             className="bg-card rounded-2xl shadow-2xl w-full max-w-xl mx-4 flex flex-col overflow-hidden"
@@ -596,7 +482,7 @@ export default function Encaminhamentos() {
                   </div>
                 </div>
                 <button
-                  onClick={() => { setSelected(null); setFinalizando(false); }}
+                  onClick={closeModal}
                   className="text-white/60 hover:text-white transition-colors shrink-0 mt-0.5"
                 >
                   <X size={18} />
@@ -696,7 +582,7 @@ export default function Encaminhamentos() {
               <div className="px-6 py-4 border-t border-border bg-[#f7f8fa] flex items-center gap-2 shrink-0">
                 <button
                   onClick={saveRelato}
-                  disabled={!novoRelato.trim()}
+                  disabled={!novoRelato.trim() || saving}
                   className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                   style={{ background: "var(--primary)" }}
                 >
@@ -722,7 +608,7 @@ export default function Encaminhamentos() {
                     </button>
                     <button
                       onClick={finalizar}
-                      disabled={!parecerFinal.trim()}
+                      disabled={!parecerFinal.trim() || saving}
                       className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <CheckCircle2 size={13} />
