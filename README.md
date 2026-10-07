@@ -8,6 +8,7 @@ Plataforma web desenvolvida para o monitoramento e a gestão de dados acadêmico
 
 * **Frontend:** React + TypeScript
 * **Backend:** Node.js + Express
+* **Banco de Dados:** MySQL 8.0
 * **Comunicação do Servidor:** API REST
 * **Build Tool:** Vite
 * **Estilização:** Tailwind CSS (com Design Tokens flexíveis)
@@ -68,7 +69,7 @@ Módulo centralizado em abas para gerenciamento completo (CRUD) de dados da inst
 ## Estrutura do Projeto
 
 ```text
-src/app/
+frontend/src/app/
 ├── components/
 │   ├── Cadastros/              # Componentes de interface do módulo de cadastros (header, cards, filtros)
 │   │   ├── Forms/              # Formulários para cada modalidade de cadastro
@@ -81,7 +82,7 @@ src/app/
 │   └── ui/                     # Componentes primitivos genéricos e reutilizáveis (tabelas, inputs, selects)
 ├── data/                       # Mock data e seeds institucionais
 ├── pages/                      # Views principais da aplicação associadas às rotas
-├── services/                   # Camada de integração com APIs externas e chamadas HTTP
+├── services/                   # Camada de integração com o backend
 ├── types/                      # Interfaces e tipagens TypeScript
 └── utils/                      # Métodos auxiliares de string e busca
 
@@ -122,8 +123,9 @@ git clone https://github.com/zSnowFoxx/sigep-ifsc.git
 2. **Iniciar o Servidor (Backend):**
 Abra um terminal, acesse a pasta do servidor, instale as dependências e execute o serviço:
 ```bash
-cd sigep-ifsc/server
+cd sigep-ifsc/backend
 npm install
+npm install bcrypt
 nodemon server.js
 
 ```
@@ -132,7 +134,7 @@ nodemon server.js
 3. **Iniciar a Aplicação (Frontend):**
 Em outro terminal, acesse a pasta principal do projeto, instale as dependências e rode a interface:
 ```bash
-cd sigep-ifsc
+cd sigep-ifsc/frontend
 npm install
 npm run dev
 
