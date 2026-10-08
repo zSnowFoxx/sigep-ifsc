@@ -153,6 +153,7 @@ Certifique-se de ter instalado em sua máquina:
 
 * [Node.js](https://nodejs.org/) (versão 18 ou superior)
 * Gerenciador de pacotes `npm` ou `yarn`
+* [MySQL](https://www.mysql.com/) (versão 8.0 ou superior)
 
 ### Passo a Passo
 
@@ -163,7 +164,12 @@ git clone https://github.com/zSnowFoxx/sigep-ifsc.git
 ```
 
 
-2. **Iniciar o Servidor (Backend):**
+2. **Iniciar o Banco de Dados (MySQL):**
+Certifique-se de que o serviço do MySQL está em execução na sua máquina e execute o script de criação da estrutura do banco.
+Abra o gerenciador MySQL de sua preferência, conecte-se ao seu servidor e execute o conteúdo do arquivo tests/database/schema.sql.
+
+
+3. **Iniciar o Servidor (Backend):**
 Abra um terminal, acesse a pasta do servidor, instale as dependências e execute o serviço:
 ```bash
 cd sigep-ifsc/backend
@@ -174,7 +180,7 @@ nodemon server.js
 ```
 
 
-3. **Iniciar a Aplicação (Frontend):**
+4. **Iniciar a Aplicação (Frontend):**
 Em outro terminal, acesse a pasta principal do projeto, instale as dependências e rode a interface:
 ```bash
 cd sigep-ifsc/frontend
@@ -184,5 +190,5 @@ npm run dev
 ```
 
 
-4. **Acessar a aplicação:**
+5. **Acessar a aplicação:**
 Abra o navegador e acesse o endereço fornecido pelo terminal do frontend (geralmente `http://localhost:5173`).
