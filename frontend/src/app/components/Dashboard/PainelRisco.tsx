@@ -1,4 +1,5 @@
 import { AlertTriangle, UserCheck, ExternalLink } from "lucide-react";
+import type { UserSession } from "../../types/auth";
 import type { StudentRisk, NivelRisco } from "../../types/dashboard";
 import { riscoConfig } from "../../data/dashData";
 import {
@@ -13,15 +14,23 @@ interface PainelRiscoProps {
   filteredStudents: StudentRisk[];
   totalRiskStudents: number;
   selectedPeriod: string;
-  onStartAttendance: (student: { matricula: string; nome: string; turma: string }) => void;
+  onEncaminhar: (matricula: string) => void;
+  loggedUser?: UserSession | null;
 }
 
 export default function PainelRisco({
   filteredStudents,
   totalRiskStudents,
   selectedPeriod,
-  onStartAttendance,
+  onEncaminhar,
+  loggedUser = null,
 }: PainelRiscoProps) {
+
+  const isServidor = loggedUser?.role === "Servidor Geral";
+  // const isProfessor = loggedUser?.role === "Professor";
+  // const isNAE = loggedUser?.role === "Equipe Pedagógica/NAE";
+  // const isCoordenador = loggedUser?.role === "Coordenador de Curso";
+
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
       {/* Header do Card */}
@@ -54,11 +63,21 @@ export default function PainelRisco({
       <TableContainer>
         <thead>
           <tr>
-            {["Matrícula", "Nome do Aluno", "Turma", "Média Parcial", "% Infrequência", "Fatores de Alerta", "Nível de Risco", "Ações"].map((col, idx) => (
-              <Th key={col} className={idx === 7 ? "text-right" : ""}>
-                {col}
-              </Th>
-            ))}
+            {isServidor ? (
+              // IF: Se for servidor
+              ["Matrícula", "Nome do Aluno", "Turma", "Média Parcial", "% Infrequência", "Fatores de Alerta", "Nível de Risco"].map((col, idx) => (
+                <Th key={col} className={idx === 6 ? "text-right" : ""}>
+                  {col}
+                </Th>
+              ))
+            ) : (
+              // ELSE: Se não for servidor
+              ["Matrícula", "Nome do Aluno", "Turma", "Média Parcial", "% Infrequência", "Fatores de Alerta", "Nível de Risco", "Ações"].map((col, idx) => (
+                <Th key={col} className={idx === 7 ? "text-right" : ""}>
+                  {col}
+                </Th>
+              ))
+            )}
           </tr>
         </thead>
         <tbody>
@@ -164,16 +183,18 @@ export default function PainelRisco({
                       {cfg.label}
                     </span>
                   </Td>
-                  <Td className="text-right">
-                    <button
-                      onClick={() => onStartAttendance({ matricula: s.matricula, nome: s.nome, turma: s.turma })}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 hover:opacity-90 active:scale-95"
-                      style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
-                    >
-                      <UserCheck size={12} />
-                      Iniciar Atendimento
-                    </button>
-                  </Td>
+                  {!isServidor && (
+                    <Td className="text-right">
+                      <button
+                        onClick={() => onEncaminhar(s.matricula)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 hover:opacity-90 active:scale-95"
+                        style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
+                      >
+                        <UserCheck size={12} />
+                        Encaminhar
+                      </button>
+                    </Td>
+                  )}
                 </TRow>
               );
             })

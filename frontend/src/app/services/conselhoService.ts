@@ -482,6 +482,35 @@ export async function criarEncaminhamento(dados: {
   return encaminhamento.id;
 }
 
+export async function criarEncaminhamentoNovo(dados: {
+  alunoId: number;
+  titulo: string;
+  categoria: string;
+  servidorResponsavelId: number | null;
+  descricao: string;
+  autorId: number | null;
+}): Promise<number> {
+  const encaminhamento = await backend<EncaminhamentoApi>("/encaminhamentos", {
+    method: "POST",
+    body: JSON.stringify({
+      alunoId: dados.alunoId,
+      conselhoId: null,
+      titulo: dados.titulo,
+      categoria: dados.categoria,
+      origem: "Painel de Risco",
+      servidorResponsavelId: dados.servidorResponsavelId,
+      descricaoInicial: textoOuNull(dados.descricao),
+    }),
+  });
+  await adicionarAcompanhamento(
+    encaminhamento.id,
+    dados.autorId,
+    "criacao",
+    dados.descricao.trim() || "Encaminhamento gerado no Painel de Risco."
+  );
+  return encaminhamento.id;
+}
+
 export const criarRegistro = (
   conselhoId: number,
   dados: {

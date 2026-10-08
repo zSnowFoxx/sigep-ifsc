@@ -139,11 +139,8 @@ export default function App() {
               setFilterDisciplina={setFilterDisciplina}
               filteredStudents={riskStudents}
               totalRiskStudents={riskStudents.length}
-              onStartAttendance={(student) => {
-                setNaeStudent(student);
-                setActiveNav(2);
-              }}
               hidden={activeNav !== 0}
+              loggedUser={userProfile}
             />
 
             {activeNav === 1 && (
