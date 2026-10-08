@@ -32,8 +32,41 @@ function classificarRisco(media, infrequencia) {
   return { risco, fatores };
 }
 
+const escapeLike = (value) => value.replace(/[\\%_]/g, '\\$&');
+
+// Filtros do painel de risco (todos opcionais). Com disciplina, o risco é calculado só com
+// as notas dessa disciplina. A fase vem do nome da turma ("TDS - 2ª Fase").
+function buildRiskFilters({ periodo, curso, fase, turma, disciplina } = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (periodo) {
+    conditions.push("CONCAT(p.ano, '.', p.semestre) = ?");
+    params.push(periodo);
+  }
+  if (curso) {
+    conditions.push('c.nome = ?');
+    params.push(curso);
+  }
+  if (fase) {
+    conditions.push("t.nome LIKE CONCAT('% - ', ?)");
+    params.push(escapeLike(fase));
+  }
+  if (turma) {
+    conditions.push('t.nome = ?');
+    params.push(turma);
+  }
+  if (disciplina) {
+    conditions.push('d.nome = ?');
+    params.push(disciplina);
+  }
+
+  return { where: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '', params };
+}
+
 // Um item por aluno e turma: média abaixo de 6 ou infrequência acima de 15%.
-async function findRiskStudents() {
+async function findRiskStudents(filters) {
+  const { where, params } = buildRiskFilters(filters);
   const [rows] = await pool.query(
     `SELECT a.id, a.matricula, a.nome, t.nome AS turma,
        AVG(nf.media) AS media,
@@ -41,13 +74,19 @@ async function findRiskStudents() {
      FROM alunos a
      JOIN matriculas m ON m.aluno_id = a.id
      JOIN turmas t ON t.id = m.turma_id
+     JOIN cursos c ON c.id = t.curso_id
+     JOIN periodos p ON p.id = t.periodo_id
      JOIN notas_frequencias nf ON nf.matricula_id = m.id
-     GROUP BY a.id, a.matricula, a.nome, t.nome
+     JOIN diarios di ON di.id = nf.diario_id
+     JOIN disciplinas d ON d.id = di.disciplina_id
+     ${where}
+     GROUP BY a.id, a.matricula, a.nome, t.id, t.nome
      HAVING
       AVG(nf.media) < 6 
       OR (AVG(nf.infrequencia) > 15 AND AVG(nf.media) < 7)
       OR AVG(nf.infrequencia) >= 20
-     ORDER BY a.nome`
+     ORDER BY a.nome`,
+    params
   );
 
   return rows.map((row) => {
@@ -94,7 +133,8 @@ async function getStats() {
 async function getFilterOptions() {
   const [[cursos], [turmas], [disciplinas]] = await Promise.all([
     pool.query('SELECT nome, fases FROM cursos ORDER BY nome'),
-    pool.query('SELECT nome FROM turmas ORDER BY nome'),
+    // O mesmo nome de turma se repete em períodos diferentes.
+    pool.query('SELECT DISTINCT nome FROM turmas ORDER BY nome'),
     pool.query('SELECT nome FROM disciplinas ORDER BY nome')
   ]);
 

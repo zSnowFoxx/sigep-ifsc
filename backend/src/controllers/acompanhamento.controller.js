@@ -25,6 +25,11 @@ async function saveOrBadRequest(work) {
   }
 }
 
+const getAllFromAllEncaminhamentos = asyncHandler(async (req, res) => {
+  const acompanhamentos = await acompanhamentoModel.findAll();
+  res.json({ success: true, data: acompanhamentos });
+});
+
 const getAll = asyncHandler(async (req, res) => {
   await ensureEncaminhamentoExists(req.params.encaminhamentoId);
 
@@ -74,6 +79,7 @@ const remove = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getAllFromAllEncaminhamentos,
   getAll,
   getById,
   create,

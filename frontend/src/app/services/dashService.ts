@@ -7,9 +7,20 @@ export function fetchDashboardStats(): Promise<DashboardStats> {
   return backend<DashboardStats>("/dashboard/stats");
 }
 
-// 2. Alunos com situação de risco registrada
-export function fetchRiskStudents(): Promise<StudentRisk[]> {
-  return backend<StudentRisk[]>("/dashboard/risk-students");
+export interface FiltrosRisco {
+  periodo?: string;
+  curso?: string;
+  fase?: string;
+  turma?: string;
+  disciplina?: string;
+}
+
+// 2. Alunos com situação de risco registrada (filtros vazios são ignorados)
+export function fetchRiskStudents(filtros: FiltrosRisco = {}): Promise<StudentRisk[]> {
+  const params = new URLSearchParams(
+    Object.entries(filtros).filter((entry): entry is [string, string] => Boolean(entry[1]))
+  ).toString();
+  return backend<StudentRisk[]>(`/dashboard/risk-students${params ? `?${params}` : ""}`);
 }
 
 // 3. Opções dos filtros (cursos, turmas e disciplinas)

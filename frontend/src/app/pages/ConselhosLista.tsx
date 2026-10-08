@@ -7,6 +7,7 @@ import {
   toReuniaoRealizada,
   type ConselhoRefs,
 } from "../services/conselhoService";
+import { normalizar } from "../utils/busca";
 import { CriarConselho } from "../components/Conselho/Modals/CriarConselho";
 import { AgendarConselho } from "../components/Conselho/Modals/AgendarConselho";
 
@@ -21,6 +22,7 @@ interface PropsConselhosLista {
 }
 
 const semRefs: ConselhoRefs = { turmas: [], cursos: [], servidores: [] };
+
 
 export default function ConselhosLista({
   onEnterConselho,
@@ -106,8 +108,6 @@ export default function ConselhosLista({
     await load();
   };
 
-  const q = search.toLowerCase();
-
   // Um intermediário que já originou um conselho final deixa de aparecer como aberto.
   const origemIds = useMemo(
     () =>
@@ -117,37 +117,57 @@ export default function ConselhosLista({
     [conselhos]
   );
 
-  const abertas = useMemo(
+  // Conselhos visíveis em cada aba, antes dos filtros (base dos contadores das abas).
+  const conselhosAbertos = useMemo(
     () =>
-      conselhos
-        .filter((c) => c.status !== "encerrado")
-        .map((c) => toReuniaoAberta(c, refs)),
-    [conselhos, refs]
+      conselhos.filter(
+        (c) => c.status !== "encerrado" && !(c.tipo === 1 && origemIds.has(c.id))
+      ),
+    [conselhos, origemIds]
   );
-
-  const realizadas = useMemo(
-    () => conselhos.filter((c) => c.status === "encerrado").map(toReuniaoRealizada),
+  const conselhosRealizados = useMemo(
+    () => conselhos.filter((c) => c.status === "encerrado"),
     [conselhos]
   );
 
-  const filteredAbertas = abertas.filter((r) => {
-    const matchSearch =
-      !search ||
-      r.titulo.toLowerCase().includes(q) ||
-      r.turmas.some((t) => t.toLowerCase().includes(q));
-    const matchEtapa = !filterEtapa || r.etapa === filterEtapa;
-    return matchSearch && matchEtapa;
-  });
+  const turmasPorId = useMemo(() => new Map(refs.turmas.map((t) => [t.id, t])), [refs.turmas]);
 
-  const filteredInter = filteredAbertas.filter(
-    (r) => r.etapa === "Intermediário" && !origemIds.has(r.id)
-  );
+  // Cursos das turmas que têm conselho, para as opções do filtro.
+  const cursosOpcoes = useMemo(() => {
+    const cursoIds = new Set(
+      conselhos.flatMap((c) => c.turmaIds.map((id) => turmasPorId.get(id)?.curso_id))
+    );
+    return refs.cursos
+      .filter((c) => cursoIds.has(c.id) || c.nome === filterCurso)
+      .map((c) => c.nome)
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [conselhos, refs.cursos, turmasPorId, filterCurso]);
+
+  const busca = normalizar(search);
+  const cursoId = refs.cursos.find((c) => c.nome === filterCurso)?.id;
+
+  const matchesFilter = (c: Conselho) => {
+    const turmas = c.turmaIds.map((id) => turmasPorId.get(id));
+    if (
+      busca &&
+      !normalizar(c.nome).includes(busca) &&
+      !turmas.some((t) => t && normalizar(t.nome).includes(busca))
+    )
+      return false;
+    if (filterCurso && !turmas.some((t) => t?.curso_id === cursoId)) return false;
+    if (filterEtapa && (c.tipo === 1 ? "Intermediário" : "Final") !== filterEtapa) return false;
+    return true;
+  };
+
+  const filteredAbertas = conselhosAbertos
+    .filter(matchesFilter)
+    .map((c) => toReuniaoAberta(c, refs));
+
+  const filteredInter = filteredAbertas.filter((r) => r.etapa === "Intermediário");
 
   const filteredFinais = filteredAbertas.filter((r) => r.etapa === "Final");
 
-  const filteredHistorico = realizadas.filter(
-    (r) => !search || r.titulo.toLowerCase().includes(q)
-  );
+  const filteredHistorico = conselhosRealizados.filter(matchesFilter).map(toReuniaoRealizada);
 
   const handleOpenAgendar = (reuniao: ReuniaoBrief) =>
     setAgendarFinalFor(conselhos.find((c) => c.id === reuniao.id) ?? null);
@@ -168,7 +188,9 @@ export default function ConselhosLista({
         onFilterCursoChange={setFilterCurso}
         filterEtapa={filterEtapa}
         onFilterEtapaChange={setFilterEtapa}
+        cursos={cursosOpcoes}
         onClearFilters={() => {
+          setSearch("");
           setFilterCurso("");
           setFilterEtapa("");
         }}
@@ -178,8 +200,8 @@ export default function ConselhosLista({
       <ListaAbas
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        countAbertas={abertas.length}
-        countHistorico={realizadas.length}
+        countAbertas={conselhosAbertos.length}
+        countHistorico={conselhosRealizados.length}
       />
 
       {/* Content */}

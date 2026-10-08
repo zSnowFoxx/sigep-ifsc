@@ -9,6 +9,14 @@ const FIELD_MAP = {
   relato: 'relato'
 };
 
+// Linha do tempo de todos os encaminhamentos (quadro de monitoramento), sem uma requisição por encaminhamento.
+async function findAll() {
+  const [rows] = await pool.query(
+    `SELECT ${COLUMNS} FROM encaminhamentos_acompanhamento ORDER BY encaminhamento_id, data_registro, id`
+  );
+  return rows;
+}
+
 async function findAllByEncaminhamento(encaminhamentoId) {
   const [rows] = await pool.query(
     `SELECT ${COLUMNS} FROM encaminhamentos_acompanhamento
@@ -58,6 +66,7 @@ async function remove(encaminhamentoId, id) {
 
 module.exports = {
   FIELDS: Object.keys(FIELD_MAP),
+  findAll,
   findAllByEncaminhamento,
   findOne,
   create,

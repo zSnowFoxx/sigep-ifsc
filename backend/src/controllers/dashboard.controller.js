@@ -11,8 +11,17 @@ const getFilterOptions = asyncHandler(async (req, res) => {
   res.json({ success: true, data: options });
 });
 
+// Filtros opcionais via query string: ?periodo=2026.1&curso=...&fase=2ª Fase&turma=...&disciplina=...
+const RISK_FILTERS = ['periodo', 'curso', 'fase', 'turma', 'disciplina'];
+
 const getRiskStudents = asyncHandler(async (req, res) => {
-  const students = await dashboardModel.findRiskStudents();
+  const filters = Object.fromEntries(
+    RISK_FILTERS.filter((key) => typeof req.query[key] === 'string' && req.query[key].trim()).map((key) => [
+      key,
+      req.query[key].trim()
+    ])
+  );
+  const students = await dashboardModel.findRiskStudents(filters);
   res.json({ success: true, data: students });
 });
 

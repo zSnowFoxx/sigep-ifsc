@@ -131,8 +131,8 @@ export function toReuniaoRealizada(conselho: Conselho): ReuniaoRealizada {
 // TELA DO CONSELHO (abas)
 // ==========================================
 
-interface UsuarioApi { id: number; siape: string; nome: string; perfil_id: number }
-interface AlunoApi { id: number; matricula: string; nome: string; turmaIds: number[] }
+export interface UsuarioApi { id: number; siape: string; nome: string; perfil_id: number }
+export interface AlunoApi { id: number; matricula: string; nome: string; turmaIds: number[] }
 interface MatriculaApi { id: number; aluno_id: number; turma_id: number }
 interface DiarioApi { id: number; disciplina_id: number; turma_id: number; professor_id: number | null; cargaHoraria: string | null }
 interface DisciplinaApi { id: number; nome: string; carga_horaria: string | null }
@@ -189,7 +189,7 @@ function toDisciplina(nota: NotaApi, diario: DiarioApi, disciplina: DisciplinaAp
   };
 }
 
-function toEncaminhamento(
+export function toEncaminhamento(
   e: EncaminhamentoApi,
   acompanhamentos: AcompanhamentoApi[],
   alunos: Map<number, AlunoApi>,
@@ -198,6 +198,7 @@ function toEncaminhamento(
 ): Encaminhamento {
   const aluno = alunos.get(e.aluno_id);
   const conclusao = [...acompanhamentos].reverse().find((a) => a.tipo === "conclusao");
+  const ultimoRelato = [...acompanhamentos].reverse().find((a) => a.tipo === "relato");
   return {
     id: e.id,
     titulo: e.titulo,
@@ -208,6 +209,7 @@ function toEncaminhamento(
     categoria: e.categoria,
     responsavel: (e.servidor_responsavel_id && usuarios.get(e.servidor_responsavel_id)?.nome) || "",
     prazo: e.prazo ? formatData(e.prazo) : undefined,
+    ultimoRelato: ultimoRelato ? formatCriadoEm(ultimoRelato.data_registro) : undefined,
     descricao: e.descricao_inicial ?? undefined,
     urgente: e.urgente,
     status: STATUS_DA_API[e.status],

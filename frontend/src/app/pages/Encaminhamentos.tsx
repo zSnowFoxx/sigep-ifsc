@@ -1,15 +1,37 @@
-import { useState } from "react";
-import type { Status, Encaminhamento } from "../types/encaminhamentos";
-import { initialCards } from "../data/encaminhamentosData";
+import { useCallback, useEffect, useState } from "react";
+import type { Encaminhamento } from "../types/encaminhamentos";
+import {
+  carregarEncaminhamentos,
+  finalizarEncaminhamento,
+  registrarRelato,
+} from "../services/encaminhamentosService";
+import { normalizar } from "../utils/busca";
 
 import EncaminhamentosHeader from "../components/Encaminhamentos/EncaminhamentosHeader";
 import EncaminhamentosFiltros from "../components/Encaminhamentos/EncaminhamentosFiltros";
 import EncaminhamentosQuadros from "../components/Encaminhamentos/EncaminhamentosQuadros";
 import EncaminhamentosCard from "../components/Encaminhamentos/EncaminhamentosCard";
 
+// Prazo a partir do qual um encaminhamento em aberto conta como "vencendo" (inclui os vencidos).
+const DIAS_ALERTA_PRAZO = 7;
+
+function estaVencendo(card: Encaminhamento) {
+  if (card.status === "concluido" || !card.prazo) return false;
+  const [dia, mes, ano] = card.prazo.split("/").map(Number);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dias = (new Date(ano, mes - 1, dia).getTime() - hoje.getTime()) / 86_400_000;
+  return dias <= DIAS_ALERTA_PRAZO;
+}
+
 export default function Encaminhamentos() {
-  const [cards, setCards] = useState<Encaminhamento[]>(initialCards);
+  const [cards, setCards] = useState<Encaminhamento[]>([]);
   const [selected, setSelected] = useState<Encaminhamento | null>(null);
+  const [usuarioLogadoId, setUsuarioLogadoId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erroModal, setErroModal] = useState("");
 
   // Filter toolbar state
   const [filterSearch, setFilterSearch] = useState("");
@@ -24,23 +46,48 @@ export default function Encaminhamentos() {
   const [finalizando, setFinalizando] = useState(false);
   const [savedRelato, setSavedRelato] = useState(false);
 
-  const categorias = [...new Set(initialCards.map((c) => c.categoria))];
-  const setores = [...new Set(initialCards.map((c) => c.responsavel))];
-  const origens = [...new Set(initialCards.map((c) => c.origem))];
+  // Retorna a lista atualizada para o modal aberto acompanhar as mudanças.
+  const load = useCallback(async () => {
+    try {
+      const dados = await carregarEncaminhamentos();
+      setCards(dados.encaminhamentos);
+      setUsuarioLogadoId(dados.usuarioLogadoId);
+      setError("");
+      return dados.encaminhamentos;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar os encaminhamentos.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // O valor selecionado continua na lista mesmo que nenhum card o tenha mais após recarregar;
+  // senão o select mostraria "(Todos)" com o filtro ainda ativo.
+  const opcoes = (valores: string[], selecionado: string) =>
+    [...new Set([...valores, selecionado].filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const categorias = opcoes(cards.map((c) => c.categoria), filterCategoria);
+  const setores = opcoes(cards.map((c) => c.responsavel), filterSetor);
+  const origens = opcoes(cards.map((c) => c.origem), filterOrigem);
+
+  const busca = normalizar(filterSearch).replace(/^#/, "");
 
   const matchesFilter = (card: Encaminhamento) => {
-    const q = filterSearch.toLowerCase();
     if (
-      filterSearch &&
-      !card.aluno.toLowerCase().includes(q) &&
-      !card.matricula.includes(q) &&
-      !String(card.id).includes(q)
+      busca &&
+      !normalizar(card.aluno).includes(busca) &&
+      !card.matricula.includes(busca) &&
+      !String(card.id).includes(busca)
     )
       return false;
     if (filterCategoria && card.categoria !== filterCategoria) return false;
     if (filterSetor && card.responsavel !== filterSetor) return false;
     if (filterOrigem && card.origem !== filterOrigem) return false;
-    if (filterUrgentes && !card.urgente) return false;
+    if (filterUrgentes && !card.urgente && !estaVencendo(card)) return false;
     return true;
   };
 
@@ -61,62 +108,48 @@ export default function Encaminhamentos() {
     setParecerFinal(card.parecer);
     setFinalizando(false);
     setSavedRelato(false);
+    setErroModal("");
   };
 
   const closeModal = () => {
+    if (salvando) return;
     setSelected(null);
     setFinalizando(false);
   };
 
-  const saveRelato = () => {
-    if (!novoRelato.trim() || !selected) return;
-    const hoje = new Date().toLocaleDateString("pt-BR");
-    const updated = cards.map((c) =>
-      c.id === selected.id
-        ? {
-            ...c,
-            ultimoRelato: hoje.slice(0, 5),
-            evolucoes: [
-              ...c.evolucoes,
-              {
-                data: hoje,
-                autor: "Servidor (Equipe Pedagógica)",
-                texto: novoRelato,
-                tipo: "relato" as const,
-              },
-            ],
-          }
-        : c
-    );
-    setCards(updated);
-    setSelected(updated.find((c) => c.id === selected.id) ?? null);
+  // Executa uma alteração no backend e recarrega o quadro, mantendo o modal sincronizado.
+  const executar = async (acao: (card: Encaminhamento) => Promise<void>) => {
+    if (!selected || salvando) return false;
+    setSalvando(true);
+    setErroModal("");
+    try {
+      await acao(selected);
+      const atualizados = await load();
+      setSelected(atualizados?.find((c) => c.id === selected.id) ?? null);
+      return true;
+    } catch (err) {
+      setErroModal(err instanceof Error ? err.message : "Erro ao salvar o encaminhamento.");
+      return false;
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const saveRelato = async () => {
+    const texto = novoRelato.trim();
+    if (!texto) return;
+    const ok = await executar((card) => registrarRelato(card, usuarioLogadoId, texto));
+    if (!ok) return;
     setNovoRelato("");
     setSavedRelato(true);
     setTimeout(() => setSavedRelato(false), 2500);
   };
 
-  const finalizar = () => {
-    if (!parecerFinal.trim() || !selected) return;
-    const hoje = new Date().toLocaleDateString("pt-BR");
-    const updated = cards.map((c) =>
-      c.id === selected.id
-        ? {
-            ...c,
-            status: "concluido" as Status,
-            parecer: parecerFinal,
-            evolucoes: [
-              ...c.evolucoes,
-              {
-                data: hoje,
-                autor: "Servidor (Equipe Pedagógica)",
-                texto: `Encaminhamento finalizado. Parecer: ${parecerFinal}`,
-                tipo: "conclusao" as const,
-              },
-            ],
-          }
-        : c
-    );
-    setCards(updated);
+  const finalizar = async () => {
+    const parecer = parecerFinal.trim();
+    if (!parecer) return;
+    const ok = await executar((card) => finalizarEncaminhamento(card.id, usuarioLogadoId, parecer));
+    if (!ok) return;
     setSelected(null);
     setFinalizando(false);
   };
@@ -143,11 +176,21 @@ export default function Encaminhamentos() {
         onClearFilters={clearFilters}
       />
 
-      <EncaminhamentosQuadros
-        cards={cards}
-        matchesFilter={matchesFilter}
-        onOpenModal={openModal}
-      />
+      {loading ? (
+        <p className="text-sm text-muted-foreground text-center py-16">
+          Carregando encaminhamentos...
+        </p>
+      ) : error ? (
+        <p className="text-sm font-semibold text-red-600 text-center py-16">
+          {error}
+        </p>
+      ) : (
+        <EncaminhamentosQuadros
+          cards={cards}
+          matchesFilter={matchesFilter}
+          onOpenModal={openModal}
+        />
+      )}
 
       <EncaminhamentosCard
         selected={selected}
@@ -162,6 +205,8 @@ export default function Encaminhamentos() {
         parecerFinal={parecerFinal}
         setParecerFinal={setParecerFinal}
         finalizar={finalizar}
+        salvando={salvando}
+        erro={erroModal}
       />
     </div>
   );

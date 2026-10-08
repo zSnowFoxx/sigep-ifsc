@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type { CategoryKey, ModalMode, Aluno, Servidor, Curso, Disciplina, Turma, Diario } from "../types/cadastros";
 import { unique, stripPrefix } from "../utils/cadastrosUtils";
+import { normalizar } from "../utils/busca";
 import { CATEGORIES, fetchAllInitialData } from "../data/cadastrosData";
 import { entityServices } from "../services/cadastrosService";
 
@@ -95,11 +96,11 @@ export const CadastrosPage: React.FC = () => {
   const professoresList = useMemo(() => servidores.filter((s) => s.cargo === "Professor").map((s) => s.nome), [servidores]);
   const servidoresList = useMemo(() => servidores.map((s) => s.nome), [servidores]);
   const allFuncoes = useMemo(() => unique(servidores.flatMap((s) => s.funcoes || [])).sort(), [servidores]);
-  const discCursos = useMemo(() => unique(disciplinas.map((d) => d.curso || "")), [disciplinas]);
-  const discFases = useMemo(() => unique(disciplinas.map((d) => d.faseOferta || "")).sort(), [disciplinas]);
-  const turmaPers = useMemo(() => unique(turmas.map((t) => t.periodo || "")).sort(), [turmas]);
-  const turmaCursos = useMemo(() => unique(turmas.map((t) => t.curso || "")), [turmas]);
-  const diarioTurmas = useMemo(() => unique(diarios.map((d) => d.turma || "")).sort(), [diarios]);
+  const discCursos = useMemo(() => unique(disciplinas.map((d) => d.curso || "")).filter(Boolean), [disciplinas]);
+  const discFases = useMemo(() => unique(disciplinas.map((d) => d.faseOferta || "")).filter(Boolean).sort(), [disciplinas]);
+  const turmaPers = useMemo(() => unique(turmas.map((t) => t.periodo || "")).filter(Boolean).sort(), [turmas]);
+  const turmaCursos = useMemo(() => unique(turmas.map((t) => t.curso || "")).filter(Boolean), [turmas]);
+  const diarioTurmas = useMemo(() => unique(diarios.map((d) => d.turma || "")).filter(Boolean).sort(), [diarios]);
 
   const handleTabChange = (tab: CategoryKey) => {
     setActiveTab(tab);
@@ -110,12 +111,12 @@ export const CadastrosPage: React.FC = () => {
 
   const matchQ = useCallback(
     (...fields: (string | undefined)[]) => {
-      const cleanQuery = stripPrefix(searchQuery.trim().toLowerCase());
+      const cleanQuery = normalizar(stripPrefix(searchQuery.trim().toLowerCase()));
       if (!cleanQuery) return true;
 
       return fields.some((f) => {
         if (!f) return false;
-        return stripPrefix(f.toLowerCase()).includes(cleanQuery);
+        return normalizar(stripPrefix(f.toLowerCase())).includes(cleanQuery);
       });
     },
     [searchQuery]
@@ -128,8 +129,14 @@ export const CadastrosPage: React.FC = () => {
   );
 
   const filteredServidores = useMemo(
-    () => servidores.filter((s) => matchQ(s.nome, s.siape, s.email) && (!fCargo || s.cargo === fCargo)),
-    [servidores, matchQ, fCargo]
+    () =>
+      servidores.filter(
+        (s) =>
+          matchQ(s.nome, s.siape, s.email) &&
+          (!fCargo || s.cargo === fCargo) &&
+          (!fFuncao || (s.funcoes ?? []).includes(fFuncao))
+      ),
+    [servidores, matchQ, fCargo, fFuncao]
   );
 
   const filteredCursos = useMemo(

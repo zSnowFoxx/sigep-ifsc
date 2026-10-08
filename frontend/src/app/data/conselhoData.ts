@@ -12,7 +12,6 @@ import type {
   TurmaForm,
 } from "../types/conselho";
 import {
-  adicionarAcompanhamento,
   carregarConselho,
   conselhosService,
   criarEncaminhamento,
@@ -26,6 +25,7 @@ import {
   turmaFormVazio,
   type DadosConselho,
 } from "../services/conselhoService";
+import { registrarRelato } from "../services/encaminhamentosService";
 
 interface ConselhoDataProps {
   conselhoId: number;
@@ -351,7 +351,7 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
   const saveEncRelato = () => {
     if (!selectedEnc || !encNovoRelato.trim()) return;
     executar(async () => {
-      await adicionarAcompanhamento(selectedEnc.id, dados?.usuarioLogadoId ?? 0, "relato", encNovoRelato.trim());
+      await registrarRelato(selectedEnc, dados?.usuarioLogadoId ?? null, encNovoRelato.trim());
       await recarregarListas();
       setEncNovoRelato("");
       setEncSavedRelato(true);

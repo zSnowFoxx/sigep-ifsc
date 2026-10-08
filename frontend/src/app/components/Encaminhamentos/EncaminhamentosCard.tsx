@@ -26,6 +26,8 @@ interface EncaminhamentosCardProps {
   parecerFinal: string;
   setParecerFinal: (value: string) => void;
   finalizar: () => void;
+  salvando?: boolean;
+  erro?: string;
 }
 
 export default function EncaminhamentosCard({
@@ -41,6 +43,8 @@ export default function EncaminhamentosCard({
   parecerFinal,
   setParecerFinal,
   finalizar,
+  salvando = false,
+  erro = "",
 }: EncaminhamentosCardProps) {
   if (!selected) return null;
 
@@ -200,6 +204,12 @@ export default function EncaminhamentosCard({
               </div>
             </div>
           )}
+
+          {erro && (
+            <p className="mt-4 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {erro}
+            </p>
+          )}
         </div>
 
         {/* Modal Footer */}
@@ -207,7 +217,7 @@ export default function EncaminhamentosCard({
           <div className="px-6 py-4 border-t border-border bg-[#f7f8fa] flex items-center gap-2 shrink-0">
             <button
               onClick={saveRelato}
-              disabled={!novoRelato.trim()}
+              disabled={salvando || !novoRelato.trim()}
               className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
               style={{ background: "var(--primary)" }}
             >
@@ -227,13 +237,14 @@ export default function EncaminhamentosCard({
               <div className="flex items-center gap-2 ml-auto">
                 <button
                   onClick={() => setFinalizando(false)}
+                  disabled={salvando}
                   className="px-3 py-2.5 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-muted transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={finalizar}
-                  disabled={!parecerFinal.trim()}
+                  disabled={salvando || !parecerFinal.trim()}
                   className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <CheckCircle2 size={13} />

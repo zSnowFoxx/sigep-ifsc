@@ -7,6 +7,7 @@ interface ListaFiltrosProps {
   onFilterCursoChange: (value: string) => void;
   filterEtapa: string;
   onFilterEtapaChange: (value: string) => void;
+  cursos: string[];
   onClearFilters: () => void;
 }
 
@@ -17,6 +18,7 @@ export function ListaFiltros({
   onFilterCursoChange,
   filterEtapa,
   onFilterEtapaChange,
+  cursos,
   onClearFilters,
 }: ListaFiltrosProps) {
   return (
@@ -43,7 +45,7 @@ export function ListaFiltros({
             label: "Filtrar por Curso",
             value: filterCurso,
             set: onFilterCursoChange,
-            opts: ["Técnico Integrado", "Ensino Superior"],
+            opts: cursos,
           },
           {
             label: "Etapa Regulamentar",
@@ -77,7 +79,7 @@ export function ListaFiltros({
           </div>
         ))}
 
-        {(filterCurso || filterEtapa) && (
+        {(search || filterCurso || filterEtapa) && (
           <button
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             onClick={onClearFilters}

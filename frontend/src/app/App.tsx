@@ -14,6 +14,7 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
 import type { UserSession } from "./types/auth";
+import type { StudentRisk } from "./types/dashboard";
 import { fetchRiskStudents } from "./services/dashService";
 import { fetchSessionUser, clearSession } from "./services/authService";
 
@@ -28,7 +29,8 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [importarOpen, setImportarOpen] = useState(false);
   const [naeStudent, setNaeStudent] = useState<{ matricula: string; nome: string; turma: string } | null>(null);
-  const [riskStudents, setRiskStudents] = useState<Array<any>>([]);
+  const [riskStudents, setRiskStudents] = useState<StudentRisk[]>([]);
+  const [totalRiskStudents, setTotalRiskStudents] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState("2026.1");
   const [filterCurso, setFilterCurso] = useState("");
   const [filterFase, setFilterFase] = useState("");
@@ -59,15 +61,31 @@ export default function App() {
     loadUserProfile();
   }, []);
 
+  // Painel de risco do período selecionado; com filtros, busca também o total do período
+  // para o "Exibindo X de Y".
   useEffect(() => {
     let mounted = true;
-    fetchRiskStudents().then((data) => {
-      if (mounted) setRiskStudents(data as any[]);
-    });
+    const temFiltro = Boolean(filterCurso || filterFase || filterTurma || filterDisciplina);
+    Promise.all([
+      fetchRiskStudents({
+        periodo: selectedPeriod,
+        curso: filterCurso,
+        fase: filterFase,
+        turma: filterTurma,
+        disciplina: filterDisciplina,
+      }),
+      temFiltro ? fetchRiskStudents({ periodo: selectedPeriod }) : null,
+    ])
+      .then(([filtrados, todos]) => {
+        if (!mounted) return;
+        setRiskStudents(filtrados);
+        setTotalRiskStudents((todos ?? filtrados).length);
+      })
+      .catch((err) => console.error("Erro ao carregar o painel de risco:", err));
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [selectedPeriod, filterCurso, filterFase, filterTurma, filterDisciplina]);
 
   if (!authenticated) {
     return (
@@ -138,7 +156,7 @@ export default function App() {
               filterDisciplina={filterDisciplina}
               setFilterDisciplina={setFilterDisciplina}
               filteredStudents={riskStudents}
-              totalRiskStudents={riskStudents.length}
+              totalRiskStudents={totalRiskStudents}
               hidden={activeNav !== 0}
               loggedUser={userProfile}
             />
