@@ -17,10 +17,21 @@ const getById = asyncHandler(async (req, res) => {
   res.json({ success: true, data: periodo });
 });
 
+async function saveOrConflict(work) {
+  try {
+    return await work();
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      throw new ApiError(409, 'Já existe um período com esse ano e semestre');
+    }
+    throw error;
+  }
+}
+
 const create = asyncHandler(async (req, res) => {
   const { ano, semestre, ativo } = req.body;
 
-  const periodo = await periodoModel.create({ ano, semestre, ativo });
+  const periodo = await saveOrConflict(() => periodoModel.create({ ano, semestre, ativo }));
   res.status(201).json({ success: true, data: periodo });
 });
 
@@ -32,7 +43,7 @@ const update = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Período não encontrado');
   }
 
-  const periodo = await periodoModel.update(req.params.id, { ano, semestre, ativo });
+  const periodo = await saveOrConflict(() => periodoModel.update(req.params.id, { ano, semestre, ativo }));
   res.json({ success: true, data: periodo });
 });
 

@@ -2,9 +2,11 @@
 import { backend } from "./apiClient";
 import type { DashboardStats, StudentRisk, FilterOptions } from "../types/dashboard";
 
-// 1. Estatísticas dos cards do dashboard
-export function fetchDashboardStats(): Promise<DashboardStats> {
-  return backend<DashboardStats>("/dashboard/stats");
+const queryPeriodo = (periodo?: string) => (periodo ? `?periodo=${encodeURIComponent(periodo)}` : "");
+
+// 1. Estatísticas dos cards do dashboard (sem período, contam todos os semestres)
+export function fetchDashboardStats(periodo?: string): Promise<DashboardStats> {
+  return backend<DashboardStats>(`/dashboard/stats${queryPeriodo(periodo)}`);
 }
 
 export interface FiltrosRisco {
@@ -23,9 +25,9 @@ export function fetchRiskStudents(filtros: FiltrosRisco = {}): Promise<StudentRi
   return backend<StudentRisk[]>(`/dashboard/risk-students${params ? `?${params}` : ""}`);
 }
 
-// 3. Opções dos filtros (cursos, turmas e disciplinas)
-export function fetchFilterOptions(): Promise<FilterOptions> {
-  return backend<FilterOptions>("/dashboard/filter-options");
+// 3. Opções dos filtros (cursos, turmas e disciplinas; turmas e disciplinas restritas ao período)
+export function fetchFilterOptions(periodo?: string): Promise<FilterOptions> {
+  return backend<FilterOptions>(`/dashboard/filter-options${queryPeriodo(periodo)}`);
 }
 
 // Versão anterior, que usava o mockup (server/).

@@ -5,6 +5,7 @@ import type { FilterOptions } from "../../types/dashboard";
 import FilterSelect from "./FilterSelect";
 
 interface FiltrosProps {
+  periodo: string;
   filterCurso: string;
   setFilterCurso: (val: string) => void;
   filterFase: string;
@@ -16,6 +17,7 @@ interface FiltrosProps {
 }
 
 export default function Filtros({
+  periodo,
   filterCurso,
   setFilterCurso,
   filterFase,
@@ -31,11 +33,22 @@ export default function Filtros({
     disciplines: [],
   });
 
+  // Turmas e disciplinas mudam com o período; ignora respostas de um período já trocado.
   useEffect(() => {
-    fetchFilterOptions()
-      .then(setOptions)
+    let ativo = true;
+    fetchFilterOptions(periodo)
+      .then((dados) => ativo && setOptions(dados))
       .catch((err) => console.error("Erro ao carregar opções de filtros:", err));
-  }, []);
+    return () => {
+      ativo = false;
+    };
+  }, [periodo]);
+
+  // Turma ou disciplina que não existe no novo período deixaria o painel vazio sem aparecer no select.
+  useEffect(() => {
+    if (filterTurma && !options.turmas.includes(filterTurma)) setFilterTurma("");
+    if (filterDisciplina && !options.disciplines.includes(filterDisciplina)) setFilterDisciplina("");
+  }, [options]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maxFases = useMemo(() => {
     const selected = options.courses.find((c) => c.nome === filterCurso);

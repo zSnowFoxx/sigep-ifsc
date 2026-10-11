@@ -20,10 +20,14 @@ interface ConselhoAvaliacaoProps {
   setSelectedDisc: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   retificadas: Record<string, string>;
   setRetificadas: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  salvarRetificada: (matricula: string, disc: Disciplina) => void;
   abonomat: string | null;
   setAbonomat: React.Dispatch<React.SetStateAction<string | null>>;
   abonoText: string;
   setAbonoText: React.Dispatch<React.SetStateAction<string>>;
+  confirmarAbono: (notaFrequenciaId: number, horas: number, tipo: string) => Promise<void>;
+  excluirAbono: (abonoId: number) => Promise<void>;
+  conselhoId: number;
   updateEval: (matricula: string, field: keyof AlunoEval, value: any) => void;
   saveEval: (matricula: string) => void;
   salvando: boolean;
@@ -42,10 +46,14 @@ export default function ConselhoAvaliacao({
   setSelectedDisc,
   retificadas,
   setRetificadas,
+  salvarRetificada,
   abonomat,
   setAbonomat,
   abonoText,
   setAbonoText,
+  confirmarAbono,
+  excluirAbono,
+  conselhoId,
   updateEval,
   saveEval,
   salvando,
@@ -89,17 +97,26 @@ export default function ConselhoAvaliacao({
           setSelectedDisc={setSelectedDisc}
           retificadas={retificadas}
           setRetificadas={setRetificadas}
+          salvarRetificada={salvarRetificada}
           setAbonomat={setAbonomat}
           setAbonoText={setAbonoText}
         />
 
-        {/* Modal de Abono */}
+        {/* Modal de Abono (disciplina selecionada no painel do aluno) */}
         <ModalAbono
           abonomat={abonomat}
           setAbonomat={setAbonomat}
           abonoText={abonoText}
           setAbonoText={setAbonoText}
           alunos={alunos}
+          disciplina={
+            abonomat
+              ? disciplinasData[abonomat]?.[selectedDisc[abonomat] ?? 0] ?? disciplinasData[abonomat]?.[0]
+              : undefined
+          }
+          conselhoId={conselhoId}
+          onConfirmar={confirmarAbono}
+          onRemover={excluirAbono}
         />
 
         {/* Parecer Qualitativo, Encaminhamentos e Deliberações */}

@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const withTransaction = require('../utils/transaction');
+const { sincronizarCoordenador } = require('./curso.model');
 
 const PUBLIC_COLUMNS = ['id', 'siape', 'nome', 'email', 'perfil_id', 'curso_id'];
 
@@ -118,10 +119,16 @@ async function create(data) {
     await addDisciplinas(connection, result.insertId, disciplinaIds);
 
     if (cursoIds && cursoIds.length > 0) {
+      const [anteriores] = await connection.query('SELECT id, coordenador_id FROM cursos WHERE id IN (?) FOR UPDATE', [
+        cursoIds
+      ]);
       await connection.query('UPDATE cursos SET coordenador_id = ? WHERE id IN (?)', [
         result.insertId,
         cursoIds
       ]);
+      for (const curso of anteriores) {
+        await sincronizarCoordenador(connection, curso.id, curso.coordenador_id, result.insertId);
+      }
     }
   });
 

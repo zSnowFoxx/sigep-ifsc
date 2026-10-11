@@ -15,6 +15,8 @@ export interface Encaminhamento {
   aluno: string;
   matricula: string;
   turma: string;
+  // Criado em uma turma que não faz parte do conselho aberto (histórico do aluno).
+  turmaAnterior?: boolean;
   origem: string;
   categoria: string;
   responsavel: string;

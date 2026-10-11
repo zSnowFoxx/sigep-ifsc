@@ -1,6 +1,6 @@
 -- =====================================================================
 -- SIGEP — Sistema de Gestão e Estratégia Pedagógica
--- Script de inserção de dados no banco de dados (MySQL 8.0.16+)
+-- Script de inserção de dados no banco de dados (MySQL 8.0.16+ / TiDB)
 -- =====================================================================
 
 INSERT IGNORE INTO periodos (id, ano, semestre, ativo) VALUES
@@ -85,13 +85,20 @@ INSERT IGNORE INTO cursos (id, codigo, nome, tipo, grau, modalidade, ppc, fases)
   (5, 'CCP', 'Ciência da Computação',                  'Superior', 'Bacharelado',     'EAD',        'PPC 2023', 8),
   (6, 'ENM', 'Engenharia Mecânica',                    'Superior', 'Bacharelado',     'Presencial', 'PPC 2023', 10);
 
--- Sincroniza automaticamente o curso_id dos coordenadores (trigger)
+-- Coordenadores: usuarios.curso_id e cursos.coordenador_id andam juntos
 UPDATE usuarios SET curso_id = 1 WHERE id = 5;
 UPDATE usuarios SET curso_id = 2 WHERE id = 6;
 UPDATE usuarios SET curso_id = 3 WHERE id = 7;
 UPDATE usuarios SET curso_id = 4 WHERE id = 8;
 UPDATE usuarios SET curso_id = 5 WHERE id = 9;
 UPDATE usuarios SET curso_id = 6 WHERE id = 3;
+
+UPDATE cursos SET coordenador_id = 5 WHERE id = 1;
+UPDATE cursos SET coordenador_id = 6 WHERE id = 2;
+UPDATE cursos SET coordenador_id = 7 WHERE id = 3;
+UPDATE cursos SET coordenador_id = 8 WHERE id = 4;
+UPDATE cursos SET coordenador_id = 9 WHERE id = 5;
+UPDATE cursos SET coordenador_id = 3 WHERE id = 6;
 
 INSERT IGNORE INTO disciplinas (id, codigo, sigla, nome, carga_horaria, fase_oferta, curso_id) VALUES
   -- Curso 1: Técnico em Desenvolvimento de Sistemas (TDS) - 3 Fases

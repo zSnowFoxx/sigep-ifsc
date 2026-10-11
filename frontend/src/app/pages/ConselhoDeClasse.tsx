@@ -39,7 +39,7 @@ export default function ConselhoDeClasse({ conselhoId, onBack, mode = "final" }:
   // Tab 4: Avaliação
   openTurmas, setOpenTurmas, selectedAluno, setSelectedAluno, avaliacoes,
   selectedDisc, setSelectedDisc, retificadas, setRetificadas, abonomat, setAbonomat,
-  abonoText, setAbonoText, updateEval, saveEval,
+  abonoText, setAbonoText, confirmarAbono, excluirAbono, salvarRetificada, updateEval, saveEval,
 
   // Ações & Computados
   salvarEVoltar, encerrar, totalAlunos, savedCount, presentCount, tab2HasContent, visibleTabs,
@@ -162,10 +162,14 @@ export default function ConselhoDeClasse({ conselhoId, onBack, mode = "final" }:
             setSelectedDisc={setSelectedDisc}
             retificadas={retificadas}
             setRetificadas={setRetificadas}
+            salvarRetificada={salvarRetificada}
             abonomat={abonomat}
             setAbonomat={setAbonomat}
             abonoText={abonoText}
             setAbonoText={setAbonoText}
+            confirmarAbono={confirmarAbono}
+            excluirAbono={excluirAbono}
+            conselhoId={conselhoId}
             updateEval={updateEval}
             saveEval={saveEval}
             salvando={salvando}

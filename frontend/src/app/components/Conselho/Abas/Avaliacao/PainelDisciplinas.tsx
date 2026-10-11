@@ -6,6 +6,7 @@ interface PainelDisciplinasProps {
   selectedAluno: string;
   retificadas: Record<string, string>;
   setRetificadas: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onSalvarRetificada: () => void;
   setAbonomat: React.Dispatch<React.SetStateAction<string | null>>;
   setAbonoText: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -15,6 +16,7 @@ export function PainelDisciplinas({
   selectedAluno,
   retificadas,
   setRetificadas,
+  onSalvarRetificada,
   setAbonomat,
   setAbonoText,
 }: PainelDisciplinasProps) {
@@ -59,6 +61,9 @@ export function PainelDisciplinas({
               step="0.1"
               value={retVal}
               onChange={(e) => setRetificadas((prev) => ({ ...prev, [retKey]: e.target.value }))}
+              // Grava ao sair do campo (ou com Enter); campo vazio remove a retificação.
+              onBlur={onSalvarRetificada}
+              onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
               placeholder={disc.nota.toFixed(1)}
               className="w-20 text-xl font-bold px-2 py-1 rounded-lg border-2 outline-none transition-all placeholder:text-muted-foreground/30 bg-white"
               style={{

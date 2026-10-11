@@ -1,10 +1,11 @@
 const pool = require('../config/database');
 const buildSet = require('../utils/buildSet');
+const { comTurmaNoInsert, comTurmaNoUpdate } = require('../utils/turmaDoAluno');
 
 const COLUMNS = `id, aluno_id, turma_id, conselho_id, titulo, categoria, origem, servidor_responsavel_id,
   descricao_inicial, status, urgente, DATE_FORMAT(prazo, '%Y-%m-%d') AS prazo, data_criacao`;
 
-// turmaId omitido: o banco preenche com a turma do aluno (trigger).
+// turmaId omitido: usa a turma do aluno (utils/turmaDoAluno).
 const FIELD_MAP = {
   alunoId: 'aluno_id',
   turmaId: 'turma_id',
@@ -47,7 +48,7 @@ async function create(data) {
     status,
     urgente,
     prazo
-  } = data;
+  } = await comTurmaNoInsert(data, data.conselhoId ?? null);
 
   const [result] = await pool.query(
     `INSERT INTO encaminhamentos
@@ -71,7 +72,9 @@ async function create(data) {
   return findById(result.insertId);
 }
 
-async function update(id, data) {
+async function update(id, dados) {
+  const atual = dados.alunoId !== undefined ? await findById(id) : null;
+  const data = await comTurmaNoUpdate(atual, dados, dados.conselhoId !== undefined ? dados.conselhoId : atual?.conselho_id);
   const { columns, values } = buildSet(FIELD_MAP, data, {
     status: (status) => status ?? 'pendente',
     urgente: (urgente) => urgente ?? false

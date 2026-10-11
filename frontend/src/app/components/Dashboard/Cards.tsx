@@ -5,16 +5,25 @@ import type { DashboardStats } from "../../types/dashboard";
 import { fetchDashboardStats } from "../../services/dashService";
 import { getDashboardCards } from "../../data/dashData";
 
-export default function Cards() {
+interface CardsProps {
+  periodo: string;
+}
+
+export default function Cards({ periodo }: CardsProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Recarrega a cada troca de período; ignora respostas de um período já trocado.
   useEffect(() => {
-    fetchDashboardStats()
-      .then(setStats)
+    let ativo = true;
+    fetchDashboardStats(periodo)
+      .then((dados) => ativo && setStats(dados))
       .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => ativo && setLoading(false));
+    return () => {
+      ativo = false;
+    };
+  }, [periodo]);
 
   if (loading) {
     return (

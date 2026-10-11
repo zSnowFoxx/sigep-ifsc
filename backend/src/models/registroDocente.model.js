@@ -1,10 +1,11 @@
 const pool = require('../config/database');
 const buildSet = require('../utils/buildSet');
+const { comTurmaNoInsert, comTurmaNoUpdate } = require('../utils/turmaDoAluno');
 
 const COLUMNS = `id, conselho_id, aluno_id, docente_id, DATE_FORMAT(data_registro, '%Y-%m-%d') AS data_registro,
   turma_id, titulo, categoria, registro, encaminhamento_id`;
 
-// turmaId omitido: o banco preenche com a turma do aluno (trigger).
+// turmaId omitido: usa a turma do aluno, priorizando as do conselho (utils/turmaDoAluno).
 const FIELD_MAP = {
   alunoId: 'aluno_id',
   docenteId: 'docente_id',
@@ -32,7 +33,10 @@ async function findOne(conselhoId, id) {
 }
 
 async function create(conselhoId, data) {
-  const { alunoId, docenteId, turmaId, titulo, categoria, registro, encaminhamentoId } = data;
+  const { alunoId, docenteId, turmaId, titulo, categoria, registro, encaminhamentoId } = await comTurmaNoInsert(
+    data,
+    conselhoId
+  );
 
   const [result] = await pool.query(
     `INSERT INTO registros_docentes
@@ -43,7 +47,9 @@ async function create(conselhoId, data) {
   return findOne(conselhoId, result.insertId);
 }
 
-async function update(conselhoId, id, data) {
+async function update(conselhoId, id, dados) {
+  const atual = dados.alunoId !== undefined ? await findOne(conselhoId, id) : null;
+  const data = await comTurmaNoUpdate(atual, dados, conselhoId);
   const { columns, values } = buildSet(FIELD_MAP, data);
 
   if (columns.length > 0) {

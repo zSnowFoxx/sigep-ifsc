@@ -3,6 +3,7 @@ import { Users, ClipboardList, GraduationCap, FileText } from "lucide-react";
 
 import type {
   AlunoEval,
+  Disciplina,
   EncItemData,
   GravidadeDemanda,
   Professor,
@@ -18,6 +19,10 @@ import {
   criarEncaminhamentoNovo,
   criarRegistro,
   finalizarEncaminhamento,
+  removerAbono,
+  removerRetificacao,
+  salvarAbono,
+  salvarRetificacao,
   salvarDeliberacao,
   salvarDemanda,
   salvarPresencas,
@@ -106,6 +111,8 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
   const [deliberacaoIds, setDeliberacaoIds] = useState<Record<string, number>>({});
   const [selectedDisc, setSelectedDisc] = useState<Record<string, number>>({});
   const [retificadas, setRetificadas] = useState<Record<string, string>>({});
+  // Último valor gravado de cada retificação ("matricula|disciplina"), para não regravar sem mudança.
+  const retificadasSalvasRef = useRef<Record<string, string>>({});
   const [abonomat, setAbonomat] = useState<string | null>(null);
   const [abonoText, setAbonoText] = useState("");
 
@@ -163,6 +170,17 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
             return deliberacao ? [[a.matricula, deliberacao.id]] : [];
           }))
         );
+        const retificadaPorNota = new Map(d.retificacoes.map((r) => [r.nota_frequencia_id, String(r.media_retificada)]));
+        const retificadasIniciais = Object.fromEntries(
+          Object.entries(d.disciplinas).flatMap(([mat, discs]) =>
+            discs.flatMap((x) => {
+              const media = retificadaPorNota.get(x.notaId);
+              return media === undefined ? [] : [[`${mat}|${x.nome}`, media]];
+            })
+          )
+        );
+        retificadasSalvasRef.current = retificadasIniciais;
+        setRetificadas(retificadasIniciais);
         setRegistros(d.registros);
         setEncList(d.encaminhamentos);
         setNrDocenteId(d.usuarioLogadoId);
@@ -192,6 +210,50 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     setRegistros(d.registros);
     setEncList(d.encaminhamentos);
     setSelectedEnc((prev) => (prev ? d.encaminhamentos.find((e) => e.id === prev.id) ?? prev : null));
+  };
+
+  // ── Abono de faltas: os erros sobem para o modal, que os mostra sem fechar ──
+  const recarregarDisciplinas = async () => {
+    const d = await carregarConselho(conselhoId);
+    setDados((prev) => (prev ? { ...prev, disciplinas: d.disciplinas } : d));
+  };
+
+  const confirmarAbono = async (notaFrequenciaId: number, horas: number, tipo: string) => {
+    await salvarAbono(conselhoId, {
+      notaFrequenciaId,
+      horas,
+      tipo,
+      fundamentacao: abonoText,
+      usuarioId: dados?.usuarioLogadoId ?? null,
+    });
+    await recarregarDisciplinas();
+  };
+
+  const excluirAbono = async (abonoId: number) => {
+    await removerAbono(conselhoId, abonoId);
+    await recarregarDisciplinas();
+  };
+
+  // ── Média retificada: salva ao sair do campo; campo vazio remove a retificação ──
+  const salvarRetificada = (matricula: string, disc: Disciplina) => {
+    const chave = `${matricula}|${disc.nome}`;
+    const valor = (retificadas[chave] ?? "").trim();
+    if (valor === (retificadasSalvasRef.current[chave] ?? "")) return;
+
+    const media = Number(valor);
+    if (valor !== "" && (!Number.isFinite(media) || media < 0 || media > 10)) {
+      setErro("A média retificada deve ser um número entre 0 e 10.");
+      return;
+    }
+
+    executar(async () => {
+      if (valor === "") {
+        await removerRetificacao(conselhoId, disc.notaId);
+      } else {
+        await salvarRetificacao(conselhoId, disc.notaId, media, dados?.usuarioLogadoId ?? null);
+      }
+      retificadasSalvasRef.current = { ...retificadasSalvasRef.current, [chave]: valor };
+    });
   };
 
   const alunoPorMatricula = (matricula: string) => dados?.alunos.find((a) => a.matricula === matricula);
@@ -504,6 +566,9 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     setAbonomat,
     abonoText,
     setAbonoText,
+    confirmarAbono,
+    excluirAbono,
+    salvarRetificada,
     updateEval,
     saveEval,
 

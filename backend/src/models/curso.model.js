@@ -1,4 +1,19 @@
 const pool = require('../config/database');
+const withTransaction = require('../utils/transaction');
+
+// usuarios.curso_id acompanha cursos.coordenador_id (antes feito por triggers; o TiDB não as suporta):
+// o coordenador anterior perde o vínculo com o curso e o novo passa a apontar para ele.
+async function sincronizarCoordenador(db, cursoId, anteriorId, novoId) {
+  if ((anteriorId ?? null) === (novoId ?? null)) {
+    return;
+  }
+  if (anteriorId) {
+    await db.query('UPDATE usuarios SET curso_id = NULL WHERE id = ? AND curso_id = ?', [anteriorId, cursoId]);
+  }
+  if (novoId) {
+    await db.query('UPDATE usuarios SET curso_id = ? WHERE id = ?', [cursoId, novoId]);
+  }
+}
 
 const PUBLIC_COLUMNS = ['id', 'codigo', 'nome', 'tipo', 'grau', 'modalidade', 'ppc', 'fases', 'coordenador_id'];
 
@@ -34,12 +49,16 @@ async function findByCodigo(codigo) {
 }
 
 async function create({ codigo, nome, tipo, grau, modalidade, ppc, fases, coordenadorId }) {
-  const [result] = await pool.query(
-    `INSERT INTO cursos (codigo, nome, tipo, grau, modalidade, ppc, fases, coordenador_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [codigo, nome, tipo ?? null, grau ?? null, modalidade ?? null, ppc ?? null, fases ?? null, coordenadorId ?? null]
-  );
-  return findById(result.insertId);
+  const id = await withTransaction(async (connection) => {
+    const [result] = await connection.query(
+      `INSERT INTO cursos (codigo, nome, tipo, grau, modalidade, ppc, fases, coordenador_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [codigo, nome, tipo ?? null, grau ?? null, modalidade ?? null, ppc ?? null, fases ?? null, coordenadorId ?? null]
+    );
+    await sincronizarCoordenador(connection, result.insertId, null, coordenadorId);
+    return result.insertId;
+  });
+  return findById(id);
 }
 
 async function update(id, data) {
@@ -69,13 +88,20 @@ async function update(id, data) {
   }
 
   values.push(id);
-  const [result] = await pool.query(`UPDATE cursos SET ${columns.join(', ')} WHERE id = ?`, values);
+  const encontrado = await withTransaction(async (connection) => {
+    const [[anterior]] = await connection.query('SELECT coordenador_id FROM cursos WHERE id = ? FOR UPDATE', [id]);
+    const [result] = await connection.query(`UPDATE cursos SET ${columns.join(', ')} WHERE id = ?`, values);
 
-  if (result.affectedRows === 0) {
-    return null;
-  }
+    if (result.affectedRows === 0) {
+      return false;
+    }
+    if (data.coordenadorId !== undefined) {
+      await sincronizarCoordenador(connection, Number(id), anterior?.coordenador_id, data.coordenadorId);
+    }
+    return true;
+  });
 
-  return findById(id);
+  return encontrado ? findById(id) : null;
 }
 
 async function remove(id) {
@@ -84,6 +110,7 @@ async function remove(id) {
 }
 
 module.exports = {
+  sincronizarCoordenador,
   findAll,
   findById,
   findByCodigo,

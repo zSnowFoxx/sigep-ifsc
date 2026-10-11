@@ -43,16 +43,23 @@ export default function Header({
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Carrega os períodos da API
+  // Carrega os períodos da API. Ignora a resposta de um efeito descartado (StrictMode executa
+  // o efeito duas vezes): ela chegaria depois e trocaria o período que o usuário já escolheu.
   useEffect(() => {
+    let ativo = true;
     fetchPeriodos().then((data) => {
+      if (!ativo) return;
       setPeriodos(data);
 
-      const periodoAtivo = data.find((p) => p.ativo);
+      // Sem período ativo, usa o primeiro da lista (o backend ordena do mais recente).
+      const periodoAtivo = data.find((p) => p.ativo) ?? data[0];
       if (periodoAtivo && !selectedPeriod) {
         setSelectedPeriod(`${periodoAtivo.ano}.${periodoAtivo.semestre}`);
       }
     });
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   // Reconhece que, ao apertar K, seleciona o Search e abre o dropdown de sugestões

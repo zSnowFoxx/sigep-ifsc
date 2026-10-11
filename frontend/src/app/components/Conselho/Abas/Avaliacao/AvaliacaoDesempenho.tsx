@@ -10,6 +10,7 @@ interface AvaliacaoDesempenhoProps {
   setSelectedDisc: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   retificadas: Record<string, string>;
   setRetificadas: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  salvarRetificada: (matricula: string, disc: Disciplina) => void;
   setAbonomat: React.Dispatch<React.SetStateAction<string | null>>;
   setAbonoText: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -21,6 +22,7 @@ export function AvaliacaoDesempenho({
   setSelectedDisc,
   retificadas,
   setRetificadas,
+  salvarRetificada,
   setAbonomat,
   setAbonoText,
 }: AvaliacaoDesempenhoProps) {
@@ -111,6 +113,7 @@ export function AvaliacaoDesempenho({
         selectedAluno={selectedAluno}
         retificadas={retificadas}
         setRetificadas={setRetificadas}
+        onSalvarRetificada={() => salvarRetificada(selectedAluno, disc)}
         setAbonomat={setAbonomat}
         setAbonoText={setAbonoText}
       />

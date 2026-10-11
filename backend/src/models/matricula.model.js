@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 
-const COLUMNS = 'id, aluno_id, turma_id';
+const COLUMNS = 'id, aluno_id, turma_id, status';
 
 async function findAll() {
   const [rows] = await pool.query(`SELECT ${COLUMNS} FROM matriculas ORDER BY id`);

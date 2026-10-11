@@ -92,9 +92,10 @@ export default function Dashboard({
         <p className="text-xs text-muted-foreground mt-0.5">Visão geral do período letivo {selectedPeriod}</p>
       </div>
 
-      <Cards />
+      <Cards periodo={selectedPeriod} />
 
       <Filtros
+        periodo={selectedPeriod}
         filterCurso={filterCurso}
         setFilterCurso={setFilterCurso}
         filterFase={filterFase}

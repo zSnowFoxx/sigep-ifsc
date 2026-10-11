@@ -60,14 +60,37 @@ export interface TurmaData {
   semestre: string;
 }
 
+export interface AbonoApi {
+  id: number;
+  conselho_id: number;
+  nota_frequencia_id: number;
+  horas: number;
+  tipo: string;
+  fundamentacao: string | null;
+  usuario_id: number | null;
+  data_registro: string;
+}
+
+export interface RetificacaoApi {
+  id: number;
+  conselho_id: number;
+  nota_frequencia_id: number;
+  media_retificada: number;
+  usuario_id: number | null;
+  data_registro: string;
+}
+
 export interface Disciplina {
+  notaId: number;
   nome: string;
   professor: string;
   ch: number;
   nota: number;
+  // Já inclui as horas abonadas em conselho (abono legal: falta abonada conta como presença).
   presentes: number;
   faltasJust: number;
   faltasNaoJust: number;
+  abonos: AbonoApi[];
 }
 
 export interface RegistroDocente {

@@ -1,6 +1,6 @@
 -- =====================================================================
 -- SIGEP — Sistema de Gestão e Estratégia Pedagógica
--- Script de criação do banco de dados (MySQL 8.0.16+)
+-- Script de criação do banco de dados (MySQL 8.0.16+ / TiDB)
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS sigep
@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS conselhos_demandas_gerais (
 CREATE TABLE IF NOT EXISTS encaminhamentos (
   id                      INT UNSIGNED NOT NULL AUTO_INCREMENT,
   aluno_id                INT UNSIGNED NOT NULL,
-  -- Preenchido automaticamente a partir do aluno (trigger)
+  -- Preenchido automaticamente a partir do aluno (backend)
   turma_id                INT UNSIGNED NOT NULL,
   -- Conselho em que o encaminhamento foi criado, se houver
   conselho_id             INT UNSIGNED NULL,
@@ -321,7 +321,7 @@ CREATE TABLE IF NOT EXISTS registros_docentes (
   aluno_id          INT UNSIGNED NOT NULL,
   docente_id        INT UNSIGNED NOT NULL,
   data_registro     DATE         NOT NULL DEFAULT (CURRENT_DATE),
-  -- Preenchido automaticamente a partir do aluno (trigger)
+  -- Preenchido automaticamente a partir do aluno (backend)
   turma_id          INT UNSIGNED NOT NULL,
   titulo            VARCHAR(255) NOT NULL,
   -- Lista pré-definida no frontend
@@ -341,7 +341,7 @@ CREATE TABLE IF NOT EXISTS conselhos_deliberacoes (
   id                    INT UNSIGNED NOT NULL AUTO_INCREMENT,
   conselho_id           INT UNSIGNED NOT NULL,
   aluno_id              INT UNSIGNED NOT NULL,
-  -- Preenchido automaticamente a partir do aluno (trigger)
+  -- Preenchido automaticamente a partir do aluno (backend)
   turma_id              INT UNSIGNED NOT NULL,
   alteracoes_realizadas TEXT         NOT NULL,
   data_registro         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -352,6 +352,42 @@ CREATE TABLE IF NOT EXISTS conselhos_deliberacoes (
   CONSTRAINT fk_conselhos_deliberacoes_turma    FOREIGN KEY (turma_id)    REFERENCES turmas (id)
 );
 
+-- Abonos de faltas (abono legal) decididos em conselho. Não alteram notas_frequencias (dados do SIGAA):
+-- na exibição, as horas abonadas deixam de ser faltas e contam como presença.
+CREATE TABLE IF NOT EXISTS conselhos_abonos (
+  id                 INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+  conselho_id        INT UNSIGNED      NOT NULL,
+  nota_frequencia_id INT UNSIGNED      NOT NULL,
+  horas              SMALLINT UNSIGNED NOT NULL,
+  -- Lista pré-definida no frontend
+  tipo               VARCHAR(80)       NOT NULL,
+  fundamentacao      TEXT              NULL,
+  usuario_id         INT UNSIGNED      NULL,
+  data_registro      TIMESTAMP         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_conselhos_abonos_nota (nota_frequencia_id),
+  CONSTRAINT fk_conselhos_abonos_conselho FOREIGN KEY (conselho_id)        REFERENCES conselhos_lista (id)   ON DELETE CASCADE,
+  CONSTRAINT fk_conselhos_abonos_nota     FOREIGN KEY (nota_frequencia_id) REFERENCES notas_frequencias (id) ON DELETE CASCADE,
+  CONSTRAINT fk_conselhos_abonos_usuario  FOREIGN KEY (usuario_id)         REFERENCES usuarios (id)          ON DELETE SET NULL,
+  CONSTRAINT ck_conselhos_abonos_horas CHECK (horas > 0)
+);
+
+-- Média retificada pelo conselho em uma disciplina do aluno. Não altera notas_frequencias (dados do SIGAA).
+CREATE TABLE IF NOT EXISTS conselhos_retificacoes (
+  id                 INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  conselho_id        INT UNSIGNED  NOT NULL,
+  nota_frequencia_id INT UNSIGNED  NOT NULL,
+  media_retificada   DECIMAL(4, 2) NOT NULL,
+  usuario_id         INT UNSIGNED  NULL,
+  data_registro      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_conselhos_retificacoes_conselho_nota (conselho_id, nota_frequencia_id),
+  CONSTRAINT fk_conselhos_retificacoes_conselho FOREIGN KEY (conselho_id)        REFERENCES conselhos_lista (id)   ON DELETE CASCADE,
+  CONSTRAINT fk_conselhos_retificacoes_nota     FOREIGN KEY (nota_frequencia_id) REFERENCES notas_frequencias (id) ON DELETE CASCADE,
+  CONSTRAINT fk_conselhos_retificacoes_usuario  FOREIGN KEY (usuario_id)         REFERENCES usuarios (id)          ON DELETE SET NULL,
+  CONSTRAINT ck_conselhos_retificacoes_media CHECK (media_retificada BETWEEN 0 AND 10)
+);
+
 -- =====================================================================
 -- 6. ATENDIMENTOS (NAE)
 -- =====================================================================
@@ -359,7 +395,7 @@ CREATE TABLE IF NOT EXISTS conselhos_deliberacoes (
 CREATE TABLE IF NOT EXISTS atendimentos (
   id               INT UNSIGNED NOT NULL AUTO_INCREMENT,
   aluno_id         INT UNSIGNED NOT NULL,
-  -- Preenchido automaticamente a partir do aluno (trigger)
+  -- Preenchido automaticamente a partir do aluno (backend)
   turma_id         INT UNSIGNED NOT NULL,
   servidor_id      INT UNSIGNED NULL,
   data_atendimento DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -393,184 +429,7 @@ CREATE TABLE IF NOT EXISTS logs_auditoria (
 );
 
 -- =====================================================================
--- 8.1. TRIGGERS - TURMA AUTOMÁTICA A PARTIR DO ALUNO
--- Quando turma_id não é informado, usa a turma do aluno, priorizando:
--- turma que faz parte do conselho > matrícula ativa > período mais recente.
--- Se o aluno não tiver matrícula, o INSERT falha (turma_id é NOT NULL).
+-- 8. REGRAS MANTIDAS PELO BACKEND (o TiDB não suporta triggers/functions)
+-- - turma_id automático a partir do aluno: backend/src/utils/turmaDoAluno.js
+-- - usuarios.curso_id <-> cursos.coordenador_id: backend/src/models/curso.model.js
 -- =====================================================================
-
-DROP FUNCTION IF EXISTS fn_turma_do_aluno;
-DELIMITER $$
-
-CREATE FUNCTION fn_turma_do_aluno(p_aluno_id INT UNSIGNED, p_conselho_id INT UNSIGNED)
-RETURNS INT UNSIGNED
-READS SQL DATA
-BEGIN
-  RETURN (
-    SELECT m.turma_id
-    FROM matriculas m
-    JOIN turmas t   ON t.id = m.turma_id
-    JOIN periodos p ON p.id = t.periodo_id
-    LEFT JOIN conselhos_turmas ct
-           ON ct.turma_id = m.turma_id
-          AND ct.conselho_id = p_conselho_id
-    WHERE m.aluno_id = p_aluno_id
-    ORDER BY ct.turma_id IS NULL, m.status = 'Ativo' DESC, p.ano DESC, p.semestre DESC, m.id DESC
-    LIMIT 1
-  );
-END$$
-
-DROP TRIGGER IF EXISTS trg_registros_docentes_bi$$
-
-CREATE TRIGGER trg_registros_docentes_bi BEFORE INSERT ON registros_docentes
-FOR EACH ROW
-BEGIN
-  IF NEW.turma_id IS NULL THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
-  END IF;
-END$$
-
-DROP TRIGGER IF EXISTS trg_registros_docentes_bu$$
-
-CREATE TRIGGER trg_registros_docentes_bu BEFORE UPDATE ON registros_docentes
-FOR EACH ROW
-BEGIN
-  IF NEW.aluno_id <> OLD.aluno_id AND NEW.turma_id = OLD.turma_id THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
-  END IF;
-END$$
-
-DROP TRIGGER IF EXISTS trg_conselhos_deliberacoes_bi$$
-
-CREATE TRIGGER trg_conselhos_deliberacoes_bi BEFORE INSERT ON conselhos_deliberacoes
-FOR EACH ROW
-BEGIN
-  IF NEW.turma_id IS NULL THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
-  END IF;
-END$$
-
-DROP TRIGGER IF EXISTS trg_conselhos_deliberacoes_bu$$
-
-CREATE TRIGGER trg_conselhos_deliberacoes_bu BEFORE UPDATE ON conselhos_deliberacoes
-FOR EACH ROW
-BEGIN
-  IF NEW.aluno_id <> OLD.aluno_id AND NEW.turma_id = OLD.turma_id THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
-  END IF;
-END$$
-
-DROP TRIGGER IF EXISTS trg_encaminhamentos_bi$$
-
-CREATE TRIGGER trg_encaminhamentos_bi BEFORE INSERT ON encaminhamentos
-FOR EACH ROW
-BEGIN
-  IF NEW.turma_id IS NULL THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
-  END IF;
-END$$
-
-DROP TRIGGER IF EXISTS trg_encaminhamentos_bu$$
-
-CREATE TRIGGER trg_encaminhamentos_bu BEFORE UPDATE ON encaminhamentos
-FOR EACH ROW
-BEGIN
-  IF NEW.aluno_id <> OLD.aluno_id AND NEW.turma_id = OLD.turma_id THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NEW.conselho_id);
-  END IF;
-END$$
-
-DROP TRIGGER IF EXISTS trg_atendimentos_bi$$
-
-CREATE TRIGGER trg_atendimentos_bi BEFORE INSERT ON atendimentos
-FOR EACH ROW
-BEGIN
-  IF NEW.turma_id IS NULL THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NULL);
-  END IF;
-END$$
-
-DROP TRIGGER IF EXISTS trg_atendimentos_bu$$
-
-CREATE TRIGGER trg_atendimentos_bu BEFORE UPDATE ON atendimentos
-FOR EACH ROW
-BEGIN
-  IF NEW.aluno_id <> OLD.aluno_id AND NEW.turma_id = OLD.turma_id THEN
-    SET NEW.turma_id = fn_turma_do_aluno(NEW.aluno_id, NULL);
-  END IF;
-END$$
-
-DELIMITER ;
-
--- ============================================================
--- 8.2. TRIGGERS - SINCRONIZAÇÃO ENTRE USUÁRIOS E CURSOS (MySQL)
--- ============================================================
-
-DELIMITER $$
-
--- Trigger para alterações na tabela USUARIOS
-DROP TRIGGER IF EXISTS trg_usuarios_curso_sync$$
-
-CREATE TRIGGER trg_usuarios_curso_sync
-AFTER UPDATE ON usuarios
-FOR EACH ROW
-BEGIN
-    -- Evita recursão infinita entre triggers usando variável de sessão
-    IF @disable_sync IS NULL OR @disable_sync = FALSE THEN
-        SET @disable_sync = TRUE;
-
-        -- Verifica se o curso_id mudou (equivalente ao IS DISTINCT FROM)
-        IF NOT (OLD.curso_id <=> NEW.curso_id) THEN
-            -- Se o usuário perdeu ou alterou o curso, limpa a referência no curso antigo
-            IF OLD.curso_id IS NOT NULL THEN
-                UPDATE cursos 
-                SET coordenador_id = NULL 
-                WHERE id = OLD.curso_id AND coordenador_id = NEW.id;
-            END IF;
-
-            -- Se um novo curso foi atribuído ao usuário, atualiza a tabela de cursos
-            IF NEW.curso_id IS NOT NULL THEN
-                UPDATE cursos 
-                SET coordenador_id = NEW.id 
-                WHERE id = NEW.curso_id AND NOT (coordenador_id <=> NEW.id);
-            END IF;
-        END IF;
-
-        SET @disable_sync = FALSE;
-    END IF;
-END$$
-
-
--- Trigger para alterações na tabela CURSOS
-DROP TRIGGER IF EXISTS trg_cursos_coordenador_sync$$
-
-CREATE TRIGGER trg_cursos_coordenador_sync
-AFTER UPDATE ON cursos
-FOR EACH ROW
-BEGIN
-    -- Evita recursão infinita entre triggers usando variável de sessão
-    IF @disable_sync IS NULL OR @disable_sync = FALSE THEN
-        SET @disable_sync = TRUE;
-
-        -- Verifica se o coordenador_id mudou
-        IF NOT (OLD.coordenador_id <=> NEW.coordenador_id) THEN
-            -- Se o curso perdeu ou mudou de coordenador, limpa o curso_id do coordenador antigo
-            IF OLD.coordenador_id IS NOT NULL THEN
-                UPDATE usuarios 
-                SET curso_id = NULL 
-                WHERE id = OLD.coordenador_id AND curso_id = NEW.id;
-            END IF;
-
-            -- Se um novo coordenador foi atribuído ao curso, atualiza a tabela de usuários
-            IF NEW.coordenador_id IS NOT NULL THEN
-                UPDATE usuarios 
-                SET curso_id = NEW.id 
-                WHERE id = NEW.coordenador_id AND NOT (curso_id <=> NEW.id);
-            END IF;
-        END IF;
-
-        SET @disable_sync = FALSE;
-    END IF;
-END$$
-
-DELIMITER ;

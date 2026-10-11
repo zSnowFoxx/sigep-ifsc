@@ -1,13 +1,17 @@
 const dashboardModel = require('../models/dashboard.model');
 const asyncHandler = require('../utils/asyncHandler');
 
+// ?periodo=2026.1 (opcional) restringe os números e as opções às turmas do período.
+const periodoDaQuery = (req) =>
+  typeof req.query.periodo === 'string' && req.query.periodo.trim() ? req.query.periodo.trim() : undefined;
+
 const getStats = asyncHandler(async (req, res) => {
-  const stats = await dashboardModel.getStats();
+  const stats = await dashboardModel.getStats(periodoDaQuery(req));
   res.json({ success: true, data: stats });
 });
 
 const getFilterOptions = asyncHandler(async (req, res) => {
-  const options = await dashboardModel.getFilterOptions();
+  const options = await dashboardModel.getFilterOptions(periodoDaQuery(req));
   res.json({ success: true, data: options });
 });
 

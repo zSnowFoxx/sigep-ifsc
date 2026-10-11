@@ -24,6 +24,9 @@ const create = asyncHandler(async (req, res) => {
     const turma = await turmaModel.create({ nome, cursoId, periodoId, alunosQtd });
     res.status(201).json({ success: true, data: turma });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      throw new ApiError(409, 'Já existe uma turma com esse nome neste período');
+    }
     if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_NO_REFERENCED_ROW') {
       throw new ApiError(400, 'cursoId ou periodoId inválido');
     }
@@ -43,6 +46,9 @@ const update = asyncHandler(async (req, res) => {
     const turma = await turmaModel.update(req.params.id, { nome, cursoId, periodoId, alunosQtd });
     res.json({ success: true, data: turma });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      throw new ApiError(409, 'Já existe uma turma com esse nome neste período');
+    }
     if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_NO_REFERENCED_ROW') {
       throw new ApiError(400, 'cursoId ou periodoId inválido');
     }

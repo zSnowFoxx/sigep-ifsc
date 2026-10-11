@@ -1,4 +1,10 @@
 const pool = require('../config/database');
+const withTransaction = require('../utils/transaction');
+
+// Só um período fica ativo: ativar um desativa os demais (o Header abre no período ativo).
+async function desativarOutros(connection, id) {
+  await connection.query('UPDATE periodos SET ativo = 0 WHERE id <> ? AND ativo = 1', [id]);
+}
 
 // ativo is TINYINT(1), which mysql2 returns as 0/1.
 function toPeriodo(row) {
@@ -21,11 +27,17 @@ async function findById(id) {
 }
 
 async function create({ ano, semestre, ativo }) {
-  const [result] = await pool.query(
-    'INSERT INTO periodos (ano, semestre, ativo) VALUES (?, ?, ?)',
-    [ano, semestre, ativo ? 1 : 0]
-  );
-  return findById(result.insertId);
+  const id = await withTransaction(async (connection) => {
+    const [result] = await connection.query(
+      'INSERT INTO periodos (ano, semestre, ativo) VALUES (?, ?, ?)',
+      [ano, semestre, ativo ? 1 : 0]
+    );
+    if (ativo) {
+      await desativarOutros(connection, result.insertId);
+    }
+    return result.insertId;
+  });
+  return findById(id);
 }
 
 async function update(id, data) {
@@ -46,13 +58,18 @@ async function update(id, data) {
   }
 
   values.push(id);
-  const [result] = await pool.query(`UPDATE periodos SET ${columns.join(', ')} WHERE id = ?`, values);
+  const encontrado = await withTransaction(async (connection) => {
+    const [result] = await connection.query(`UPDATE periodos SET ${columns.join(', ')} WHERE id = ?`, values);
+    if (result.affectedRows === 0) {
+      return false;
+    }
+    if (data.ativo) {
+      await desativarOutros(connection, id);
+    }
+    return true;
+  });
 
-  if (result.affectedRows === 0) {
-    return null;
-  }
-
-  return findById(id);
+  return encontrado ? findById(id) : null;
 }
 
 async function remove(id) {

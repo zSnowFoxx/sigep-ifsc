@@ -12,6 +12,8 @@ router.param('conselhoId', validateIdParam);
 router.use('/:conselhoId/demandas', require('./conselhoDemanda.routes'));
 router.use('/:conselhoId/registros-docentes', require('./registroDocente.routes'));
 router.use('/:conselhoId/deliberacoes', require('./deliberacao.routes'));
+router.use('/:conselhoId/abonos', require('./abono.routes'));
+router.use('/:conselhoId/retificacoes', require('./retificacao.routes'));
 
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);

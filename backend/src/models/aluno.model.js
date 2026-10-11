@@ -3,14 +3,14 @@ const withTransaction = require('../utils/transaction');
 
 const COLUMNS = 'id, matricula, nome, email, status';
 
-// As turmas do aluno vêm da tabela matriculas.
+// As turmas atuais do aluno vêm das matrículas ativas (as inativas são o histórico).
 async function attachTurmas(aluno) {
   if (!aluno) {
     return aluno;
   }
 
   const [rows] = await pool.query(
-    'SELECT turma_id FROM matriculas WHERE aluno_id = ? ORDER BY id',
+    "SELECT turma_id FROM matriculas WHERE aluno_id = ? AND status = 'Ativo' ORDER BY id",
     [aluno.id]
   );
 
@@ -32,15 +32,22 @@ async function findByMatricula(matricula) {
   return rows[0] ?? null;
 }
 
-// Sincroniza as matrículas com a lista de turmas: mantém as que continuam, cria as novas
-// e remove as retiradas (o que também apaga as notas/frequências dessas matrículas).
+// Sincroniza as matrículas com a lista de turmas: inativa as retiradas (preservando o histórico,
+// as notas/frequências e os encaminhamentos), reativa as que voltaram e cria as novas.
 async function setTurmas(connection, alunoId, turmaIds) {
   const ids = [...new Set(turmaIds)];
 
   if (ids.length > 0) {
-    await connection.query('DELETE FROM matriculas WHERE aluno_id = ? AND turma_id NOT IN (?)', [alunoId, ids]);
+    await connection.query(
+      "UPDATE matriculas SET status = 'Inativo' WHERE aluno_id = ? AND turma_id NOT IN (?)",
+      [alunoId, ids]
+    );
+    await connection.query(
+      "UPDATE matriculas SET status = 'Ativo' WHERE aluno_id = ? AND turma_id IN (?)",
+      [alunoId, ids]
+    );
   } else {
-    await connection.query('DELETE FROM matriculas WHERE aluno_id = ?', [alunoId]);
+    await connection.query("UPDATE matriculas SET status = 'Inativo' WHERE aluno_id = ?", [alunoId]);
   }
 
   const [rows] = await connection.query('SELECT turma_id FROM matriculas WHERE aluno_id = ?', [alunoId]);

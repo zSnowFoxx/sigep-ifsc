@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Send, Plus, ExternalLink, Link2 } from "lucide-react";
 import type { EncItemData, TurmaData } from "../../../../types/conselho";
 
@@ -11,13 +10,11 @@ interface EncaminhamentosListaProps {
 
 export function EncaminhamentosLista({
   encList,
-  turmasData,
   setNovoEncOpen,
   openEncDetail,
 }: EncaminhamentosListaProps) {
-  const filteredEncs = useMemo(() => {
-    return encList.filter((e) => turmasData.some((t) => t.nome === e.turma));
-  }, [encList, turmasData]);
+  // A lista já vem restrita aos alunos do conselho, incluindo encaminhamentos de turmas anteriores.
+  const filteredEncs = encList;
 
   return (
     <div>

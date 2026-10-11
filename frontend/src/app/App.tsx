@@ -31,7 +31,8 @@ export default function App() {
   const [naeStudent, setNaeStudent] = useState<{ matricula: string; nome: string; turma: string } | null>(null);
   const [riskStudents, setRiskStudents] = useState<StudentRisk[]>([]);
   const [totalRiskStudents, setTotalRiskStudents] = useState(0);
-  const [selectedPeriod, setSelectedPeriod] = useState("2026.1");
+  // Vazio até o Header carregar os períodos e selecionar o ativo.
+  const [selectedPeriod, setSelectedPeriod] = useState("");
   const [filterCurso, setFilterCurso] = useState("");
   const [filterFase, setFilterFase] = useState("");
   const [filterTurma, setFilterTurma] = useState("");
@@ -141,6 +142,17 @@ export default function App() {
               setAuthenticated(false);
               setUserProfile(null);
               setShowPerfil(false);
+              // O próximo login começa do zero: Dashboard, período ativo e sem filtros.
+              setActiveNav(0);
+              setConselhoMode("list");
+              setConselhoId(null);
+              setImportarOpen(false);
+              setNaeStudent(null);
+              setSelectedPeriod("");
+              setFilterCurso("");
+              setFilterFase("");
+              setFilterTurma("");
+              setFilterDisciplina("");
             }}
           />
         ) : (

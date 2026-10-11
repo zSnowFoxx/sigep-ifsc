@@ -2,6 +2,7 @@ import { backend, type Lookup } from "./apiClient";
 import { getSessionSiape } from "./authService";
 import { periodoLabel } from "./cadastrosService";
 import type {
+  AbonoApi,
   AcompanhamentoApi,
   Aluno,
   Conselho,
@@ -13,6 +14,7 @@ import type {
   Professor,
   RegistroDocente,
   RegistroDocenteApi,
+  RetificacaoApi,
   ReuniaoAberta,
   ReuniaoRealizada,
   StatusEncaminhamentoApi,
@@ -135,8 +137,9 @@ export interface UsuarioApi { id: number; siape: string; nome: string; perfil_id
 export interface AlunoApi { id: number; matricula: string; nome: string; turmaIds: number[] }
 interface MatriculaApi { id: number; aluno_id: number; turma_id: number }
 interface DiarioApi { id: number; disciplina_id: number; turma_id: number; professor_id: number | null; cargaHoraria: string | null }
-interface DisciplinaApi { id: number; nome: string; carga_horaria: string | null }
+interface DisciplinaApi { id: number; nome: string; cargaHoraria: string | null }
 interface NotaApi {
+  id: number;
   matricula_id: number;
   diario_id: number;
   media: number | null;
@@ -157,6 +160,7 @@ export interface DadosConselho {
   demandas: ConselhoDemanda[];
   registros: RegistroDocente[];
   deliberacoes: DeliberacaoApi[];
+  retificacoes: RetificacaoApi[];
   encaminhamentos: Encaminhamento[];
   usuarioLogadoId: number | null;
 }
@@ -170,23 +174,29 @@ const STATUS_DA_API: Record<StatusEncaminhamentoApi, Status> = {
 const horas = (valor: string | null | undefined) => parseInt(valor ?? "", 10) || 0;
 const textoOuNull = (valor: string) => (valor.trim() ? valor.trim() : null);
 
-function toDisciplina(nota: NotaApi, diario: DiarioApi, disciplina: DisciplinaApi | undefined, professor: string): Disciplina {
+// A mesma regra de faltas é usada pelo backend para limitar os abonos (abono.model.js).
+function toDisciplina(
+  nota: NotaApi,
+  diario: DiarioApi,
+  disciplina: DisciplinaApi | undefined,
+  professor: string,
+  abonos: AbonoApi[]
+): Disciplina {
   const contadas = nota.presencas + nota.faltas_justificadas + nota.faltas_nao_justificadas;
-  const ch = horas(diario.cargaHoraria) || horas(disciplina?.carga_horaria) || contadas || 1;
-  const base = { nome: disciplina?.nome ?? "Disciplina", professor, ch, nota: nota.media ?? 0 };
+  const ch = horas(diario.cargaHoraria) || horas(disciplina?.cargaHoraria) || contadas || 1;
+  const base = { notaId: nota.id, nome: disciplina?.nome ?? "Disciplina", professor, ch, nota: nota.media ?? 0, abonos };
 
   // Sem horas lançadas, as faltas vêm do percentual de infrequência do SIGAA (sem separar as justificadas).
-  if (contadas === 0 && nota.infrequencia !== null) {
-    const faltas = Math.round((ch * nota.infrequencia) / 100);
-    return { ...base, presentes: ch - faltas, faltasJust: 0, faltasNaoJust: faltas };
-  }
+  const semHoras = contadas === 0 && nota.infrequencia !== null;
+  const faltas = semHoras ? Math.round((ch * (nota.infrequencia ?? 0)) / 100) : 0;
+  const presentes = semHoras ? ch - faltas : nota.presencas;
+  const faltasJust = semHoras ? 0 : nota.faltas_justificadas;
+  const faltasNaoJust = semHoras ? faltas : nota.faltas_nao_justificadas;
 
-  return {
-    ...base,
-    presentes: nota.presencas,
-    faltasJust: nota.faltas_justificadas,
-    faltasNaoJust: nota.faltas_nao_justificadas,
-  };
+  // Abono legal: as horas abonadas em conselho deixam de ser faltas e contam como presença
+  // (entram no percentual de frequência e no limite de 25% da LDB).
+  const abonadas = Math.min(abonos.reduce((s, a) => s + a.horas, 0), faltasNaoJust);
+  return { ...base, presentes: presentes + abonadas, faltasJust, faltasNaoJust: faltasNaoJust - abonadas };
 }
 
 export function toEncaminhamento(
@@ -227,7 +237,7 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
   const base = `/conselhos/${conselhoId}`;
   const [
     conselho, turmasApi, cursos, usuariosApi, perfis, periodos, alunosApi, matriculas, diarios,
-    disciplinasApi, notas, riscos, demandas, registrosApi, deliberacoes, encaminhamentosApi,
+    disciplinasApi, notas, riscos, demandas, registrosApi, deliberacoes, encaminhamentosApi, acompanhamentosApi, abonos, retificacoes,
   ] = await Promise.all([
     backend<Conselho>(base),
     backend<TurmaRef[]>("/turmas"),
@@ -245,9 +255,19 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
     backend<RegistroDocenteApi[]>(`${base}/registros-docentes`),
     backend<DeliberacaoApi[]>(`${base}/deliberacoes`),
     backend<EncaminhamentoApi[]>("/encaminhamentos"),
+    backend<AcompanhamentoApi[]>("/encaminhamentos/acompanhamentos"),
+    backend<AbonoApi[]>(`${base}/abonos`),
+    backend<RetificacaoApi[]>(`${base}/retificacoes`),
   ]);
 
   const turmaIds = new Set(conselho.turmaIds);
+
+  // Inclui matrículas inativas: um conselho já realizado continua mostrando quem estava nas turmas.
+  const matriculasDoConselho = matriculas.filter((m) => turmaIds.has(m.turma_id));
+  const turmasDoAluno = new Map<number, number[]>();
+  for (const m of matriculasDoConselho) {
+    turmasDoAluno.set(m.aluno_id, [...(turmasDoAluno.get(m.aluno_id) ?? []), m.turma_id]);
+  }
   const turmasPorId = new Map(turmasApi.map((t) => [t.id, t]));
   const usuarios = new Map(usuariosApi.map((u) => [u.id, u]));
   const alunosPorId = new Map(alunosApi.map((a) => [a.id, a]));
@@ -257,7 +277,7 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
 
   // Atenção e risco seguem o painel de risco do dashboard, restrito às turmas deste conselho.
   const alunos: Aluno[] = alunosApi
-    .filter((a) => a.turmaIds.some((id) => turmaIds.has(id)))
+    .filter((a) => turmasDoAluno.has(a.id))
     .map((a) => {
       const riscosDoAluno = riscos.filter((r) => r.matricula === a.matricula && nomesDasTurmas.includes(r.turma));
       return {
@@ -266,7 +286,7 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
         nome: a.nome,
         atencao: riscosDoAluno.length > 0,
         risco: riscosDoAluno.some((r) => r.fatores.includes("Risco alto de evasão")),
-        turma: a.turmaIds.filter((id) => turmaIds.has(id)).map((id) => turmasPorId.get(id)?.nome).join(", "),
+        turma: (turmasDoAluno.get(a.id) ?? []).map((id) => turmasPorId.get(id)?.nome).join(", "),
       };
     })
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -282,7 +302,7 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
     return {
       id,
       nome: turma?.nome ?? `Turma ${id}`,
-      alunosList: alunos.filter((a) => alunosPorId.get(a.id)?.turmaIds.includes(id)),
+      alunosList: alunos.filter((a) => turmasDoAluno.get(a.id)?.includes(id)),
       coord: coordenadorDaTurma(turma),
       semestre: periodo ? periodoLabel(periodo) : "",
     };
@@ -309,7 +329,11 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
     };
   });
 
-  const matriculasDoConselho = matriculas.filter((m) => turmaIds.has(m.turma_id));
+  const abonosPorNota = new Map<number, AbonoApi[]>();
+  for (const a of abonos) {
+    abonosPorNota.set(a.nota_frequencia_id, [...(abonosPorNota.get(a.nota_frequencia_id) ?? []), a]);
+  }
+
   const disciplinas: Record<string, Disciplina[]> = {};
   for (const aluno of alunos) {
     const matriculaIds = new Set(matriculasDoConselho.filter((m) => m.aluno_id === aluno.id).map((m) => m.id));
@@ -319,7 +343,7 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
         const diario = diariosPorId.get(n.diario_id);
         if (!diario) return [];
         const professor = (diario.professor_id && usuarios.get(diario.professor_id)?.nome) || "—";
-        return [toDisciplina(n, diario, disciplinasPorId.get(diario.disciplina_id), professor)];
+        return [toDisciplina(n, diario, disciplinasPorId.get(diario.disciplina_id), professor, abonosPorNota.get(n.id) ?? [])];
       });
   }
 
@@ -340,13 +364,20 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
     };
   });
 
-  const encaminhamentosDasTurmas = encaminhamentosApi.filter((e) => turmaIds.has(e.turma_id));
-  const acompanhamentos = await Promise.all(
-    encaminhamentosDasTurmas.map((e) => backend<AcompanhamentoApi[]>(`/encaminhamentos/${e.id}/acompanhamentos`))
-  );
-  const encaminhamentos = encaminhamentosDasTurmas.map((e, i) =>
-    toEncaminhamento(e, acompanhamentos[i], alunosPorId, turmasPorId, usuarios)
-  );
+  // Encaminhamentos dos alunos do conselho, inclusive os criados em turmas anteriores.
+  const alunoIds = new Set(alunos.map((a) => a.id));
+  const acompanhamentosPorEnc = new Map<number, AcompanhamentoApi[]>();
+  for (const a of acompanhamentosApi) {
+    acompanhamentosPorEnc.set(a.encaminhamento_id, [...(acompanhamentosPorEnc.get(a.encaminhamento_id) ?? []), a]);
+  }
+  const encaminhamentos = encaminhamentosApi
+    .filter((e) => alunoIds.has(e.aluno_id))
+    .map((e) => {
+      const enc = toEncaminhamento(e, acompanhamentosPorEnc.get(e.id) ?? [], alunosPorId, turmasPorId, usuarios);
+      if (turmaIds.has(e.turma_id)) return enc;
+      const periodo = periodos.find((p) => p.id === turmasPorId.get(e.turma_id)?.periodo_id);
+      return { ...enc, turmaAnterior: true, turma: periodo ? `${enc.turma} (${periodoLabel(periodo)})` : enc.turma };
+    });
 
   const siape = getSessionSiape();
 
@@ -361,6 +392,7 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
     demandas,
     registros,
     deliberacoes,
+    retificacoes,
     encaminhamentos,
     usuarioLogadoId: usuariosApi.find((u) => u.siape === siape)?.id ?? null,
   };
@@ -440,6 +472,39 @@ export const salvarDeliberacao = (conselhoId: number, alunoId: number, texto: st
         method: "POST",
         body: JSON.stringify({ alunoId, alteracoesRealizadas: texto }),
       });
+
+// ── Abono de faltas (por disciplina do aluno) ──
+
+export const TIPOS_ABONO = [
+  "Atestado Médico",
+  "Luto",
+  "Serviço Militar",
+  "Representação Discente",
+  "Decisão do Conselho",
+] as const;
+
+export const salvarAbono = (
+  conselhoId: number,
+  dados: { notaFrequenciaId: number; horas: number; tipo: string; fundamentacao: string; usuarioId: number | null }
+) =>
+  backend<AbonoApi>(`/conselhos/${conselhoId}/abonos`, {
+    method: "POST",
+    body: JSON.stringify({ ...dados, fundamentacao: textoOuNull(dados.fundamentacao) }),
+  });
+
+// ── Média retificada (uma por disciplina do aluno em cada conselho) ──
+
+export const salvarRetificacao = (conselhoId: number, notaId: number, mediaRetificada: number, usuarioId: number | null) =>
+  backend<RetificacaoApi>(`/conselhos/${conselhoId}/retificacoes/${notaId}`, {
+    method: "PUT",
+    body: JSON.stringify({ mediaRetificada, usuarioId }),
+  });
+
+export const removerRetificacao = (conselhoId: number, notaId: number) =>
+  backend(`/conselhos/${conselhoId}/retificacoes/${notaId}`, { method: "DELETE" });
+
+export const removerAbono = (conselhoId: number, abonoId: number) =>
+  backend(`/conselhos/${conselhoId}/abonos/${abonoId}`, { method: "DELETE" });
 
 // ── Registros docentes e encaminhamentos ──
 
