@@ -5,7 +5,7 @@ const TIPOS = ['Atestado Médico', 'Luto', 'Serviço Militar', 'Representação 
 
 // Abonos não são editados: para corrigir, remove-se e registra-se outro.
 function validateCreate(req, res, next) {
-  const { notaFrequenciaId, horas, tipo, fundamentacao, usuarioId } = req.body;
+  const { notaFrequenciaId, horas, tipo, fundamentacao } = req.body;
   const errors = [];
 
   if (!Number.isInteger(notaFrequenciaId)) {
@@ -19,9 +19,6 @@ function validateCreate(req, res, next) {
   }
   if (isPresent(fundamentacao) && !isNonEmptyString(fundamentacao, 65535)) {
     errors.push('fundamentacao deve ser um texto');
-  }
-  if (isPresent(usuarioId) && !Number.isInteger(usuarioId)) {
-    errors.push('usuarioId deve ser um número inteiro');
   }
 
   if (errors.length > 0) {

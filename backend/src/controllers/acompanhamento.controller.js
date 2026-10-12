@@ -18,8 +18,9 @@ async function saveOrBadRequest(work) {
   try {
     return await work();
   } catch (error) {
+    // A única FK de usuário é o autor, vindo do token: só falha se o usuário foi removido.
     if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, 'autorId inválido: usuário não encontrado');
+      throw new ApiError(401, 'Usuário da sessão não encontrado');
     }
     throw error;
   }
@@ -51,7 +52,7 @@ const create = asyncHandler(async (req, res) => {
   await ensureEncaminhamentoExists(req.params.encaminhamentoId);
 
   const acompanhamento = await saveOrBadRequest(() =>
-    acompanhamentoModel.create(req.params.encaminhamentoId, pickFields(req.body))
+    acompanhamentoModel.create(req.params.encaminhamentoId, { ...pickFields(req.body), autorId: req.user.id })
   );
   res.status(201).json({ success: true, data: acompanhamento });
 });

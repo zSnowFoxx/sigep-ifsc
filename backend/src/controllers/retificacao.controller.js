@@ -27,11 +27,15 @@ const save = asyncHandler(async (req, res) => {
   }
 
   try {
-    const retificacao = await retificacaoModel.salvar(conselhoId, notaId, req.body);
+    // Quem retificou por último é sempre o usuário autenticado.
+    const retificacao = await retificacaoModel.salvar(conselhoId, notaId, {
+      mediaRetificada: req.body.mediaRetificada,
+      usuarioId: req.user.id
+    });
     res.json({ success: true, data: retificacao });
   } catch (error) {
     if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, 'usuarioId inválido');
+      throw new ApiError(401, 'Usuário da sessão não encontrado');
     }
     throw error;
   }

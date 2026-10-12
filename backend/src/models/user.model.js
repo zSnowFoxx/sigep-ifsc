@@ -37,6 +37,12 @@ async function findByEmail(email) {
   return rows[0] ?? null;
 }
 
+// Inclui o hash da senha: uso restrito à autenticação.
+async function findWithPasswordById(id) {
+  const [rows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
+  return rows[0] ?? null;
+}
+
 // Dados da sessão do usuário: perfil, funções, disciplinas e cursos coordenados por nome.
 async function findProfileBySiape(siape) {
   const [rows] = await pool.query(
@@ -181,6 +187,7 @@ module.exports = {
   findAll,
   findBySiape,
   findByEmail,
+  findWithPasswordById,
   findProfileBySiape,
   updatePassword,
   create,

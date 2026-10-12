@@ -1,5 +1,4 @@
 import { backend } from "./apiClient";
-import { getSessionSiape } from "./authService";
 import {
   adicionarAcompanhamento,
   toEncaminhamento,
@@ -14,7 +13,6 @@ export { finalizarEncaminhamento } from "./conselhoService";
 
 export interface DadosEncaminhamentos {
   encaminhamentos: Encaminhamento[];
-  usuarioLogadoId: number | null;
 }
 
 export async function carregarEncaminhamentos(): Promise<DadosEncaminhamentos> {
@@ -34,19 +32,17 @@ export async function carregarEncaminhamentos(): Promise<DadosEncaminhamentos> {
   const alunosPorId = new Map(alunos.map((a) => [a.id, a]));
   const turmasPorId = new Map(turmas.map((t) => [t.id, t]));
   const usuariosPorId = new Map(usuarios.map((u) => [u.id, u]));
-  const siape = getSessionSiape();
 
   return {
     encaminhamentos: encaminhamentosApi.map((e) =>
       toEncaminhamento(e, acompanhamentosPorEnc.get(e.id) ?? [], alunosPorId, turmasPorId, usuariosPorId)
     ),
-    usuarioLogadoId: usuarios.find((u) => u.siape === siape)?.id ?? null,
   };
 }
 
 // O primeiro relato tira o encaminhamento da triagem e o põe em acompanhamento.
-export async function registrarRelato(encaminhamento: Encaminhamento, autorId: number | null, relato: string) {
-  await adicionarAcompanhamento(encaminhamento.id, autorId, "relato", relato);
+export async function registrarRelato(encaminhamento: Encaminhamento, relato: string) {
+  await adicionarAcompanhamento(encaminhamento.id, "relato", relato);
   if (encaminhamento.status === "pendente") {
     await backend(`/encaminhamentos/${encaminhamento.id}`, {
       method: "PUT",

@@ -11,6 +11,10 @@ function isIntegerList(value) {
   return Array.isArray(value) && value.every((id) => Number.isInteger(id));
 }
 
+function isNameList(value, maxLength) {
+  return Array.isArray(value) && value.every((nome) => isNonEmptyString(nome, maxLength));
+}
+
 function isInstitutionalEmail(email) {
   return (
     isNonEmptyString(email, 150) &&
@@ -57,7 +61,7 @@ function validateOtpVerify(req, res, next) {
 }
 
 function validateRegister(req, res, next) {
-  const { siape, nome, email, senha, perfilId, funcaoIds, disciplinaIds, cursoIds } = req.body;
+  const { siape, nome, email, senha, perfilId, funcaoIds, funcoes, disciplinaIds, cursoIds } = req.body;
   const errors = [];
 
   if (!isNonEmptyString(siape, 7)) {
@@ -77,6 +81,9 @@ function validateRegister(req, res, next) {
   }
   if (funcaoIds !== undefined && !isIntegerList(funcaoIds)) {
     errors.push('funcaoIds deve ser uma lista de números inteiros');
+  }
+  if (funcoes !== undefined && !isNameList(funcoes, 150)) {
+    errors.push('funcoes deve ser uma lista de nomes com no máximo 150 caracteres');
   }
   if (disciplinaIds !== undefined && !isIntegerList(disciplinaIds)) {
     errors.push('disciplinaIds deve ser uma lista de números inteiros');
@@ -130,12 +137,9 @@ function validateResetPassword(req, res, next) {
 }
 
 function validateChangePassword(req, res, next) {
-  const { email, senhaAtual, novaSenha } = req.body;
+  const { senhaAtual, novaSenha } = req.body;
   const errors = [];
 
-  if (!isNonEmptyString(email, 150) || !EMAIL_REGEX.test(email)) {
-    errors.push('email é obrigatório e deve ser um e-mail válido');
-  }
   if (typeof senhaAtual !== 'string' || senhaAtual.length === 0) {
     errors.push('senhaAtual é obrigatória');
   }

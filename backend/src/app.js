@@ -7,6 +7,14 @@ const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
+// Atrás de um proxy (como o da Vercel), o IP real do cliente chega em X-Forwarded-For e
+// req.ip só o enxerga com "trust proxy". Sem proxy, confiar nesse cabeçalho deixaria o
+// próprio cliente forjar o IP gravado nos logs de auditoria. TRUST_PROXY = nº de proxies.
+const trustedProxies = Number(process.env.TRUST_PROXY ?? (process.env.VERCEL ? 1 : 0));
+if (trustedProxies > 0) {
+  app.set('trust proxy', trustedProxies);
+}
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

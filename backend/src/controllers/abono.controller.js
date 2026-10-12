@@ -30,11 +30,12 @@ const create = asyncHandler(async (req, res) => {
   }
 
   try {
-    const abono = await abonoModel.create(conselhoId, req.body);
+    // Quem registra o abono é sempre o usuário autenticado.
+    const abono = await abonoModel.create(conselhoId, { ...req.body, usuarioId: req.user.id });
     res.status(201).json({ success: true, data: abono });
   } catch (error) {
     if (isForeignKeyViolation(error)) {
-      throw new ApiError(400, 'usuarioId inválido');
+      throw new ApiError(401, 'Usuário da sessão não encontrado');
     }
     throw error;
   }

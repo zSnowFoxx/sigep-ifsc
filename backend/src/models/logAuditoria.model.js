@@ -1,5 +1,4 @@
 const pool = require('../config/database');
-const toDateTime = require('../utils/dateTime');
 
 const COLUMNS = `id_log, usuario_id, acao, tabela_afetada, registro_id, dados_anteriores, dados_novos,
   data_hora, endereco_ip, user_agent`;
@@ -30,7 +29,6 @@ async function create({
   registroId,
   dadosAnteriores,
   dadosNovos,
-  dataHora,
   enderecoIp,
   userAgent
 }) {
@@ -45,7 +43,7 @@ async function create({
       toRegistroId(registroId) ?? null,
       toJson(dadosAnteriores) ?? null,
       toJson(dadosNovos) ?? null,
-      dataHora ? toDateTime(dataHora) : new Date(),
+      new Date(),
       enderecoIp ?? null,
       userAgent ?? null
     ]
@@ -53,53 +51,9 @@ async function create({
   return findById(result.insertId);
 }
 
-async function update(id, data) {
-  const fieldMap = {
-    usuarioId: 'usuario_id',
-    acao: 'acao',
-    tabelaAfetada: 'tabela_afetada',
-    registroId: 'registro_id',
-    dadosAnteriores: 'dados_anteriores',
-    dadosNovos: 'dados_novos',
-    dataHora: 'data_hora',
-    enderecoIp: 'endereco_ip',
-    userAgent: 'user_agent'
-  };
-
-  const converters = {
-    registroId: toRegistroId,
-    dadosAnteriores: toJson,
-    dadosNovos: toJson,
-    dataHora: toDateTime
-  };
-
-  const columns = [];
-  const values = [];
-
-  for (const [key, column] of Object.entries(fieldMap)) {
-    if (data[key] !== undefined) {
-      columns.push(`${column} = ?`);
-      values.push(converters[key] ? converters[key](data[key]) : data[key]);
-    }
-  }
-
-  if (columns.length > 0) {
-    values.push(id);
-    await pool.query(`UPDATE logs_auditoria SET ${columns.join(', ')} WHERE id_log = ?`, values);
-  }
-
-  return findById(id);
-}
-
-async function remove(id) {
-  const [result] = await pool.query('DELETE FROM logs_auditoria WHERE id_log = ?', [id]);
-  return result.affectedRows > 0;
-}
-
+// Sem update/remove: logs de auditoria são somente inclusão.
 module.exports = {
   findAll,
   findById,
-  create,
-  update,
-  remove
+  create
 };

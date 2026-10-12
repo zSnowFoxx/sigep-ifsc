@@ -224,7 +224,6 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
       horas,
       tipo,
       fundamentacao: abonoText,
-      usuarioId: dados?.usuarioLogadoId ?? null,
     });
     await recarregarDisciplinas();
   };
@@ -250,7 +249,7 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
       if (valor === "") {
         await removerRetificacao(conselhoId, disc.notaId);
       } else {
-        await salvarRetificacao(conselhoId, disc.notaId, media, dados?.usuarioLogadoId ?? null);
+        await salvarRetificacao(conselhoId, disc.notaId, media);
       }
       retificadasSalvasRef.current = { ...retificadasSalvasRef.current, [chave]: valor };
     });
@@ -350,7 +349,6 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
           categoria: nrCategoria,
           servidorResponsavelId: null,
           descricao: nrDescricao,
-          autorId: dados?.usuarioLogadoId ?? 0,
         });
       }
       await criarRegistro(conselhoId, {
@@ -377,7 +375,6 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
         categoria: neCategoria,
         servidorResponsavelId: neServidorId ? Number(neServidorId) : null,
         descricao: neDescricao,
-        autorId: dados?.usuarioLogadoId ?? 0,
       });
       await recarregarListas();
       setNeMatricula(""); setNeTitulo(""); setNeCategoria(""); setNeDescricao(""); setNeServidorId(""); setNovoEncOpen(false);
@@ -394,7 +391,6 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
         categoria: neCategoria,
         servidorResponsavelId: neServidorId ? Number(neServidorId) : null,
         descricao: neDescricao,
-        autorId: dados?.usuarioLogadoId ?? 0,
       });
       setNeMatricula(""); setNeTitulo(""); setNeCategoria(""); setNeDescricao(""); setNeServidorId(""); setNovoEncOpen(false);
     });
@@ -413,7 +409,7 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
   const saveEncRelato = () => {
     if (!selectedEnc || !encNovoRelato.trim()) return;
     executar(async () => {
-      await registrarRelato(selectedEnc, dados?.usuarioLogadoId ?? null, encNovoRelato.trim());
+      await registrarRelato(selectedEnc, encNovoRelato.trim());
       await recarregarListas();
       setEncNovoRelato("");
       setEncSavedRelato(true);
@@ -423,7 +419,7 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
   const finalizarEncDetail = () => {
     if (!selectedEnc || !encParecerFinal.trim()) return;
     executar(async () => {
-      await finalizarEncaminhamento(selectedEnc.id, dados?.usuarioLogadoId ?? 0, encParecerFinal.trim());
+      await finalizarEncaminhamento(selectedEnc.id, encParecerFinal.trim());
       await recarregarListas();
       setEncFinalizando(false);
       setEncParecerFinal("");

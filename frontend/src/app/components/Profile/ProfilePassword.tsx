@@ -6,11 +6,7 @@ import { Card } from "./ProfileCard";
 import { PwInput } from "./ProfilePasswordInput";
 import { StrengthRule } from "./ProfilePasswordStrenght";
 
-interface ProfilePasswordProps {
-  email: string;
-}
-
-export function ProfilePassword({ email }: ProfilePasswordProps) {
+export function ProfilePassword() {
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -36,7 +32,7 @@ export function ProfilePassword({ email }: ProfilePasswordProps) {
 
     setSaving(true);
     try {
-      await changePasswordApi(email, currentPw, newPw);
+      await changePasswordApi(currentPw, newPw);
       setSaveSuccess(true);
       setCurrentPw("");
       setNewPw("");

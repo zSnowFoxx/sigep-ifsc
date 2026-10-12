@@ -17,6 +17,7 @@ import type { UserSession } from "./types/auth";
 import type { StudentRisk } from "./types/dashboard";
 import { fetchRiskStudents } from "./services/dashService";
 import { fetchSessionUser, clearSession } from "./services/authService";
+import { SESSION_EXPIRED_EVENT } from "./services/session";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -62,9 +63,34 @@ export default function App() {
     loadUserProfile();
   }, []);
 
+  // O próximo login começa do zero: Dashboard, período ativo e sem filtros.
+  const logout = () => {
+    clearSession();
+    setAuthenticated(false);
+    setUserProfile(null);
+    setShowPerfil(false);
+    setActiveNav(0);
+    setConselhoMode("list");
+    setConselhoId(null);
+    setImportarOpen(false);
+    setNaeStudent(null);
+    setSelectedPeriod("");
+    setFilterCurso("");
+    setFilterFase("");
+    setFilterTurma("");
+    setFilterDisciplina("");
+  };
+
+  // Token expirado ou inválido (resposta 401 do backend): volta para o login.
+  useEffect(() => {
+    window.addEventListener(SESSION_EXPIRED_EVENT, logout);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, logout);
+  }, []);
+
   // Painel de risco do período selecionado; com filtros, busca também o total do período
   // para o "Exibindo X de Y".
   useEffect(() => {
+    if (!authenticated) return;
     let mounted = true;
     const temFiltro = Boolean(filterCurso || filterFase || filterTurma || filterDisciplina);
     Promise.all([
@@ -86,7 +112,7 @@ export default function App() {
     return () => {
       mounted = false;
     };
-  }, [selectedPeriod, filterCurso, filterFase, filterTurma, filterDisciplina]);
+  }, [authenticated, selectedPeriod, filterCurso, filterFase, filterTurma, filterDisciplina]);
 
   if (!authenticated) {
     return (
@@ -137,23 +163,7 @@ export default function App() {
         {showPerfil && userProfile ? (
           <Profile
             profile={userProfile}
-            onLogout={() => {
-              clearSession();
-              setAuthenticated(false);
-              setUserProfile(null);
-              setShowPerfil(false);
-              // O próximo login começa do zero: Dashboard, período ativo e sem filtros.
-              setActiveNav(0);
-              setConselhoMode("list");
-              setConselhoId(null);
-              setImportarOpen(false);
-              setNaeStudent(null);
-              setSelectedPeriod("");
-              setFilterCurso("");
-              setFilterFase("");
-              setFilterTurma("");
-              setFilterDisciplina("");
-            }}
+            onLogout={logout}
           />
         ) : (
           <main className="flex-1 overflow-auto relative">

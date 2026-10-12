@@ -3,8 +3,8 @@ const buildSet = require('../utils/buildSet');
 
 const COLUMNS = 'id, encaminhamento_id, autor_id, tipo, relato, data_registro';
 
+// O autor (autor_id) vem do usuário autenticado na criação e não é alterado depois.
 const FIELD_MAP = {
-  autorId: 'autor_id',
   tipo: 'tipo',
   relato: 'relato'
 };

@@ -27,7 +27,6 @@ function estaVencendo(card: Encaminhamento) {
 export default function Encaminhamentos() {
   const [cards, setCards] = useState<Encaminhamento[]>([]);
   const [selected, setSelected] = useState<Encaminhamento | null>(null);
-  const [usuarioLogadoId, setUsuarioLogadoId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -51,7 +50,6 @@ export default function Encaminhamentos() {
     try {
       const dados = await carregarEncaminhamentos();
       setCards(dados.encaminhamentos);
-      setUsuarioLogadoId(dados.usuarioLogadoId);
       setError("");
       return dados.encaminhamentos;
     } catch (err) {
@@ -138,7 +136,7 @@ export default function Encaminhamentos() {
   const saveRelato = async () => {
     const texto = novoRelato.trim();
     if (!texto) return;
-    const ok = await executar((card) => registrarRelato(card, usuarioLogadoId, texto));
+    const ok = await executar((card) => registrarRelato(card, texto));
     if (!ok) return;
     setNovoRelato("");
     setSavedRelato(true);
@@ -148,7 +146,7 @@ export default function Encaminhamentos() {
   const finalizar = async () => {
     const parecer = parecerFinal.trim();
     if (!parecer) return;
-    const ok = await executar((card) => finalizarEncaminhamento(card.id, usuarioLogadoId, parecer));
+    const ok = await executar((card) => finalizarEncaminhamento(card.id, parecer));
     if (!ok) return;
     setSelected(null);
     setFinalizando(false);

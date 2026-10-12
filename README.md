@@ -32,7 +32,7 @@ Acompanhamento em tempo real de estudantes em situação de vulnerabilidade ou r
 
 Fluxo completo de segurança para entrada e gerenciamento de contas de usuários na plataforma.
 
-* **Login de Usuários:** Autenticação segura para acesso aos módulos restritos do sistema.
+* **Login de Usuários:** Autenticação via JWT: o login devolve um token (validade padrão de 8h) que o frontend envia em todas as requisições (`Authorization: Bearer <token>`). Sem token válido, a API responde 401 e o usuário volta para a tela de login.
 * **Cadastro de Usuário:** Registro e criação de novas contas no sistema.
 * **Recuperação de Acesso:** Fluxo de "Esqueci a senha" para redefinição e recuperação da conta.
 
@@ -170,6 +170,20 @@ Abra o gerenciador MySQL de sua preferência, conecte-se ao seu servidor e execu
 
 
 3. **Iniciar o Servidor (Backend):**
+Crie o arquivo `backend/.env` com os dados do banco e o segredo usado para assinar os tokens JWT (o servidor não inicia sem `JWT_SECRET`):
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=sua_senha
+DB_NAME=sigep
+DB_PORT=3306
+JWT_SECRET=uma_string_longa_e_aleatoria
+JWT_EXPIRES_IN=8h
+```
+Para gerar um segredo: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. No deploy, defina as mesmas variáveis no ambiente do servidor.
+
+Se o backend rodar atrás de um proxy reverso, defina `TRUST_PROXY` com o número de proxies (ex.: `TRUST_PROXY=1`) para que os logs de auditoria registrem o IP real do cliente. Na Vercel isso já é automático. Sem proxy, deixe a variável vazia.
+
 Abra um terminal, acesse a pasta do servidor, instale as dependências e execute o serviço:
 ```bash
 cd sigep-ifsc/backend

@@ -1,5 +1,8 @@
 const { Router } = require('express');
 
+const authenticate = require('../middlewares/authenticate');
+const { authenticateWrites } = authenticate;
+
 const router = Router();
 
 // Health check endpoint
@@ -8,13 +11,19 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/auth', require('./auth.routes'));
+
+// Listas lidas pelo formulário de autocadastro, antes do login.
+router.use('/perfis', authenticateWrites, require('./perfil.routes'));
+router.use('/funcoes', authenticateWrites, require('./funcao.routes'));
+router.use('/cursos', authenticateWrites, require('./curso.routes'));
+router.use('/disciplinas', authenticateWrites, require('./disciplina.routes'));
+
+// Daqui em diante, todas as rotas exigem token.
+router.use(authenticate);
+
 router.use('/users', require('./user.routes'));
-router.use('/perfis', require('./perfil.routes'));
-router.use('/funcoes', require('./funcao.routes'));
-router.use('/cursos', require('./curso.routes'));
 router.use('/periodos', require('./periodo.routes'));
 router.use('/turmas', require('./turma.routes'));
-router.use('/disciplinas', require('./disciplina.routes'));
 router.use('/diarios', require('./diario.routes'));
 router.use('/alunos', require('./aluno.routes'));
 router.use('/matriculas', require('./matricula.routes'));

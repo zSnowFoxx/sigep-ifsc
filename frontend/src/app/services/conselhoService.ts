@@ -485,7 +485,7 @@ export const TIPOS_ABONO = [
 
 export const salvarAbono = (
   conselhoId: number,
-  dados: { notaFrequenciaId: number; horas: number; tipo: string; fundamentacao: string; usuarioId: number | null }
+  dados: { notaFrequenciaId: number; horas: number; tipo: string; fundamentacao: string }
 ) =>
   backend<AbonoApi>(`/conselhos/${conselhoId}/abonos`, {
     method: "POST",
@@ -493,11 +493,12 @@ export const salvarAbono = (
   });
 
 // ── Média retificada (uma por disciplina do aluno em cada conselho) ──
+// Autoria de abonos, retificações e acompanhamentos: o backend usa o usuário do token.
 
-export const salvarRetificacao = (conselhoId: number, notaId: number, mediaRetificada: number, usuarioId: number | null) =>
+export const salvarRetificacao = (conselhoId: number, notaId: number, mediaRetificada: number) =>
   backend<RetificacaoApi>(`/conselhos/${conselhoId}/retificacoes/${notaId}`, {
     method: "PUT",
-    body: JSON.stringify({ mediaRetificada, usuarioId }),
+    body: JSON.stringify({ mediaRetificada }),
   });
 
 export const removerRetificacao = (conselhoId: number, notaId: number) =>
@@ -508,15 +509,10 @@ export const removerAbono = (conselhoId: number, abonoId: number) =>
 
 // ── Registros docentes e encaminhamentos ──
 
-export const adicionarAcompanhamento = (
-  encaminhamentoId: number,
-  autorId: number | null,
-  tipo: AcompanhamentoApi["tipo"],
-  relato: string
-) =>
+export const adicionarAcompanhamento = (encaminhamentoId: number, tipo: AcompanhamentoApi["tipo"], relato: string) =>
   backend<AcompanhamentoApi>(`/encaminhamentos/${encaminhamentoId}/acompanhamentos`, {
     method: "POST",
-    body: JSON.stringify({ autorId, tipo, relato }),
+    body: JSON.stringify({ tipo, relato }),
   });
 
 export async function criarEncaminhamento(dados: {
@@ -526,7 +522,6 @@ export async function criarEncaminhamento(dados: {
   categoria: string;
   servidorResponsavelId: number | null;
   descricao: string;
-  autorId: number | null;
 }): Promise<number> {
   const encaminhamento = await backend<EncaminhamentoApi>("/encaminhamentos", {
     method: "POST",
@@ -542,7 +537,6 @@ export async function criarEncaminhamento(dados: {
   });
   await adicionarAcompanhamento(
     encaminhamento.id,
-    dados.autorId,
     "criacao",
     dados.descricao.trim() || "Encaminhamento gerado no Conselho de Classe."
   );
@@ -555,7 +549,6 @@ export async function criarEncaminhamentoNovo(dados: {
   categoria: string;
   servidorResponsavelId: number | null;
   descricao: string;
-  autorId: number | null;
 }): Promise<number> {
   const encaminhamento = await backend<EncaminhamentoApi>("/encaminhamentos", {
     method: "POST",
@@ -571,7 +564,6 @@ export async function criarEncaminhamentoNovo(dados: {
   });
   await adicionarAcompanhamento(
     encaminhamento.id,
-    dados.autorId,
     "criacao",
     dados.descricao.trim() || "Encaminhamento gerado no Painel de Risco."
   );
@@ -594,8 +586,8 @@ export const criarRegistro = (
     body: JSON.stringify(dados),
   });
 
-export async function finalizarEncaminhamento(encaminhamentoId: number, autorId: number | null, parecer: string) {
-  await adicionarAcompanhamento(encaminhamentoId, autorId, "conclusao", parecer);
+export async function finalizarEncaminhamento(encaminhamentoId: number, parecer: string) {
+  await adicionarAcompanhamento(encaminhamentoId, "conclusao", parecer);
   await backend(`/encaminhamentos/${encaminhamentoId}`, {
     method: "PUT",
     body: JSON.stringify({ status: "finalizado" }),

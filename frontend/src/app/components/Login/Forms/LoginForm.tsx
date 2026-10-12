@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import type { UserSession } from "../../../types/auth";
-import { loginUser, saveSession } from "../../../services/authService";
+import { loginUser } from "../../../services/authService";
 
 interface LoginFormProps {
   initialEmail?: string;
@@ -46,8 +46,7 @@ export default function LoginForm({
     handleClearError();
 
     try {
-      const user = await loginUser(email.trim(), password);
-      saveSession(user.siape, remember);
+      const user = await loginUser(email.trim(), password, remember);
       onLoginSuccess(user);
     } catch (err: unknown) {
       const errorMsg =

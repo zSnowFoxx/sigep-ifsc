@@ -6,9 +6,6 @@ const TIPOS = ['criacao', 'triagem', 'relato', 'conclusao'];
 function collectErrors(body, isCreate) {
   const errors = [];
 
-  if (isPresent(body.autorId) && !Number.isInteger(body.autorId)) {
-    errors.push('autorId deve ser um número inteiro');
-  }
   if (isPresent(body.tipo) && !TIPOS.includes(body.tipo)) {
     errors.push(`tipo deve ser um destes valores: ${TIPOS.join(', ')}`);
   }

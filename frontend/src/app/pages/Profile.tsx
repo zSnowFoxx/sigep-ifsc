@@ -30,7 +30,7 @@ export default function Profile({ profile, onLogout }: ProfileProps) {
           <ProfileInstitutional profile={profile} />
 
           <div className="flex flex-col gap-5">
-            <ProfilePassword email={profile.email} />
+            <ProfilePassword />
 
             <Card title="Gerenciamento de Sessão" icon={LogOut}>
               <div className="space-y-4">

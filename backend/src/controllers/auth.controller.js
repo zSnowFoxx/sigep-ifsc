@@ -1,10 +1,12 @@
 const bcrypt = require('bcryptjs');
 
 const userModel = require('../models/user.model');
+const funcaoModel = require('../models/funcao.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const otpStore = require('../utils/otpStore');
 const { isForeignKeyViolation } = require('../utils/dbErrors');
+const { signToken } = require('../utils/jwt');
 
 const SALT_ROUNDS = 10;
 
@@ -32,8 +34,27 @@ const verifyOtp = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Código verificado' });
 });
 
+// Funções informadas por nome no autocadastro: reaproveita as existentes e cria as novas.
+async function resolveFuncaoIds(nomes = []) {
+  const ids = [];
+  for (const nome of nomes.map((n) => n.trim())) {
+    let funcao = await funcaoModel.findByNome(nome);
+    if (!funcao) {
+      try {
+        funcao = await funcaoModel.create({ nome });
+      } catch (error) {
+        // Criada em paralelo por outra requisição.
+        if (error.code !== 'ER_DUP_ENTRY') throw error;
+        funcao = await funcaoModel.findByNome(nome);
+      }
+    }
+    ids.push(funcao.id);
+  }
+  return ids;
+}
+
 const register = asyncHandler(async (req, res) => {
-  const { siape, nome, senha, perfilId, funcaoIds, disciplinaIds, cursoIds } = req.body;
+  const { siape, nome, senha, perfilId, disciplinaIds, cursoIds } = req.body;
   const email = normalizeEmail(req.body.email);
 
   if (!otpStore.isVerified(email)) {
@@ -49,6 +70,7 @@ const register = asyncHandler(async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(senha, SALT_ROUNDS);
+  const funcaoIds = [...new Set([...(req.body.funcaoIds ?? []), ...(await resolveFuncaoIds(req.body.funcoes))])];
 
   try {
     const user = await userModel.create({
@@ -91,6 +113,16 @@ const login = asyncHandler(async (req, res) => {
   }
 
   const profile = await userModel.findProfileBySiape(user.siape);
+  res.json({ success: true, data: { token: signToken(user), user: profile } });
+});
+
+// Perfil do usuário dono do token (restaura a sessão no frontend).
+const me = asyncHandler(async (req, res) => {
+  const profile = await userModel.findProfileBySiape(req.user.siape);
+  if (!profile) {
+    throw new ApiError(401, 'Usuário da sessão não encontrado');
+  }
+
   res.json({ success: true, data: profile });
 });
 
@@ -124,11 +156,11 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Senha redefinida com sucesso' });
 });
 
-// Troca de senha pelo próprio usuário (tela de perfil): exige a senha atual.
+// Troca de senha pelo próprio usuário autenticado (tela de perfil): exige a senha atual.
 const changePassword = asyncHandler(async (req, res) => {
-  const user = await userModel.findByEmail(normalizeEmail(req.body.email));
+  const user = await userModel.findWithPasswordById(req.user.id);
   if (!user) {
-    throw new ApiError(404, 'Usuário não encontrado');
+    throw new ApiError(401, 'Usuário da sessão não encontrado');
   }
 
   if (!user.senha) {
@@ -148,6 +180,7 @@ module.exports = {
   verifyOtp,
   register,
   login,
+  me,
   forgotPassword,
   resetPassword,
   changePassword

@@ -1,32 +1,12 @@
 import type { Role, StoredUser, UserSession } from "../types/auth";
 import { API_URL } from "../data/apiData";
 import { backend, type Lookup } from "./apiClient";
-import { perfisService, funcoesService, resolveFuncaoIds } from "./cadastrosService";
+import { perfisService, funcoesService } from "./cadastrosService";
+import { saveSession, getToken } from "./session";
 
-// ==========================================
-// SESSÃO
-// ==========================================
+export { saveSession, getSessionSiape, clearSession } from "./session";
 
-// O backend identifica usuários pelo SIAPE, então é ele que fica salvo na sessão.
-const SESSION_KEY = "userSiape";
-
-export function saveSession(siape: string, remember: boolean) {
-  // "Permanecer conectado" usa localStorage; caso contrário, apenas a aba atual (sessionStorage).
-  const [keep, drop] = remember ? [localStorage, sessionStorage] : [sessionStorage, localStorage];
-  keep.setItem(SESSION_KEY, siape);
-  drop.removeItem(SESSION_KEY);
-}
-
-export function getSessionSiape(): string | null {
-  return localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
-}
-
-export function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(SESSION_KEY);
-}
-
-// Formato retornado pelo backend em /auth/login e /users/:siape/profile.
+// Formato retornado pelo backend em /auth/login, /auth/me e /users/:siape/profile.
 export interface BackendProfile {
   id: number;
   siape: string;
@@ -105,7 +85,8 @@ function idPorNome(lista: Lookup[], nome: string, campo: string) {
   return item.id;
 }
 
-// 5. Cadastro de novo usuário: converte cargo, disciplinas, curso e funções (nomes) em ids.
+// 5. Cadastro de novo usuário: converte cargo, disciplinas e curso (nomes) em ids.
+// As funções vão por nome: o backend cria as que ainda não existem.
 export async function registerUser(data: RegisterInput) {
   const [perfis, disciplinas, cursos] = await Promise.all([
     perfisService.getAll(),
@@ -116,7 +97,6 @@ export async function registerUser(data: RegisterInput) {
   const perfilId = idPorNome(perfis, data.role, "Cargo");
   const disciplinaIds = (data.disciplines ?? []).map((nome) => idPorNome(disciplinas, nome, "Disciplina"));
   const cursoIds = data.course ? [idPorNome(cursos, data.course, "Curso")] : [];
-  const funcaoIds = await resolveFuncaoIds(data.funcoes);
 
   return backend<BackendProfile>("/auth/register", {
     method: "POST",
@@ -126,7 +106,7 @@ export async function registerUser(data: RegisterInput) {
       email: data.email,
       senha: data.password,
       perfilId,
-      funcaoIds,
+      funcoes: data.funcoes ?? [],
       disciplinaIds,
       cursoIds,
     }),
@@ -137,23 +117,23 @@ export async function registerUser(data: RegisterInput) {
 // LOGIN E RECUPERAÇÃO DE SENHA
 // ==========================================
 
-// 6. Autenticação (Login)
-export async function loginUser(email: string, password: string): Promise<UserSession> {
+// 6. Autenticação (Login): salva o token da sessão e devolve o perfil
+export async function loginUser(email: string, password: string, remember: boolean): Promise<UserSession> {
   if (!email || !password) throw new Error("E-mail e senha são obrigatórios.");
 
-  const profile = await backend<BackendProfile>("/auth/login", {
+  const { token, user } = await backend<{ token: string; user: BackendProfile }>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, senha: password }),
   });
-  return toUserSession(profile);
+  saveSession(token, remember);
+  return toUserSession(user);
 }
 
 // 7. Busca dados do usuário da sessão salva (null se não houver sessão)
 export async function fetchSessionUser(): Promise<UserSession | null> {
-  const siape = getSessionSiape();
-  if (!siape) return null;
+  if (!getToken()) return null;
 
-  return toUserSession(await backend<BackendProfile>(`/users/${encodeURIComponent(siape)}/profile`));
+  return toUserSession(await backend<BackendProfile>("/auth/me"));
 }
 
 // 8. Solicitação de Recuperação de Senha (Esqueci a senha)
