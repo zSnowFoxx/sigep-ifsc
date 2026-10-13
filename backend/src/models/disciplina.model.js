@@ -18,11 +18,20 @@ async function attachUsuarios(disciplina) {
   return { ...disciplina, usuarioIds: rows.map((row) => row.usuario_id) };
 }
 
+// Duas consultas no total (em vez de uma por disciplina): os professores vêm de uma vez.
 async function findAll() {
-  const [rows] = await pool.query(
-    `SELECT ${PUBLIC_COLUMNS.join(', ')} FROM disciplinas ORDER BY nome`
-  );
-  return Promise.all(rows.map(attachUsuarios));
+  const [[rows], [vinculos]] = await Promise.all([
+    pool.query(`SELECT ${PUBLIC_COLUMNS.join(', ')} FROM disciplinas ORDER BY nome`),
+    pool.query('SELECT disciplina_id, usuario_id FROM usuarios_disciplinas ORDER BY disciplina_id, usuario_id')
+  ]);
+
+  const usuariosPorDisciplina = new Map();
+  for (const { disciplina_id: disciplinaId, usuario_id: usuarioId } of vinculos) {
+    if (!usuariosPorDisciplina.has(disciplinaId)) usuariosPorDisciplina.set(disciplinaId, []);
+    usuariosPorDisciplina.get(disciplinaId).push(usuarioId);
+  }
+
+  return rows.map((disciplina) => ({ ...disciplina, usuarioIds: usuariosPorDisciplina.get(disciplina.id) ?? [] }));
 }
 
 async function findById(id) {

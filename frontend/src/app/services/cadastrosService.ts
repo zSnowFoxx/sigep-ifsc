@@ -113,6 +113,7 @@ async function toTurmaPayload(data: any) {
     nome: data.nome?.trim(),
     cursoId: idPorNome(cursos, data.curso, "curso"),
     periodoId: idPorNome(periodosLookup, data.periodo, "período"),
+    fase: parseInt(String(data.fase ?? ""), 10) || null,
     alunosQtd: data.alunos ?? 0,
   };
 }

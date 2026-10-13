@@ -17,11 +17,20 @@ async function attachFuncoes(user) {
   return { ...user, funcaoIds: rows.map((row) => row.funcao_id) };
 }
 
+// Duas consultas no total (em vez de uma por usuário): as funções vêm de uma vez.
 async function findAll() {
-  const [rows] = await pool.query(
-    `SELECT ${PUBLIC_COLUMNS.join(', ')} FROM usuarios ORDER BY nome`
-  );
-  return Promise.all(rows.map(attachFuncoes));
+  const [[rows], [funcoes]] = await Promise.all([
+    pool.query(`SELECT ${PUBLIC_COLUMNS.join(', ')} FROM usuarios ORDER BY nome`),
+    pool.query('SELECT usuario_id, funcao_id FROM usuarios_funcoes ORDER BY usuario_id, funcao_id')
+  ]);
+
+  const funcoesPorUsuario = new Map();
+  for (const { usuario_id: usuarioId, funcao_id: funcaoId } of funcoes) {
+    if (!funcoesPorUsuario.has(usuarioId)) funcoesPorUsuario.set(usuarioId, []);
+    funcoesPorUsuario.get(usuarioId).push(funcaoId);
+  }
+
+  return rows.map((user) => ({ ...user, funcaoIds: funcoesPorUsuario.get(user.id) ?? [] }));
 }
 
 async function findBySiape(siape) {

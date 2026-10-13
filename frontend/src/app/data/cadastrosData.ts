@@ -97,6 +97,7 @@ export async function fetchAllInitialData() {
       // periodo: t.periodo || (t.periodo_id === 3 ? "2026.2" : "2026.1"),
       periodo: periodosMap.get(String(t.periodo_id)) || "—",
       alunos: t.alunos_qtd || t.alunosQtd || 0,
+      fase: t.fase ? `${t.fase}ª Fase` : "",
     };
   });
 

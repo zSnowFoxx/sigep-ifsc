@@ -92,6 +92,7 @@ export const CadastrosPage: React.FC = () => {
   // Listas para Selects
   const turmasList = useMemo(() => turmas.map((t) => t.nome), [turmas]);
   const cursosList = useMemo(() => cursos.map((c) => c.nome), [cursos]);
+  const fasesPorCurso = useMemo(() => Object.fromEntries(cursos.map((c) => [c.nome, c.fases ?? null])), [cursos]);
   const disciplinasList = useMemo(() => disciplinas.map((d) => d.nome), [disciplinas]);
   const professoresList = useMemo(() => servidores.filter((s) => s.cargo === "Professor").map((s) => s.nome), [servidores]);
   const servidoresList = useMemo(() => servidores.map((s) => s.nome), [servidores]);
@@ -302,7 +303,7 @@ export const CadastrosPage: React.FC = () => {
         )}
         {activeTab === "cursos" && <CursoForm formData={formData} onChange={setFormData} servidoresOptions={servidoresList} />}
         {activeTab === "disciplinas" && <DisciplinaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} />}
-        {activeTab === "turmas" && <TurmaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} periodosOptions={periodosOptions} />}
+        {activeTab === "turmas" && <TurmaForm formData={formData} onChange={setFormData} cursosOptions={cursosList} periodosOptions={periodosOptions} fasesPorCurso={fasesPorCurso} />}
         {activeTab === "diarios" && <DiarioForm formData={formData} onChange={setFormData} disciplinasOptions={disciplinasList} turmasOptions={turmasList} professoresOptions={professoresList} />}
       </ModalShell>
     </div>

@@ -249,51 +249,51 @@ INSERT IGNORE INTO usuarios_funcoes (usuario_id, funcao_id) VALUES
   (18, 24), -- Suporte de TI e Infraestrutura
   (18, 26);  -- Apoio Operacional / Logística
 
-INSERT IGNORE INTO turmas (id, nome, curso_id, periodo_id, alunos_qtd) VALUES
+INSERT IGNORE INTO turmas (id, nome, curso_id, periodo_id, fase, alunos_qtd) VALUES
   -- Curso 1: Técnico em Desenvolvimento de Sistemas (3 Fases)
-  (1,  'TDS - 1ª Fase',                  1, 2, 20),
-  (2,  'TDS - 2ª Fase',                  1, 2, 15),
-  (3,  'TDS - 3ª Fase',                  1, 2, 12),
+  (1,  'TDS - 1ª Fase',                  1, 2, 1, 20),
+  (2,  'TDS - 2ª Fase',                  1, 2, 2, 15),
+  (3,  'TDS - 3ª Fase',                  1, 2, 3, 12),
 
   -- Curso 2: Técnico em Mecatrônica (4 Fases)
-  (4,  'Mecatrônica - 1ª Fase',          2, 2, 18),
-  (5,  'Mecatrônica - 2ª Fase',          2, 2, 14),
-  (6,  'Mecatrônica - 3ª Fase',          2, 2, 10),
-  (7,  'Mecatrônica - 4ª Fase',          2, 2, 8),
+  (4,  'Mecatrônica - 1ª Fase',          2, 2, 1, 18),
+  (5,  'Mecatrônica - 2ª Fase',          2, 2, 2, 14),
+  (6,  'Mecatrônica - 3ª Fase',          2, 2, 3, 10),
+  (7,  'Mecatrônica - 4ª Fase',          2, 2, 4, 8),
 
   -- Curso 3: Administração (2 Fases)
-  (8,  'Administração - 1ª Fase',        3, 2, 22),
-  (9,  'Administração - 2ª Fase',        3, 2, 16),
+  (8,  'Administração - 1ª Fase',        3, 2, 1, 22),
+  (9,  'Administração - 2ª Fase',        3, 2, 2, 16),
 
   -- Curso 4: Técnico em Enfermagem (6 Fases)
-  (10, 'Enfermagem - 1ª Fase',           4, 2, 21),
-  (11, 'Enfermagem - 2ª Fase',           4, 2, 18),
-  (12, 'Enfermagem - 3ª Fase',           4, 2, 15),
-  (13, 'Enfermagem - 4ª Fase',           4, 2, 12),
-  (14, 'Enfermagem - 5ª Fase',           4, 2, 9),
-  (15, 'Enfermagem - 6ª Fase',           4, 2, 7),
+  (10, 'Enfermagem - 1ª Fase',           4, 2, 1, 21),
+  (11, 'Enfermagem - 2ª Fase',           4, 2, 2, 18),
+  (12, 'Enfermagem - 3ª Fase',           4, 2, 3, 15),
+  (13, 'Enfermagem - 4ª Fase',           4, 2, 4, 12),
+  (14, 'Enfermagem - 5ª Fase',           4, 2, 5, 9),
+  (15, 'Enfermagem - 6ª Fase',           4, 2, 6, 7),
 
   -- Curso 5: Ciência da Computação (8 Fases)
-  (16, 'Ciência da Computação - 1ª Fase', 5, 2, 22),
-  (17, 'Ciência da Computação - 2ª Fase', 5, 2, 19),
-  (18, 'Ciência da Computação - 3ª Fase', 5, 2, 16),
-  (19, 'Ciência da Computação - 4ª Fase', 5, 2, 14),
-  (20, 'Ciência da Computação - 5ª Fase', 5, 2, 12),
-  (21, 'Ciência da Computação - 6ª Fase', 5, 2, 10),
-  (22, 'Ciência da Computação - 7ª Fase', 5, 2, 8),
-  (23, 'Ciência da Computação - 8ª Fase', 5, 2, 6),
+  (16, 'Ciência da Computação - 1ª Fase', 5, 2, 1, 22),
+  (17, 'Ciência da Computação - 2ª Fase', 5, 2, 2, 19),
+  (18, 'Ciência da Computação - 3ª Fase', 5, 2, 3, 16),
+  (19, 'Ciência da Computação - 4ª Fase', 5, 2, 4, 14),
+  (20, 'Ciência da Computação - 5ª Fase', 5, 2, 5, 12),
+  (21, 'Ciência da Computação - 6ª Fase', 5, 2, 6, 10),
+  (22, 'Ciência da Computação - 7ª Fase', 5, 2, 7, 8),
+  (23, 'Ciência da Computação - 8ª Fase', 5, 2, 8, 6),
 
   -- Curso 6: Engenharia Mecânica (10 Fases)
-  (24, 'Engenharia Mecânica - 1ª Fase',  6, 2, 22),
-  (25, 'Engenharia Mecânica - 2ª Fase',  6, 2, 20),
-  (26, 'Engenharia Mecânica - 3ª Fase',  6, 2, 18),
-  (27, 'Engenharia Mecânica - 4ª Fase',  6, 2, 16),
-  (28, 'Engenharia Mecânica - 5ª Fase',  6, 2, 14),
-  (29, 'Engenharia Mecânica - 6ª Fase',  6, 2, 12),
-  (30, 'Engenharia Mecânica - 7ª Fase',  6, 2, 10),
-  (31, 'Engenharia Mecânica - 8ª Fase',  6, 2, 8),
-  (32, 'Engenharia Mecânica - 9ª Fase',  6, 2, 7),
-  (33, 'Engenharia Mecânica - 10ª Fase', 6, 2, 6);
+  (24, 'Engenharia Mecânica - 1ª Fase',  6, 2, 1, 22),
+  (25, 'Engenharia Mecânica - 2ª Fase',  6, 2, 2, 20),
+  (26, 'Engenharia Mecânica - 3ª Fase',  6, 2, 3, 18),
+  (27, 'Engenharia Mecânica - 4ª Fase',  6, 2, 4, 16),
+  (28, 'Engenharia Mecânica - 5ª Fase',  6, 2, 5, 14),
+  (29, 'Engenharia Mecânica - 6ª Fase',  6, 2, 6, 12),
+  (30, 'Engenharia Mecânica - 7ª Fase',  6, 2, 7, 10),
+  (31, 'Engenharia Mecânica - 8ª Fase',  6, 2, 8, 8),
+  (32, 'Engenharia Mecânica - 9ª Fase',  6, 2, 9, 7),
+  (33, 'Engenharia Mecânica - 10ª Fase', 6, 2, 10, 6);
 
 INSERT IGNORE INTO alunos (id, matricula, nome, email, status) VALUES
   (1, '202110806528', 'João Pedro Silva', 'joao.silva@aluno.ifsc.edu.br', 'Ativo'),

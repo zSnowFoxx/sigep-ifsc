@@ -67,7 +67,7 @@ export const CursosTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
             </Td>
             <Td>
               <span className="font-semibold text-gray-700">
-                {item.fases} fases
+                {item.fases ? `${item.fases} fases` : "—"}
               </span>
             </Td>
             <Td>

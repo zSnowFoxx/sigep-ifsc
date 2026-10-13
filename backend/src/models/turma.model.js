@@ -2,23 +2,23 @@ const pool = require('../config/database');
 
 async function findAll() {
   const [rows] = await pool.query(
-    'SELECT id, nome, curso_id, periodo_id, alunos_qtd FROM turmas ORDER BY nome'
+    'SELECT id, nome, curso_id, periodo_id, fase, alunos_qtd FROM turmas ORDER BY nome'
   );
   return rows;
 }
 
 async function findById(id) {
   const [rows] = await pool.query(
-    'SELECT id, nome, curso_id, periodo_id, alunos_qtd FROM turmas WHERE id = ?',
+    'SELECT id, nome, curso_id, periodo_id, fase, alunos_qtd FROM turmas WHERE id = ?',
     [id]
   );
   return rows[0] ?? null;
 }
 
-async function create({ nome, cursoId, periodoId, alunosQtd }) {
+async function create({ nome, cursoId, periodoId, fase, alunosQtd }) {
   const [result] = await pool.query(
-    'INSERT INTO turmas (nome, curso_id, periodo_id, alunos_qtd) VALUES (?, ?, ?, ?)',
-    [nome, cursoId, periodoId, alunosQtd ?? 0]
+    'INSERT INTO turmas (nome, curso_id, periodo_id, fase, alunos_qtd) VALUES (?, ?, ?, ?, ?)',
+    [nome, cursoId, periodoId, fase, alunosQtd ?? 0]
   );
   return findById(result.insertId);
 }
@@ -28,6 +28,7 @@ async function update(id, data) {
     nome: 'nome',
     cursoId: 'curso_id',
     periodoId: 'periodo_id',
+    fase: 'fase',
     alunosQtd: 'alunos_qtd'
   };
 

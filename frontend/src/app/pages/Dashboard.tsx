@@ -1,8 +1,10 @@
 import Cards from "../components/Dashboard/Cards";
 import Filtros from "../components/Dashboard/Filtros";
 import PainelRisco from "../components/Dashboard/PainelRisco";
+import { useState } from "react";
 import ModalEncaminhamento from "../components/Conselho/Modals/ModalEncaminhamento";
-import { conselhoData } from "../data/conselhoData";
+import { backend } from "../services/apiClient";
+import { criarEncaminhamentoNovo, type ServidorRef } from "../services/conselhoService";
 import type { UserSession } from "../types/auth";
 import type { StudentRisk } from "../types/dashboard";
 import type { Aluno } from "../types/conselho";
@@ -21,7 +23,6 @@ interface DashboardProps {
   totalRiskStudents: number;
   hidden?: boolean;
   loggedUser?: UserSession | null;
-  conselhoId?: number;
 }
 
 export default function Dashboard({
@@ -38,51 +39,64 @@ export default function Dashboard({
   totalRiskStudents,
   hidden = false,
   loggedUser = null,
-  conselhoId = 1, // ID do conselho ativo padrão
 }: DashboardProps) {
-  // Consumo do hook conselhoData
-  const {
-    dados,
-    novoEncOpen,
-    setNovoEncOpen,
-    neMatricula,
-    setNeMatricula,
-    neTitulo,
-    setNeTitulo,
-    neCategoria,
-    setNeCategoria,
-    neServidorId,
-    setNeServidorId,
-    neDescricao,
-    setNeDescricao,
-    salvando,
-    submitNovoEncaminhamento,
-  } = conselhoData({ conselhoId });
+  // Modal "Encaminhar" do painel de risco (encaminhamento sem conselho, origem "Painel de Risco").
+  const [novoEncOpen, setNovoEncOpen] = useState(false);
+  const [neMatricula, setNeMatricula] = useState("");
+  const [neTitulo, setNeTitulo] = useState("");
+  const [neCategoria, setNeCategoria] = useState("");
+  const [neServidorId, setNeServidorId] = useState("");
+  const [neDescricao, setNeDescricao] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erroEnc, setErroEnc] = useState("");
+  const [servidores, setServidores] = useState<ServidorRef[] | null>(null);
 
-  // Consolida os alunos do conselho e do dashboard para que a busca da Turma e Seleção funcionem 100%
-  const alunosConselho = dados?.alunos ?? [];
-  const alunosModal: Aluno[] = [
-  ...alunosConselho,
-  ...filteredStudents
-    .filter((fs) => !alunosConselho.some((a) => a.matricula === fs.matricula))
-    .map((fs) => ({
-      id: Number(fs.matricula) || 0,
-      matricula: fs.matricula,
-      nome: fs.nome,
-      turma: fs.turma || "",
-      atencao: false, // Propriedade obrigatória da interface Aluno
-      risco: fs.risco ? true : false,
-    } as Aluno)),
-];
+  // Alunos do painel (o id vem do backend junto com o risco).
+  const alunosModal: Aluno[] = filteredStudents.map((fs) => ({
+    id: fs.id,
+    matricula: fs.matricula,
+    nome: fs.nome,
+    turma: fs.turma || "",
+    atencao: true,
+    risco: fs.fatores.includes("Risco alto de evasão"),
+  }));
 
-  // Ação ao clicar em "Encaminhar" na tabela
+  // Ação ao clicar em "Encaminhar" na tabela; os servidores são carregados na primeira abertura.
   const handleOpenEncaminhamento = (matricula: string) => {
     const aluno = alunosModal.find((a) => a.matricula === matricula);
-    
     setNeMatricula(matricula);
-    // Sugere um título padrão inicial (opcional)
     setNeTitulo(aluno ? `Encaminhamento — ${aluno.nome}` : "");
+    setNeCategoria("");
+    setNeServidorId("");
+    setNeDescricao("");
+    setErroEnc("");
     setNovoEncOpen(true);
+    if (!servidores) {
+      backend<ServidorRef[]>("/users")
+        .then((lista) => setServidores(lista.map((u) => ({ id: u.id, nome: u.nome }))))
+        .catch((err) => setErroEnc(err instanceof Error ? err.message : "Erro ao carregar os servidores."));
+    }
+  };
+
+  const submitNovoEncaminhamento = async () => {
+    const aluno = alunosModal.find((a) => a.matricula === neMatricula);
+    if (!aluno || !neTitulo.trim() || !neCategoria) return;
+    setSalvando(true);
+    setErroEnc("");
+    try {
+      await criarEncaminhamentoNovo({
+        alunoId: aluno.id,
+        titulo: neTitulo.trim(),
+        categoria: neCategoria,
+        servidorResponsavelId: neServidorId ? Number(neServidorId) : null,
+        descricao: neDescricao,
+      });
+      setNovoEncOpen(false);
+    } catch (err) {
+      setErroEnc(err instanceof Error ? err.message : "Erro ao criar o encaminhamento.");
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
@@ -114,12 +128,11 @@ export default function Dashboard({
         loggedUser={loggedUser}
       />
 
-      {/* Modal de Encaminhamento controlado pelo estado do conselhoData */}
       {novoEncOpen && (
         <ModalEncaminhamento
           setNovoEncOpen={setNovoEncOpen}
           alunos={alunosModal}
-          servidores={dados?.servidores ?? []}
+          servidores={servidores ?? []}
           neMatricula={neMatricula}
           setNeMatricula={setNeMatricula}
           neTitulo={neTitulo}
@@ -132,6 +145,7 @@ export default function Dashboard({
           setNeDescricao={setNeDescricao}
           salvando={salvando}
           submitNovoEnc={submitNovoEncaminhamento}
+          erro={erroEnc}
         />
       )}
 

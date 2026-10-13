@@ -1,6 +1,18 @@
 const turmaModel = require('../models/turma.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
+const cursoModel = require('../models/curso.model');
+
+// A fase precisa existir no curso da turma (1 até cursos.fases; sem limite se o curso não define fases).
+async function validarFase(cursoId, fase) {
+  const curso = await cursoModel.findById(cursoId);
+  if (!curso) {
+    throw new ApiError(400, 'cursoId ou periodoId inválido');
+  }
+  if (fase !== null && fase !== undefined && curso.fases && fase > curso.fases) {
+    throw new ApiError(400, `fase deve estar entre 1 e ${curso.fases} (fases do curso)`);
+  }
+}
 
 const getAll = asyncHandler(async (req, res) => {
   const turmas = await turmaModel.findAll();
@@ -18,10 +30,11 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const { nome, cursoId, periodoId, alunosQtd } = req.body;
+  const { nome, cursoId, periodoId, fase, alunosQtd } = req.body;
+  await validarFase(cursoId, fase);
 
   try {
-    const turma = await turmaModel.create({ nome, cursoId, periodoId, alunosQtd });
+    const turma = await turmaModel.create({ nome, cursoId, periodoId, fase, alunosQtd });
     res.status(201).json({ success: true, data: turma });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
@@ -35,15 +48,18 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
-  const { nome, cursoId, periodoId, alunosQtd } = req.body;
+  const { nome, cursoId, periodoId, fase, alunosQtd } = req.body;
 
   const existing = await turmaModel.findById(req.params.id);
   if (!existing) {
     throw new ApiError(404, 'Turma não encontrada');
   }
+  if (fase !== undefined || cursoId !== undefined) {
+    await validarFase(cursoId ?? existing.curso_id, fase !== undefined ? fase : existing.fase);
+  }
 
   try {
-    const turma = await turmaModel.update(req.params.id, { nome, cursoId, periodoId, alunosQtd });
+    const turma = await turmaModel.update(req.params.id, { nome, cursoId, periodoId, fase, alunosQtd });
     res.json({ success: true, data: turma });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {

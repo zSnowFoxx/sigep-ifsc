@@ -19,6 +19,7 @@ interface ModalEncaminhamentoProps {
   setNeDescricao: (descricao: string) => void;
   salvando: boolean;
   submitNovoEnc: () => void;
+  erro?: string;
 }
 
 export default function ModalEncaminhamento({
@@ -37,6 +38,7 @@ export default function ModalEncaminhamento({
   setNeDescricao,
   salvando,
   submitNovoEnc,
+  erro,
 }: ModalEncaminhamentoProps) {
   const neTurma = alunos.find((a) => a.matricula === neMatricula)?.turma ?? "";
 
@@ -93,6 +95,8 @@ export default function ModalEncaminhamento({
             <textarea rows={3} value={neDescricao} onChange={(e) => setNeDescricao(e.target.value)} placeholder="Descreva o contexto e o objetivo do encaminhamento..." className="w-full text-sm px-3 py-2.5 rounded-lg border border-border bg-[#f7f8fa] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none placeholder:text-muted-foreground transition-all" />
           </div>
         </div>
+
+        {erro && <p className="px-6 pb-3 text-xs font-semibold text-red-600">{erro}</p>}
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
           <button onClick={() => setNovoEncOpen(false)} className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground border border-border rounded-xl transition-all hover:bg-muted">Cancelar</button>

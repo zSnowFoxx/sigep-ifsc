@@ -58,6 +58,8 @@ export interface Turma {
   curso_id?: number;
   periodo_id?: number;
   periodo?: string;
+  // "2ª Fase" na tela; a API usa o número (turmas.fase).
+  fase?: string;
   curso?: string;
   alunos_qtd?: number;
   alunos?: number;

@@ -8,7 +8,7 @@ import {
   EmptyState,
   RowActions,
 } from "../../ui/TablePrimitives";
-import { PeriodBadge } from "../../ui/Badges";
+import { PeriodBadge, FaseBadge } from "../../ui/Badges";
 import { stripPrefix } from "../../../utils/cadastrosUtils";
 
 interface Props {
@@ -22,6 +22,7 @@ export const TurmasTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
     <thead>
       <tr>
         <Th>Nome da Turma</Th>
+        <Th>Fase</Th>
         <Th>Período Letivo</Th>
         <Th>Curso Vinculado</Th>
         <Th>Qtd. Alunos</Th>
@@ -30,12 +31,15 @@ export const TurmasTable: React.FC<Props> = ({ data, onEdit, onDelete }) => (
     </thead>
     <tbody>
       {data.length === 0 ? (
-        <EmptyState colSpan={5} message="Nenhuma turma encontrada." />
+        <EmptyState colSpan={6} message="Nenhuma turma encontrada." />
       ) : (
         data.map((item) => (
           <TRow key={`${item.nome}-${item.periodo}`}>
             <Td>
               <span className="font-semibold text-gray-800">{item.nome}</span>
+            </Td>
+            <Td>
+              {item.fase ? <FaseBadge label={item.fase} /> : <span className="text-xs text-gray-400">—</span>}
             </Td>
             <Td>
               <PeriodBadge label={item.periodo ?? ""} />

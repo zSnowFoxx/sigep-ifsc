@@ -17,9 +17,20 @@ async function attachTurmas(aluno) {
   return { ...aluno, turmaIds: rows.map((row) => row.turma_id) };
 }
 
+// Duas consultas no total (em vez de uma por aluno): as matrículas ativas vêm de uma vez.
 async function findAll() {
-  const [rows] = await pool.query(`SELECT ${COLUMNS} FROM alunos ORDER BY nome`);
-  return Promise.all(rows.map(attachTurmas));
+  const [[rows], [matriculas]] = await Promise.all([
+    pool.query(`SELECT ${COLUMNS} FROM alunos ORDER BY nome`),
+    pool.query("SELECT aluno_id, turma_id FROM matriculas WHERE status = 'Ativo' ORDER BY id")
+  ]);
+
+  const turmasPorAluno = new Map();
+  for (const { aluno_id: alunoId, turma_id: turmaId } of matriculas) {
+    if (!turmasPorAluno.has(alunoId)) turmasPorAluno.set(alunoId, []);
+    turmasPorAluno.get(alunoId).push(turmaId);
+  }
+
+  return rows.map((aluno) => ({ ...aluno, turmaIds: turmasPorAluno.get(aluno.id) ?? [] }));
 }
 
 async function findById(id) {

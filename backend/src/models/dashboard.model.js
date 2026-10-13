@@ -35,10 +35,8 @@ function classificarRisco(media, infrequencia) {
   return { risco, fatores };
 }
 
-const escapeLike = (value) => value.replace(/[\\%_]/g, '\\$&');
-
 // Filtros do painel de risco (todos opcionais). Com disciplina, o risco é calculado só com
-// as notas dessa disciplina. A fase vem do nome da turma ("TDS - 2ª Fase").
+// as notas dessa disciplina. A fase chega como "2ª Fase" ou "2" e é comparada com turmas.fase.
 function buildRiskFilters({ periodo, curso, fase, turma, disciplina } = {}) {
   const conditions = [];
   const params = [];
@@ -52,8 +50,8 @@ function buildRiskFilters({ periodo, curso, fase, turma, disciplina } = {}) {
     params.push(curso);
   }
   if (fase) {
-    conditions.push("t.nome LIKE CONCAT('% - ', ?)");
-    params.push(escapeLike(fase));
+    conditions.push('t.fase = ?');
+    params.push(parseInt(fase, 10) || 0);
   }
   if (turma) {
     conditions.push('t.nome = ?');

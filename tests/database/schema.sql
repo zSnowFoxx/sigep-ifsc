@@ -105,11 +105,14 @@ CREATE TABLE IF NOT EXISTS turmas (
   nome       VARCHAR(100)      NOT NULL,
   curso_id   INT UNSIGNED      NOT NULL,
   periodo_id INT UNSIGNED      NOT NULL,
+  -- Fase do curso (1 até cursos.fases), validada pelo backend.
+  fase       TINYINT UNSIGNED  NULL,
   alunos_qtd SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   UNIQUE KEY uq_turmas_nome_periodo (nome, periodo_id),
   CONSTRAINT fk_turmas_curso   FOREIGN KEY (curso_id)   REFERENCES cursos (id),
-  CONSTRAINT fk_turmas_periodo FOREIGN KEY (periodo_id) REFERENCES periodos (id)
+  CONSTRAINT fk_turmas_periodo FOREIGN KEY (periodo_id) REFERENCES periodos (id),
+  CONSTRAINT ck_turmas_fase CHECK (fase IS NULL OR fase >= 1)
 );
 
 CREATE TABLE IF NOT EXISTS alunos (

@@ -4,8 +4,11 @@ function isNonEmptyString(value, maxLength) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
 }
 
+// A fase é conferida contra as fases do curso no controller.
+const isFase = (fase) => Number.isInteger(fase) && fase >= 1 && fase <= 255;
+
 function validateCreate(req, res, next) {
-  const { nome, cursoId, periodoId, alunosQtd } = req.body;
+  const { nome, cursoId, periodoId, fase, alunosQtd } = req.body;
   const errors = [];
 
   if (!isNonEmptyString(nome, 100)) {
@@ -16,6 +19,9 @@ function validateCreate(req, res, next) {
   }
   if (!Number.isInteger(periodoId)) {
     errors.push('periodoId é obrigatório e deve ser um número inteiro');
+  }
+  if (!isFase(fase)) {
+    errors.push('fase é obrigatória e deve ser um número inteiro a partir de 1');
   }
   if (alunosQtd !== undefined && (!Number.isInteger(alunosQtd) || alunosQtd < 0)) {
     errors.push('alunosQtd deve ser um número inteiro não negativo');
@@ -29,7 +35,7 @@ function validateCreate(req, res, next) {
 }
 
 function validateUpdate(req, res, next) {
-  const { nome, cursoId, periodoId, alunosQtd } = req.body;
+  const { nome, cursoId, periodoId, fase, alunosQtd } = req.body;
   const errors = [];
 
   if (nome !== undefined && !isNonEmptyString(nome, 100)) {
@@ -41,6 +47,9 @@ function validateUpdate(req, res, next) {
   if (periodoId !== undefined && !Number.isInteger(periodoId)) {
     errors.push('periodoId deve ser um número inteiro');
   }
+  if (fase !== undefined && !isFase(fase)) {
+    errors.push('fase deve ser um número inteiro a partir de 1');
+  }
   if (alunosQtd !== undefined && (!Number.isInteger(alunosQtd) || alunosQtd < 0)) {
     errors.push('alunosQtd deve ser um número inteiro não negativo');
   }
@@ -49,6 +58,7 @@ function validateUpdate(req, res, next) {
     nome === undefined &&
     cursoId === undefined &&
     periodoId === undefined &&
+    fase === undefined &&
     alunosQtd === undefined
   ) {
     errors.push('Informe ao menos um campo para atualizar');

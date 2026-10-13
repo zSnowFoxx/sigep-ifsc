@@ -21,6 +21,7 @@ export interface CardItem {
 }
 
 export interface StudentRisk {
+  id: number;
   matricula: string;
   nome: string;
   turma: string;
