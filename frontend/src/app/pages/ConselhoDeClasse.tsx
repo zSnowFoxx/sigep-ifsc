@@ -2,6 +2,7 @@ import type { ConselhoDeClasseProps } from "../types/conselho";
 import { conselhoData } from "../data/conselhoData";
 
 // Importação de componentes
+import ConselhoVisualizacao from "../components/Conselho/Abas/ConselhoVisualizacao";
 import ConselhoParticipantes from "../components/Conselho/Abas/ConselhoParticipantes";
 import ConselhoDemandas from "../components/Conselho/Abas/ConselhoDemandas";
 import ConselhosRegistros from "../components/Conselho/Abas/ConselhoRegistros";
@@ -12,11 +13,16 @@ import ConselhoHeader from "../components/Conselho/Abas/ConselhoHeader";
 import ModalRegistro from "../components/Conselho/Modals/ModalRegistro";
 import ModalEncaminhamento from "../components/Conselho/Modals/ModalEncaminhamento";
 import EncaminhamentosCard from "../components/Encaminhamentos/EncaminhamentosCard";
+import ModalVizualizacao from "../components/Conselho/Modals/ModalVisualizacao";
 
 export default function ConselhoDeClasse({ conselhoId, onBack, mode = "final" }: ConselhoDeClasseProps) {
   const {
   // Base & Globais
   isInter, activeTab, setActiveTab, dados, loading, erro, setErro, salvando, executar,
+
+  // Tab 0: Visualização das Turmas
+  vizSearch, setVizSearch, vizTurmaFilter, setVizTurmaFilter, getDisciplinas,
+  computeMedia, computeInfreq, emailFromNome, vizAlunoDetail, setVizAlunoDetail,
 
   // Tab 1: Participantes
   participantes, togglePresenca,
@@ -95,6 +101,24 @@ export default function ConselhoDeClasse({ conselhoId, onBack, mode = "final" }:
 
       {/* ── Tab Content ────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden">
+
+        {/* ── TAB 0: Visualização da Turma ─────────────────────────────────── */}
+        {activeTab === 0 && (
+          <ConselhoVisualizacao
+            alunos={alunos}
+            turmasData={turmas}
+            vizSearch={vizSearch}
+            setVizSearch={setVizSearch}
+            vizTurmaFilter={vizTurmaFilter}
+            setVizTurmaFilter={setVizTurmaFilter}
+            getDisciplinas={getDisciplinas}
+            computeMedia={computeMedia}
+            computeInfreq={computeInfreq}
+            emailFromNome={emailFromNome}
+            setVizAlunoDetail={setVizAlunoDetail}
+          />
+        )}
+
         {/* TAB 1: Participantes */}
         {activeTab === 1 && (
           <ConselhoParticipantes
@@ -176,6 +200,24 @@ export default function ConselhoDeClasse({ conselhoId, onBack, mode = "final" }:
           />
         )}
       </div>
+
+      {/* ── Modal: Detalhes do Aluno (Tab 0) ──────────────────────────────── */}
+      {vizAlunoDetail && (
+        <ModalVizualizacao
+          aluno={vizAlunoDetail}
+          onClose={() => setVizAlunoDetail(null)}
+          getDisciplinas={getDisciplinas}
+          computeMedia={computeMedia}
+          computeInfreq={computeInfreq}
+          emailFromNome={emailFromNome}
+          onAddRegistro={(matricula) => {
+            setVizAlunoDetail(null);
+            setNrMatricula(matricula);
+            setNovoRegOpen(true);
+            setActiveTab(3);
+          }}
+        />
+      )}
 
       {/* ── Modal: Novo Registro Docente ────────────────────────────────────── */}
       {novoRegOpen && (

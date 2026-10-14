@@ -3,7 +3,7 @@ import type React from "react";
 // Re-exportação para manter compatibilidade com arquivos que importavam de conselho.ts
 export type { Encaminhamento as EncItemData, Evolucao as EncEvolucao, Enc, EncStatus, EncEvolucaoTipo } from "./encaminhamentos";
 
-export type TabId = 1 | 2 | 3 | 4;
+export type TabId = 0 |1 | 2 | 3 | 4;
 export type ConselhoMode = "intermediario" | "final";
 export type GravidadeDemanda = "nao-urgente" | "urgente" | "critica";
 export type EtapaConselho = "Intermediário" | "Pré-Conselho" | "Final";
@@ -277,3 +277,12 @@ export interface AcompanhamentoApi {
   relato: string;
   data_registro: string;
 }
+
+export interface VizAlunoDetail { 
+  matricula: string; 
+  nome: string; 
+  turma: string; 
+  atencao: boolean; 
+  risco: boolean 
+}
+

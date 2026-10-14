@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Users, ClipboardList, GraduationCap, FileText } from "lucide-react";
+import { Users, ClipboardList, GraduationCap, FileText, BarChart2 } from "lucide-react";
 
 import type {
   AlunoEval,
@@ -11,6 +11,7 @@ import type {
   TabDef,
   TabId,
   TurmaForm,
+  VizAlunoDetail,
 } from "../types/conselho";
 import {
   carregarConselho,
@@ -87,12 +88,18 @@ export const etapaColors: Record<
 
 export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDataProps) {
   const isInter = mode === "intermediario";
-  const [activeTab, setActiveTab] = useState<TabId>(isInter ? 2 : 4);
+  const [activeTab, setActiveTab] = useState<TabId>(isInter ? 0 : 4);
 
   const [dados, setDados] = useState<DadosConselho | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
+
+  // Tab 0 — Visualização das Turmas
+  const [vizTabLabel, setVizTabLabel] = useState("");
+  const [vizSearch, setVizSearch] = useState("");
+  const [vizTurmaFilter, setVizTurmaFilter] = useState("");
+  const [vizAlunoDetail, setVizAlunoDetail] = useState<VizAlunoDetail | null>(null);
 
   // Tab 1 — Participantes
   const [participantes, setParticipantes] = useState<Professor[]>([]);
@@ -149,6 +156,7 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
         const deliberacaoPorAluno = new Map(d.deliberacoes.map((x) => [x.aluno_id, x]));
         setDados(d);
         setParticipantes(d.participantes);
+        setVizTabLabel(d.turmas.length > 1 ? "Visualização das Turmas" : "Visualização da Turma");
         setTurmaForms(d.turmas.map((t) => toTurmaForm(d.demandas.find((x) => x.turma_id === t.id), t.alunosList)));
         setTurmasComDemanda(new Set(d.demandas.map((x) => x.turma_id)));
         setOpenTurmas(d.turmas[0] ? { [d.turmas[0].id]: true } : {});
@@ -210,6 +218,34 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     setRegistros(d.registros);
     setEncList(d.encaminhamentos);
     setSelectedEnc((prev) => (prev ? d.encaminhamentos.find((e) => e.id === prev.id) ?? prev : null));
+  };
+
+  // ── Tab 0 Helpers ──
+  const getDisciplinas = (matricula: string, _turma: string) => {
+    if (dados?.disciplinas && dados.disciplinas[matricula]) {
+      return dados.disciplinas[matricula];
+    }
+    return [];
+  };
+
+  const computeMedia = (discs: any[]) => {
+    if (!discs || discs.length === 0) return 0;
+    const soma = discs.reduce((acc, d) => acc + (Number(d.nota) || 0), 0);
+    return soma / discs.length;
+  };
+
+  const computeInfreq = (discs: any[]) => {
+    if (!discs || discs.length === 0) return 0;
+    const totalCh = discs.reduce((acc, d) => acc + (Number(d.ch) || 0), 0);
+    const totalFaltas = discs.reduce((acc, d) => acc + (Number(d.faltasNaoJust ?? d.faltas) || 0), 0);
+    return totalCh ? (totalFaltas / totalCh) * 100 : 0;
+  };
+
+  const emailFromNome = (nome: string) => {
+    if (!nome) return "";
+    const parts = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(" ").filter(Boolean);
+    if (parts.length === 0) return "";
+    return `${parts[0]}.${parts[parts.length - 1]}@aluno.ifsc.edu.br`;
   };
 
   // ── Abono de faltas: os erros sobem para o modal, que os mostra sem fechar ──
@@ -458,8 +494,9 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
 
   const visibleTabs: TabDef[] = isInter
     ? [
-        { id: 2, label: "Demandas Gerais", icon: ClipboardList, short: "Demandas", displayNum: 1 },
-        { id: 3, label: "Registros e Encaminhamentos", icon: FileText, short: "Registros", displayNum: 2 },
+        { id: 0, label: vizTabLabel, icon: BarChart2, short: "Visualização", displayNum: 1 },
+        { id: 2, label: "Demandas Gerais", icon: ClipboardList, short: "Demandas", displayNum: 2 },
+        { id: 3, label: "Registros e Encaminhamentos", icon: FileText, short: "Registros", displayNum: 3 },
       ]
     : [
         { id: 1, label: "Participantes do Conselho", icon: Users, short: "Participantes", displayNum: 1 },
@@ -479,6 +516,18 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     setErro,
     salvando,
     executar,
+
+    // Tab 0
+    vizSearch,
+    setVizSearch,
+    vizTurmaFilter,
+    setVizTurmaFilter,
+    getDisciplinas,
+    computeMedia,
+    computeInfreq,
+    emailFromNome,
+    vizAlunoDetail,
+    setVizAlunoDetail,
 
     // Tab 1
     participantes,

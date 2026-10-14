@@ -18,9 +18,6 @@ export default function EncaminhamentosHeader({ cards }: EncaminhamentosHeaderPr
             <h1 className="text-base font-bold text-foreground">
               Monitoramento de Encaminhamentos Pedagógicos
             </h1>
-            <span className="text-xs bg-[#e8f0eb] text-[#15622f] border border-[#c3dbc9] px-2 py-0.5 rounded-full font-semibold">
-              RN07
-            </span>
           </div>
           <p className="text-xs text-muted-foreground">
             Ciclo de vida das ações pedagógicas — triagem, acompanhamento e desfecho
