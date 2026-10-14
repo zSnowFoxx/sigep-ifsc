@@ -1,0 +1,6 @@
+# Deploy pela CLI (npx vercel --prod na raiz): só o backend sobe, sem segredos locais.
+frontend
+server
+tests
+**/.env*
+**/.vercel

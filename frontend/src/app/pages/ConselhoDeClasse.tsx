@@ -1,5 +1,5 @@
 import type { ConselhoDeClasseProps } from "../types/conselho";
-import { conselhoData } from "../data/conselhoData";
+import { useConselhoData } from "../data/conselhoData";
 
 // Importação de componentes
 import ConselhoVisualizacao from "../components/Conselho/Abas/ConselhoVisualizacao";
@@ -49,7 +49,7 @@ export default function ConselhoDeClasse({ conselhoId, onBack, mode = "final" }:
 
   // Ações & Computados
   salvarEVoltar, encerrar, totalAlunos, savedCount, presentCount, tab2HasContent, visibleTabs,
-} = conselhoData({ conselhoId, mode, onBack });
+} = useConselhoData({ conselhoId, mode, onBack });
 
   if (loading || !dados) {
     return (

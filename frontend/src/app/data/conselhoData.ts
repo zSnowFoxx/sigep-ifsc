@@ -87,7 +87,39 @@ export const etapaColors: Record<
   Final: { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" },
 };
 
-export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDataProps) {
+// Intervalo da atualização em tempo real (o backend roda na Vercel, sem WebSocket).
+const INTERVALO_ATUALIZACAO_MS = 5_000;
+
+// Valores gravados no servidor: comparados com o estado local para saber o que o usuário está editando.
+const formsDoServidor = (d: DadosConselho) =>
+  d.turmas.map((t) => toTurmaForm(d.demandas.find((x) => x.turma_id === t.id), t.alunosList));
+
+const pareceresDoServidor = (d: DadosConselho): Record<string, string> => {
+  const deliberacaoPorAluno = new Map(d.deliberacoes.map((x) => [x.aluno_id, x]));
+  return Object.fromEntries(d.alunos.map((a) => [a.matricula, deliberacaoPorAluno.get(a.id)?.alteracoes_realizadas ?? ""]));
+};
+
+const deliberacaoIdsDoServidor = (d: DadosConselho): Record<string, number> => {
+  const deliberacaoPorAluno = new Map(d.deliberacoes.map((x) => [x.aluno_id, x]));
+  return Object.fromEntries(d.alunos.flatMap((a) => {
+    const deliberacao = deliberacaoPorAluno.get(a.id);
+    return deliberacao ? [[a.matricula, deliberacao.id]] : [];
+  }));
+};
+
+const retificadasDoServidor = (d: DadosConselho): Record<string, string> => {
+  const retificadaPorNota = new Map(d.retificacoes.map((r) => [r.nota_frequencia_id, String(r.media_retificada)]));
+  return Object.fromEntries(
+    Object.entries(d.disciplinas).flatMap(([mat, discs]) =>
+      discs.flatMap((x) => {
+        const media = retificadaPorNota.get(x.notaId);
+        return media === undefined ? [] : [[`${mat}|${x.nome}`, media]];
+      })
+    )
+  );
+};
+
+export function useConselhoData({ conselhoId, mode = "final", onBack }: ConselhoDataProps) {
   const isInter = mode === "intermediario";
   const [activeTab, setActiveTab] = useState<TabId>(isInter ? 0 : 4);
 
@@ -111,12 +143,16 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
   const [activeTurmaIdx, setActiveTurmaIdx] = useState(0);
   const [editFields, setEditFields] = useState<Set<string>>(new Set());
   const demandaIdRef = useRef(-1);
+  // Último formulário gravado de cada turma (JSON), para não sobrescrever o que está em edição.
+  const demandasSalvasRef = useRef<string[]>([]);
 
   // Tab 4 — Avaliação
   const [openTurmas, setOpenTurmas] = useState<Record<number, boolean>>({});
   const [selectedAluno, setSelectedAluno] = useState("");
   const [avaliacoes, setAvaliacoes] = useState<Record<string, AlunoEval>>({});
   const [deliberacaoIds, setDeliberacaoIds] = useState<Record<string, number>>({});
+  // Último parecer gravado de cada aluno (matrícula), pelo mesmo motivo.
+  const pareceresSalvosRef = useRef<Record<string, string>>({});
   const [selectedDisc, setSelectedDisc] = useState<Record<string, number>>({});
   const [retificadas, setRetificadas] = useState<Record<string, string>>({});
   // Último valor gravado de cada retificação ("matricula|disciplina"), para não regravar sem mudança.
@@ -154,40 +190,28 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     carregarConselho(conselhoId)
       .then((d) => {
         if (!ativo) return;
-        const deliberacaoPorAluno = new Map(d.deliberacoes.map((x) => [x.aluno_id, x]));
         setDados(d);
         setParticipantes(d.participantes);
         setVizTabLabel(d.turmas.length > 1 ? "Visualização das Turmas" : "Visualização da Turma");
-        setTurmaForms(d.turmas.map((t) => toTurmaForm(d.demandas.find((x) => x.turma_id === t.id), t.alunosList)));
+        const formsIniciais = formsDoServidor(d);
+        demandasSalvasRef.current = formsIniciais.map((f) => JSON.stringify(f));
+        setTurmaForms(formsIniciais);
         setTurmasComDemanda(new Set(d.demandas.map((x) => x.turma_id)));
         setOpenTurmas(d.turmas[0] ? { [d.turmas[0].id]: true } : {});
         setSelectedAluno((d.turmas[0]?.alunosList[0] ?? d.alunos[0])?.matricula ?? "");
+        const pareceres = pareceresDoServidor(d);
+        const ids = deliberacaoIdsDoServidor(d);
+        pareceresSalvosRef.current = pareceres;
         setAvaliacoes(
           Object.fromEntries(
-            d.alunos.map((a) => {
-              const deliberacao = deliberacaoPorAluno.get(a.id);
-              return [
-                a.matricula,
-                { risco: a.risco ?? false, obs: deliberacao?.alteracoes_realizadas ?? "", encaminhamento: "", acao: "", servidor: "", saved: !!deliberacao },
-              ];
-            })
+            d.alunos.map((a) => [
+              a.matricula,
+              { risco: a.risco ?? false, obs: pareceres[a.matricula], encaminhamento: "", acao: "", servidor: "", saved: a.matricula in ids },
+            ])
           )
         );
-        setDeliberacaoIds(
-          Object.fromEntries(d.alunos.flatMap((a) => {
-            const deliberacao = deliberacaoPorAluno.get(a.id);
-            return deliberacao ? [[a.matricula, deliberacao.id]] : [];
-          }))
-        );
-        const retificadaPorNota = new Map(d.retificacoes.map((r) => [r.nota_frequencia_id, String(r.media_retificada)]));
-        const retificadasIniciais = Object.fromEntries(
-          Object.entries(d.disciplinas).flatMap(([mat, discs]) =>
-            discs.flatMap((x) => {
-              const media = retificadaPorNota.get(x.notaId);
-              return media === undefined ? [] : [[`${mat}|${x.nome}`, media]];
-            })
-          )
-        );
+        setDeliberacaoIds(ids);
+        const retificadasIniciais = retificadasDoServidor(d);
         retificadasSalvasRef.current = retificadasIniciais;
         setRetificadas(retificadasIniciais);
         setRegistros(d.registros);
@@ -201,21 +225,124 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     };
   }, [conselhoId]);
 
-  // Executa uma gravação mostrando o estado de "salvando" e a mensagem de erro
-  const executar = async (acao: () => Promise<void>) => {
-    setSalvando(true);
-    setErro("");
+  // Conta as gravações locais (no início e no fim de cada uma): uma atualização que começou antes
+  // de uma gravação terminar pode trazer dados de antes dela, e é descartada.
+  const versaoRef = useRef(0);
+  const gravar = async <T>(acao: () => Promise<T>): Promise<T> => {
+    versaoRef.current++;
     try {
-      await acao();
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao salvar.");
+      return await acao();
     } finally {
-      setSalvando(false);
+      versaoRef.current++;
     }
   };
 
+  // Executa uma gravação mostrando o estado de "salvando" e a mensagem de erro
+  const executar = (acao: () => Promise<void>) =>
+    gravar(async () => {
+      setSalvando(true);
+      setErro("");
+      try {
+        await acao();
+      } catch (err) {
+        setErro(err instanceof Error ? err.message : "Erro ao salvar.");
+      } finally {
+        setSalvando(false);
+      }
+    });
+
+  // ── Atualização em tempo real: traz o que os outros participantes gravaram ──
+  // O que o usuário está editando (formulário de demandas, parecer, média retificada) é preservado.
+  const aplicarAtualizacao = (d: DadosConselho) => {
+    if (dados?.conselho.status !== "encerrado" && d.conselho.status === "encerrado") {
+      window.alert("Este conselho foi encerrado por outro participante.");
+      onBack?.();
+      return;
+    }
+
+    setDados(d);
+    setParticipantes(d.participantes);
+    setRegistros(d.registros);
+    setEncList(d.encaminhamentos);
+    setSelectedEnc((prev) => (prev ? d.encaminhamentos.find((e) => e.id === prev.id) ?? prev : null));
+
+    const forms = formsDoServidor(d);
+    const formsSalvos = demandasSalvasRef.current;
+    setTurmaForms((prev) => forms.map((f, i) => (prev[i] && JSON.stringify(prev[i]) !== formsSalvos[i] ? prev[i] : f)));
+    demandasSalvasRef.current = forms.map((f) => JSON.stringify(f));
+    setTurmasComDemanda(new Set(d.demandas.map((x) => x.turma_id)));
+
+    const pareceres = pareceresDoServidor(d);
+    const pareceresSalvos = pareceresSalvosRef.current;
+    const ids = deliberacaoIdsDoServidor(d);
+    setAvaliacoes((prev) =>
+      Object.fromEntries(
+        d.alunos.map((a) => {
+          const local = prev[a.matricula];
+          if (local && local.obs.trim() !== (pareceresSalvos[a.matricula] ?? "")) return [a.matricula, local];
+          const base = local ?? { risco: a.risco ?? false, encaminhamento: "", acao: "", servidor: "" };
+          return [a.matricula, { ...base, obs: pareceres[a.matricula], saved: a.matricula in ids }];
+        })
+      )
+    );
+    pareceresSalvosRef.current = pareceres;
+    setDeliberacaoIds(ids);
+
+    const retificadasServidor = retificadasDoServidor(d);
+    const retificadasSalvas = retificadasSalvasRef.current;
+    setRetificadas((prev) => {
+      const chaves = new Set([...Object.keys(prev), ...Object.keys(retificadasServidor)]);
+      return Object.fromEntries(
+        [...chaves].flatMap((chave) => {
+          const local = prev[chave] ?? "";
+          const valor = local.trim() !== (retificadasSalvas[chave] ?? "") ? local : retificadasServidor[chave] ?? "";
+          return valor === "" ? [] : [[chave, valor]];
+        })
+      );
+    });
+    retificadasSalvasRef.current = retificadasServidor;
+  };
+
+  const atualizandoRef = useRef(false);
+  const montadoRef = useRef(true);
+  const atualizar = async () => {
+    if (!dados || salvando || atualizandoRef.current || document.hidden) return;
+    atualizandoRef.current = true;
+    const versao = versaoRef.current;
+    try {
+      const d = await carregarConselho(conselhoId, dados.referencias);
+      if (montadoRef.current && versao === versaoRef.current) aplicarAtualizacao(d);
+    } catch {
+      // Falha momentânea de rede: tenta de novo no próximo ciclo.
+    } finally {
+      atualizandoRef.current = false;
+    }
+  };
+
+  // O intervalo chama sempre a versão mais recente de atualizar (com o estado atual).
+  const atualizarRef = useRef(atualizar);
+  useEffect(() => {
+    atualizarRef.current = atualizar;
+  });
+
+  useEffect(() => {
+    montadoRef.current = true;
+    if (loading) return;
+    const intervalo = setInterval(() => atualizarRef.current(), INTERVALO_ATUALIZACAO_MS);
+    // Ao voltar para a aba do navegador, atualiza na hora em vez de esperar o próximo ciclo.
+    const aoVoltarParaAba = () => {
+      if (!document.hidden) atualizarRef.current();
+    };
+    document.addEventListener("visibilitychange", aoVoltarParaAba);
+    return () => {
+      montadoRef.current = false;
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", aoVoltarParaAba);
+    };
+  }, [loading]);
+
   const recarregarListas = async () => {
-    const d = await carregarConselho(conselhoId);
+    const d = await carregarConselho(conselhoId, dados?.referencias);
     setRegistros(d.registros);
     setEncList(d.encaminhamentos);
     setSelectedEnc((prev) => (prev ? d.encaminhamentos.find((e) => e.id === prev.id) ?? prev : null));
@@ -251,24 +378,26 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
 
   // ── Abono de faltas: os erros sobem para o modal, que os mostra sem fechar ──
   const recarregarDisciplinas = async () => {
-    const d = await carregarConselho(conselhoId);
+    const d = await carregarConselho(conselhoId, dados?.referencias);
     setDados((prev) => (prev ? { ...prev, disciplinas: d.disciplinas } : d));
   };
 
-  const confirmarAbono = async (notaFrequenciaId: number, horas: number, tipo: string) => {
-    await salvarAbono(conselhoId, {
-      notaFrequenciaId,
-      horas,
-      tipo,
-      fundamentacao: abonoText,
+  const confirmarAbono = (notaFrequenciaId: number, horas: number, tipo: string) =>
+    gravar(async () => {
+      await salvarAbono(conselhoId, {
+        notaFrequenciaId,
+        horas,
+        tipo,
+        fundamentacao: abonoText,
+      });
+      await recarregarDisciplinas();
     });
-    await recarregarDisciplinas();
-  };
 
-  const excluirAbono = async (abonoId: number) => {
-    await removerAbono(conselhoId, abonoId);
-    await recarregarDisciplinas();
-  };
+  const excluirAbono = (abonoId: number) =>
+    gravar(async () => {
+      await removerAbono(conselhoId, abonoId);
+      await recarregarDisciplinas();
+    });
 
   // ── Média retificada: salva ao sair do campo; campo vazio remove a retificação ──
   const salvarRetificada = (matricula: string, disc: Disciplina) => {
@@ -299,7 +428,7 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     const anteriores = participantes;
     const novos = participantes.map((p, i) => (i === index ? { ...p, presente: !p.presente } : p));
     setParticipantes(novos);
-    salvarPresencas(conselhoId, novos).catch((err) => {
+    gravar(() => salvarPresencas(conselhoId, novos)).catch((err) => {
       setParticipantes(anteriores);
       setErro(err instanceof Error ? err.message : "Erro ao salvar a presença.");
     });
@@ -339,8 +468,10 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
       const existe = turmasComDemanda.has(turma.id);
       if (!existe && turmaFormVazio(turmaForms[i])) continue;
       const salva = await salvarDemanda(conselhoId, turma, turmaForms[i], existe);
+      const salvo = toTurmaForm(salva, turma.alunosList);
+      demandasSalvasRef.current = demandasSalvasRef.current.map((s, j) => (j === i ? JSON.stringify(salvo) : s));
       setTurmasComDemanda((prev) => new Set(prev).add(turma.id));
-      setTurmaForms((prev) => prev.map((f, j) => (j === i ? toTurmaForm(salva, turma.alunosList) : f)));
+      setTurmaForms((prev) => prev.map((f, j) => (j === i ? salvo : f)));
     }
   };
 
@@ -480,6 +611,7 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
     }
     executar(async () => {
       const salva = await salvarDeliberacao(conselhoId, aluno.id, texto, deliberacaoIds[mat]);
+      pareceresSalvosRef.current = { ...pareceresSalvosRef.current, [mat]: salva.alteracoes_realizadas ?? texto };
       setDeliberacaoIds((prev) => ({ ...prev, [mat]: salva.id }));
       setAvaliacoes((prev) => ({ ...prev, [mat]: { ...prev[mat], saved: true } }));
     });

@@ -165,6 +165,22 @@ export interface DadosConselho {
   retificacoes: RetificacaoApi[];
   encaminhamentos: Encaminhamento[];
   usuarioLogadoId: number | null;
+  referencias: ReferenciasConselho;
+}
+
+// Cadastros que não mudam durante a reunião: buscados uma vez, ao abrir o conselho.
+export interface ReferenciasConselho {
+  turmas: TurmaRef[];
+  cursos: CursoRef[];
+  usuarios: UsuarioApi[];
+  perfis: Lookup[];
+  periodos: Periodo[];
+  alunos: AlunoApi[];
+  matriculas: MatriculaApi[];
+  diarios: DiarioApi[];
+  disciplinas: DisciplinaApi[];
+  notas: NotaApi[];
+  riscos: StudentRisk[];
 }
 
 const STATUS_DA_API: Record<StatusEncaminhamentoApi, Status> = {
@@ -235,24 +251,32 @@ export function toEncaminhamento(
   };
 }
 
-export async function carregarConselho(conselhoId: number): Promise<DadosConselho> {
+async function carregarReferencias(): Promise<ReferenciasConselho> {
+  const [turmas, cursos, usuarios, perfis, periodos, alunos, matriculas, diarios, disciplinas, notas, riscos] =
+    await Promise.all([
+      backend<TurmaRef[]>("/turmas"),
+      backend<CursoRef[]>("/cursos"),
+      backend<UsuarioApi[]>("/users"),
+      backend<Lookup[]>("/perfis"),
+      backend<Periodo[]>("/periodos"),
+      backend<AlunoApi[]>("/alunos"),
+      backend<MatriculaApi[]>("/matriculas"),
+      backend<DiarioApi[]>("/diarios"),
+      backend<DisciplinaApi[]>("/disciplinas"),
+      backend<NotaApi[]>("/notas-frequencias"),
+      backend<StudentRisk[]>("/dashboard/risk-students"),
+    ]);
+  return { turmas, cursos, usuarios, perfis, periodos, alunos, matriculas, diarios, disciplinas, notas, riscos };
+}
+
+// Sem as referências, carrega tudo; com elas (atualizações durante a reunião), só o que os participantes alteram.
+export async function carregarConselho(conselhoId: number, referencias?: ReferenciasConselho): Promise<DadosConselho> {
   const base = `/conselhos/${conselhoId}`;
   const [
-    conselho, turmasApi, cursos, usuariosApi, perfis, periodos, alunosApi, matriculas, diarios,
-    disciplinasApi, notas, riscos, demandas, registrosApi, deliberacoes, encaminhamentosApi, acompanhamentosApi, abonos, retificacoes,
+    refs, conselho, demandas, registrosApi, deliberacoes, encaminhamentosApi, acompanhamentosApi, abonos, retificacoes,
   ] = await Promise.all([
+    referencias ?? carregarReferencias(),
     backend<Conselho>(base),
-    backend<TurmaRef[]>("/turmas"),
-    backend<CursoRef[]>("/cursos"),
-    backend<UsuarioApi[]>("/users"),
-    backend<Lookup[]>("/perfis"),
-    backend<Periodo[]>("/periodos"),
-    backend<AlunoApi[]>("/alunos"),
-    backend<MatriculaApi[]>("/matriculas"),
-    backend<DiarioApi[]>("/diarios"),
-    backend<DisciplinaApi[]>("/disciplinas"),
-    backend<NotaApi[]>("/notas-frequencias"),
-    backend<StudentRisk[]>("/dashboard/risk-students"),
     backend<ConselhoDemanda[]>(`${base}/demandas`),
     backend<RegistroDocenteApi[]>(`${base}/registros-docentes`),
     backend<DeliberacaoApi[]>(`${base}/deliberacoes`),
@@ -261,6 +285,10 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
     backend<AbonoApi[]>(`${base}/abonos`),
     backend<RetificacaoApi[]>(`${base}/retificacoes`),
   ]);
+  const {
+    turmas: turmasApi, cursos, usuarios: usuariosApi, perfis, periodos, alunos: alunosApi, matriculas, diarios,
+    disciplinas: disciplinasApi, notas, riscos,
+  } = refs;
 
   const turmaIds = new Set(conselho.turmaIds);
 
@@ -397,6 +425,7 @@ export async function carregarConselho(conselhoId: number): Promise<DadosConselh
     retificacoes,
     encaminhamentos,
     usuarioLogadoId: usuariosApi.find((u) => u.siape === siape)?.id ?? null,
+    referencias: refs,
   };
 }
 
