@@ -1,5 +1,7 @@
-import { backend, type Lookup } from "./apiClient";
+import { backend, HttpError, type Lookup } from "./apiClient";
 import { getSessionSiape } from "./authService";
+import { clearSession, getToken, SESSION_EXPIRED_EVENT } from "./session";
+import { BACKEND_URL } from "../data/apiData";
 import { periodoLabel } from "./cadastrosService";
 import type {
   AbonoApi,
@@ -592,4 +594,32 @@ export async function finalizarEncaminhamento(encaminhamentoId: number, parecer:
     method: "PUT",
     body: JSON.stringify({ status: "finalizado" }),
   });
+}
+
+// ── Ata em PDF (o backend só emite depois do encerramento) ──
+
+export async function baixarAta(conselhoId: number): Promise<void> {
+  const token = getToken();
+  const response = await fetch(`${BACKEND_URL}/conselhos/${conselhoId}/ata`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (!response.ok) {
+    // Token expirado: encerra a sessão, igual às demais chamadas ao backend.
+    if (token && response.status === 401) {
+      clearSession();
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+    const body = await response.json().catch(() => null);
+    throw new HttpError(body?.message || "Não foi possível emitir a ata.", response.status);
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `ata-conselho-${conselhoId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -17,6 +17,7 @@ router.use('/:conselhoId/retificacoes', require('./retificacao.routes'));
 
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);
+router.get('/:id/ata', controller.ata);
 router.post('/', validateCreate, controller.create);
 router.put('/:id', validateUpdate, controller.update);
 router.delete('/:id', controller.remove);

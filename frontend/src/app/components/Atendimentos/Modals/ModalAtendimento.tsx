@@ -10,7 +10,7 @@ import {
   AlertCircle,
   FileText,
 } from "lucide-react";
-import type { AlunoSugestao } from "../../../types/atendimentos";
+import type { AlunoSugestao, ServidorOpcao } from "../../../types/atendimentos";
 
 interface ModalAtendimentoProps {
   onClose: () => void;
@@ -26,7 +26,7 @@ interface ModalAtendimentoProps {
   setFData: (value: string) => void;
   fServidor: string;
   setFServidor: (value: string) => void;
-  servidoresOptions: string[];
+  servidoresOptions: ServidorOpcao[];
   fMotivo: string;
   setFMotivo: (value: string) => void;
   motivoOptions: string[];
@@ -36,6 +36,8 @@ interface ModalAtendimentoProps {
   fRelato: string;
   setFRelato: (value: string) => void;
   handleSave: () => void;
+  salvando: boolean;
+  erro: string;
 }
 
 export default function ModalAtendimento({
@@ -62,6 +64,8 @@ export default function ModalAtendimento({
   fRelato,
   setFRelato,
   handleSave,
+  salvando,
+  erro,
 }: ModalAtendimentoProps) {
   return (
     <div
@@ -237,8 +241,8 @@ export default function ModalAtendimento({
                     >
                       <option value="">Selecione...</option>
                       {servidoresOptions.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
+                        <option key={o.id} value={String(o.id)}>
+                          {o.cargo ? `${o.nome} (${o.cargo})` : o.nome}
                         </option>
                       ))}
                     </select>
@@ -356,6 +360,8 @@ export default function ModalAtendimento({
                 </div>
               </div>
 
+              {erro && <p className="text-xs font-semibold text-red-600">{erro}</p>}
+
               {(!fAlunoSelecionado || !fMotivo || !fRelato) && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <span className="text-red-500">*</span> Campos obrigatórios
@@ -380,7 +386,7 @@ export default function ModalAtendimento({
             </button>
             <button
               onClick={handleSave}
-              disabled={!fAlunoSelecionado || !fMotivo || !fRelato}
+              disabled={!fAlunoSelecionado || !fMotivo || !fRelato || salvando}
               className="flex-1 py-2.5 text-sm font-bold rounded-xl text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background:

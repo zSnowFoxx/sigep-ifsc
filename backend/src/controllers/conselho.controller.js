@@ -1,6 +1,8 @@
 const conselhoModel = require('../models/conselho.model');
+const ataModel = require('../models/ata.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
+const gerarAtaPdf = require('../utils/ataPdf');
 const { isForeignKeyViolation } = require('../utils/dbErrors');
 
 function pickFields(body) {
@@ -63,10 +65,35 @@ const remove = asyncHandler(async (req, res) => {
   res.status(204).send();
 });
 
+// A ata é o registro final da reunião, então só sai depois do encerramento.
+const ata = asyncHandler(async (req, res) => {
+  const conselho = await conselhoModel.findById(req.params.id);
+
+  if (!conselho) {
+    throw new ApiError(404, 'Conselho não encontrado');
+  }
+  if (conselho.status !== 'encerrado') {
+    throw new ApiError(409, 'A ata só pode ser emitida depois que o conselho for encerrado');
+  }
+
+  const dados = await ataModel.findDadosAta(conselho);
+
+  // Gera o PDF antes de definir os cabeçalhos: se a geração falhar, o errorHandler responde
+  // com JSON de erro, e não um "PDF" com conteúdo inválido.
+  const documento = gerarAtaPdf(dados);
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="ata-conselho-${conselho.id}.pdf"`);
+  documento.on('error', (erro) => res.destroy(erro));
+  documento.pipe(res);
+  documento.end();
+});
+
 module.exports = {
   getAll,
   getById,
   create,
   update,
-  remove
+  remove,
+  ata
 };

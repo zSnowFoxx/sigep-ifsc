@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { ReuniaoRealizada } from "../../../types/conselho";
 import { etapaColors } from "../../../data/conselhoData";
+import { baixarAta } from "../../../services/conselhoService";
 
 interface ListaHistoricoProps {
   filteredHistorico: ReuniaoRealizada[];
@@ -69,12 +70,13 @@ export function ListaHistorico({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                {r.ata && (
-                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors">
-                    <Download size={12} />
-                    Baixar Ata (PDF)
-                  </button>
-                )}
+                <button
+                  onClick={() => baixarAta(r.id).catch((err) => window.alert(err.message))}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                >
+                  <Download size={12} />
+                  Baixar Ata (PDF)
+                </button>
                 {r.etapa !== "Final" && (
                   <button
                     onClick={onOpenCriarConselho}

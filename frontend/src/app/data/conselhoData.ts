@@ -14,6 +14,7 @@ import type {
   VizAlunoDetail,
 } from "../types/conselho";
 import {
+  baixarAta,
   carregarConselho,
   conselhosService,
   criarEncaminhamento,
@@ -356,6 +357,8 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
       if (!dados) return;
       await salvarDemandas(dados.turmas.map((_, i) => i));
       await conselhosService.update(conselhoId, { status: "encerrado" });
+      // A ata só é emitida após o encerramento, então o download vem depois do update.
+      await baixarAta(conselhoId);
       onBack?.();
     });
   };

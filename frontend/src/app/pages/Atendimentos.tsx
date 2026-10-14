@@ -1,5 +1,5 @@
 import type { AtendimentosProps } from "../types/atendimentos";
-import { atendimentosData, motivoOptions, contatoOptions, servidoresOptions } from "../data/atendimentosData";
+import { atendimentosData, motivoOptions, contatoOptions } from "../data/atendimentosData";
 
 // Importação dos componentes
 import AtendimentosHeader from "../components/Atendimentos/AtendimentosHeader";
@@ -13,6 +13,11 @@ export default function Atendimentos({
   onClearInitialStudent,
 }: AtendimentosProps) {
   const {
+    loading,
+    erro,
+    setErro,
+    salvando,
+    servidoresOptions,
     search,
     setSearch,
     filterMotivo,
@@ -56,6 +61,15 @@ export default function Atendimentos({
         }}
       />
 
+      {erro && !drawerOpen && (
+        <div className="shrink-0 px-6 py-2.5 bg-red-50 border-b border-red-200 flex items-center justify-between gap-4">
+          <p className="text-xs font-semibold text-red-700">{erro}</p>
+          <button onClick={() => setErro("")} className="text-xs text-red-700 hover:underline shrink-0">
+            Fechar
+          </button>
+        </div>
+      )}
+
       {/* Search & Filter Bar Component */}
       <AtendimentosFilters
         search={search}
@@ -67,11 +81,15 @@ export default function Atendimentos({
       />
 
       {/* Table Component */}
-      <AtendimentosTable
-        filtered={filtered}
-        totalAtendimentos={totalAtendimentos}
-        onViewRelato={(atendimento) => setViewModal({ atendimento })}
-      />
+      {loading ? (
+        <p className="text-sm text-muted-foreground text-center py-16">Carregando atendimentos...</p>
+      ) : (
+        <AtendimentosTable
+          filtered={filtered}
+          totalAtendimentos={totalAtendimentos}
+          onViewRelato={(atendimento) => setViewModal({ atendimento })}
+        />
+      )}
 
       {/* ── Registrar Novo Atendimento — Centered Modal Component ── */}
       {drawerOpen && (
@@ -79,6 +97,7 @@ export default function Atendimentos({
           onClose={() => {
             setDrawerOpen(false);
             resetForm();
+            setErro("");
           }}
           fSaved={fSaved}
           fAlunoBusca={fAlunoBusca}
@@ -102,6 +121,8 @@ export default function Atendimentos({
           fRelato={fRelato}
           setFRelato={setFRelato}
           handleSave={handleSave}
+          salvando={salvando}
+          erro={erro}
         />
       )}
 
