@@ -12,6 +12,14 @@ const GRAVIDADES = { 'nao-urgente': 'não urgente', urgente: 'urgente', critica:
 const RISCOS = { baixo: 'baixo', medio: 'médio', alto: 'alto', critico: 'crítico' };
 const FUSO = 'America/Sao_Paulo';
 const LINHA = '_'.repeat(70);
+
+// O pdfkit carrega as fontes padrão sob demanda (createRequire), o que o rastreador de arquivos da
+// Vercel não enxerga: sem estes requires as fontes ficam fora do deploy e nenhuma ata é gerada.
+// Ao trocar uma fonte abaixo, adicione o require correspondente (Helvetica é a fonte inicial do pdfkit).
+require('pdfkit/standard-fonts/Helvetica');
+require('pdfkit/standard-fonts/HelveticaBold');
+require('pdfkit/standard-fonts/TimesRoman');
+require('pdfkit/standard-fonts/TimesBold');
 const FONTE = 'Times-Roman';
 const FONTE_NEGRITO = 'Times-Bold';
 const FONTE_TITULO = 'Helvetica-Bold';
