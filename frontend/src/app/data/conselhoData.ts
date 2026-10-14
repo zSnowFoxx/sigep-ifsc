@@ -499,10 +499,11 @@ export function conselhoData({ conselhoId, mode = "final", onBack }: ConselhoDat
         { id: 3, label: "Registros e Encaminhamentos", icon: FileText, short: "Registros", displayNum: 3 },
       ]
     : [
-        { id: 1, label: "Participantes do Conselho", icon: Users, short: "Participantes", displayNum: 1 },
-        { id: 2, label: "Demandas Gerais", icon: ClipboardList, short: "Demandas", displayNum: 2 },
-        { id: 3, label: "Registros e Encaminhamentos", icon: FileText, short: "Registros", displayNum: 3 },
-        { id: 4, label: "Avaliação Discente", icon: GraduationCap, short: "Avaliação", displayNum: 4 },
+        { id: 0, label: "Visualização", icon: BarChart2, short: "Visualização", displayNum: 1 },
+        { id: 1, label: "Participantes", icon: Users, short: "Participantes", displayNum: 2 },
+        { id: 2, label: "Demandas Gerais", icon: ClipboardList, short: "Demandas", displayNum: 3 },
+        { id: 3, label: "Registros e Encaminhamentos", icon: FileText, short: "Registros", displayNum: 4 },
+        { id: 4, label: "Avaliação Discente", icon: GraduationCap, short: "Avaliação", displayNum: 5 },
       ];
 
   return {

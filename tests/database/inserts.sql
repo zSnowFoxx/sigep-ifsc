@@ -923,7 +923,7 @@ INSERT IGNORE INTO diarios (id, codigo, disciplina_id, turma_id, professor_id, c
   (29, 'TERMO-2026-01', 29, 27, 11,  '72h', 86),  -- Termodinâmica Aplicada | Engenharia Mecânica 4ª Fase | Prof.ª Ana Souza
   (30, 'ELEM-2026-01',  30, 28, 11,  '80h', 96);   -- Elementos de Máquinas | Engenharia Mecânica
 
-INSERT IGNORE INTO notas_frequencias (id, matricula_id, diario_id, media, infrequencia) VALUES
+INSERT IGNORE INTO notas_frequencias (id, matricula_id, diario_id, media, infrequencia) VALUES 
   (1, 1, 1, 7.8, 8),
   (2, 2, 1, 8.5, 12),
   (3, 3, 1, 6.2, 18),
@@ -1380,7 +1380,8 @@ INSERT IGNORE INTO notas_frequencias (id, matricula_id, diario_id, media, infreq
   (454, 454, 30, 7.6, 13),
   (455, 455, 30, 8.7, 9),
   (456, 456, 30, 3.9, 42),
-  (457, 457, 30, 8.1, 26);
+  (457, 457, 30, 8.1, 26),
+  (458, 34, 3, 9.3, 12);
 
 
 -- =====================================================================
