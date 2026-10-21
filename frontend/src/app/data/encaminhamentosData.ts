@@ -175,4 +175,5 @@ export const categoriaColors: Record<string, { bg: string; text: string }> = {
   "Assistência Estudantil": { bg: "#f0fdf4", text: "#15803d" },
   "Monitoria / Nivelamento": { bg: "#fdf4ff", text: "#7e22ce" },
   "Acompanhamento Psicológico": { bg: "#fff7ed", text: "#c2410c" },
+  "Dificuldade de aprendizagem": { bg: "#fdf4ff", text: "#7e22ce" },
 };

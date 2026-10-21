@@ -69,6 +69,7 @@ export default function EncaminhamentosQuadros({
                     bg: "#f8fafc",
                     text: "#475569",
                   };
+                  const formattedId = String(card.id).padStart(4, "0");
                   return (
                     <button
                       key={card.id}
@@ -110,7 +111,7 @@ export default function EncaminhamentosQuadros({
                                 className="text-xs text-muted-foreground"
                                 style={{ fontFamily: "monospace", fontSize: "10px" }}
                               >
-                                #{card.id} · {card.turma}
+                                #{formattedId} · {card.turma}
                               </p>
                             </div>
                           </div>
@@ -145,10 +146,12 @@ export default function EncaminhamentosQuadros({
                             <ArrowRight size={10} className="shrink-0" />
                             <span className="truncate">{card.origem}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <User size={10} className="shrink-0" />
-                            <span className="truncate">{card.responsavel}</span>
-                          </div>
+                          {card.responsavel && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <User size={10} className="shrink-0" />
+                              <span className="truncate">{card.responsavel}</span>
+                            </div>
+                          )}
                           {card.prazo && (
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <CalendarClock size={10} className="shrink-0" />

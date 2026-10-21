@@ -4,7 +4,9 @@ import {
   carregarEncaminhamentos,
   finalizarEncaminhamento,
   registrarRelato,
+  carregarServidores
 } from "../services/encaminhamentosService";
+import type { ServidorRef } from "../services/conselhoService";
 import { normalizar } from "../utils/busca";
 
 import EncaminhamentosHeader from "../components/Encaminhamentos/EncaminhamentosHeader";
@@ -44,6 +46,11 @@ export default function Encaminhamentos() {
   const [parecerFinal, setParecerFinal] = useState("");
   const [finalizando, setFinalizando] = useState(false);
   const [savedRelato, setSavedRelato] = useState(false);
+
+  const [servidores, setServidores] = useState<ServidorRef[]>([]);
+  useEffect(() => {
+    carregarServidores().then(setServidores).catch(console.error);
+  }, []);
 
   // Retorna a lista atualizada para o modal aberto acompanhar as mudanças.
   const load = useCallback(async () => {
@@ -205,6 +212,7 @@ export default function Encaminhamentos() {
         finalizar={finalizar}
         salvando={salvando}
         erro={erroModal}
+        servidores={servidores}
       />
     </div>
   );
