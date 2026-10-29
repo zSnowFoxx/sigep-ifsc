@@ -95,6 +95,15 @@ async function findProfileBySiape(siape) {
   };
 }
 
+// Perfil atual do usuário (o do token pode estar desatualizado).
+async function findPerfilNomeById(id) {
+  const [rows] = await pool.query(
+    'SELECT p.nome FROM usuarios u JOIN perfis p ON p.id = u.perfil_id WHERE u.id = ?',
+    [id]
+  );
+  return rows[0]?.nome ?? null;
+}
+
 async function updatePassword(id, passwordHash) {
   await pool.query('UPDATE usuarios SET senha = ? WHERE id = ?', [passwordHash, id]);
 }
@@ -198,6 +207,7 @@ module.exports = {
   findByEmail,
   findWithPasswordById,
   findProfileBySiape,
+  findPerfilNomeById,
   updatePassword,
   create,
   update,

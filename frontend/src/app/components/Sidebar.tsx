@@ -101,6 +101,7 @@ export default function Sidebar({
         style={{ padding: sidebarCollapsed ? "12px 0" : "16px 12px" }}
       >
         {navItems.map((item, i) => {
+          if (item.auditoria && !userProfile?.acessoAuditoria) return null;
           const isActive = !showPerfil && activeNav === i;
           return (
             <button

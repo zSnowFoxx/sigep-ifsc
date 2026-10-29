@@ -23,6 +23,7 @@ interface HeaderProps {
   setConselhoMode: (mode: "list" | "workspace") => void;
   setImportarOpen: (open: boolean) => void;
   setShowPerfil: (show: boolean) => void;
+  acessoAuditoria: boolean;
   hidden?: boolean;
 }
 
@@ -35,6 +36,7 @@ export default function Header({
   setConselhoMode,
   setImportarOpen,
   setShowPerfil,
+  acessoAuditoria,
   hidden = false,
 }: HeaderProps) {
   const [cmdQuery, setCmdQuery] = useState("");
@@ -77,8 +79,8 @@ export default function Header({
 
   // Chamada limpa delegando a lista para a função externa
   const cmdPalette = useMemo(
-    () => getCommandPalette({ setActiveNav, setConselhoMode, setImportarOpen, setShowPerfil }),
-    [setActiveNav, setConselhoMode, setImportarOpen, setShowPerfil]
+    () => getCommandPalette({ setActiveNav, setConselhoMode, setImportarOpen, setShowPerfil, acessoAuditoria }),
+    [setActiveNav, setConselhoMode, setImportarOpen, setShowPerfil, acessoAuditoria]
   );
 
   const cmdResults = useMemo(() => {

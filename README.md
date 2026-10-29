@@ -184,6 +184,8 @@ Para gerar um segredo: `node -e "console.log(require('crypto').randomBytes(48).t
 
 Se o backend rodar atrás de um proxy reverso, defina `TRUST_PROXY` com o número de proxies (ex.: `TRUST_PROXY=1`) para que os logs de auditoria registrem o IP real do cliente. Na Vercel isso já é automático. Sem proxy, deixe a variável vazia.
 
+Toda inclusão, alteração e exclusão feita pela API, além de logins (aceitos e recusados), logouts e trocas de senha, é gravada em `logs_auditoria`, com os dados de antes e depois (senhas e códigos nunca são gravados). A tela **Logs de Auditoria** e as rotas `GET /api/logs-auditoria` (com filtros `usuarioId`, `acao`, `tabela`, `registroId`, `de`, `ate`, `busca`, `pagina` e `limite`) ficam restritas aos perfis de `AUDITORIA_PERFIS`, que recebe os nomes separados por vírgula. O padrão é `Coordenador de Curso,Equipe Pedagógica/NAE`.
+
 Abra um terminal, acesse a pasta do servidor, instale as dependências e execute o serviço:
 ```bash
 cd sigep-ifsc/backend

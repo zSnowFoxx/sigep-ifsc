@@ -1,8 +1,9 @@
 import type { Role, StoredUser, UserSession } from "../types/auth";
 import { API_URL } from "../data/apiData";
-import { backend, type Lookup } from "./apiClient";
+import { BACKEND_URL } from "../data/apiData";
+import { backend, request, type Lookup } from "./apiClient";
 import { perfisService, funcoesService } from "./cadastrosService";
-import { saveSession, getToken } from "./session";
+import { saveSession, getToken, clearSession } from "./session";
 
 export { saveSession, getSessionSiape, clearSession } from "./session";
 
@@ -16,6 +17,7 @@ export interface BackendProfile {
   funcoes: string[];
   disciplinas: string[];
   cursosCoordenados: string[];
+  acessoAuditoria?: boolean;
 }
 
 export const toUserSession = (p: BackendProfile): UserSession => ({
@@ -25,6 +27,7 @@ export const toUserSession = (p: BackendProfile): UserSession => ({
   role: p.perfil.nome as Role,
   course: p.cursosCoordenados.join(", ") || undefined,
   disciplines: p.disciplinas,
+  acessoAuditoria: p.acessoAuditoria ?? false,
 });
 
 // ==========================================
@@ -134,6 +137,20 @@ export async function fetchSessionUser(): Promise<UserSession | null> {
   if (!getToken()) return null;
 
   return toUserSession(await backend<BackendProfile>("/auth/me"));
+}
+
+// Sair: registra o logout no log de auditoria (sem esperar a resposta) e apaga o token.
+// Usa request, e não backend, para um 401 aqui não disparar outro encerramento de sessão.
+export function logoutUser() {
+  const token = getToken();
+  if (token) {
+    request(BACKEND_URL, "/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      keepalive: true,
+    }).catch(() => {});
+  }
+  clearSession();
 }
 
 // 8. Solicitação de Recuperação de Senha (Esqueci a senha)

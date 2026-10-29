@@ -31,6 +31,7 @@ router.use('/notas-frequencias', require('./notaFrequencia.routes'));
 router.use('/conselhos', require('./conselho.routes'));
 router.use('/atendimentos', require('./atendimento.routes'));
 router.use('/encaminhamentos', require('./encaminhamento.routes'));
+router.use('/importacoes', require('./importacao.routes'));
 router.use('/logs-auditoria', require('./logAuditoria.routes'));
 router.use('/dashboard', require('./dashboard.routes'));
 

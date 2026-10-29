@@ -2,10 +2,17 @@ const logAuditoriaModel = require('../models/logAuditoria.model');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const { isForeignKeyViolation } = require('../utils/dbErrors');
+const { origemDaRequisicao, semDadosSigilosos } = require('../utils/auditoria');
 
+// Filtros e paginação validados em validateQuery (req.filtros).
 const getAll = asyncHandler(async (req, res) => {
-  const logs = await logAuditoriaModel.findAll();
+  const logs = await logAuditoriaModel.findAll(req.filtros);
   res.json({ success: true, data: logs });
+});
+
+const getOpcoes = asyncHandler(async (req, res) => {
+  const opcoes = await logAuditoriaModel.findOpcoes();
+  res.json({ success: true, data: opcoes });
 });
 
 const getById = asyncHandler(async (req, res) => {
@@ -26,13 +33,12 @@ const create = asyncHandler(async (req, res) => {
       acao,
       tabelaAfetada,
       registroId,
-      dadosAnteriores,
-      dadosNovos,
+      dadosAnteriores: semDadosSigilosos(dadosAnteriores),
+      dadosNovos: semDadosSigilosos(dadosNovos),
       // Origem e momento do registro: sempre o usuário autenticado, a própria requisição e a
       // hora do servidor, nunca o corpo.
       usuarioId: req.user.id,
-      enderecoIp: req.ip?.slice(0, 45),
-      userAgent: req.get('user-agent')?.slice(0, 500)
+      ...origemDaRequisicao(req)
     });
     res.status(201).json({ success: true, data: log });
   } catch (error) {
@@ -45,6 +51,7 @@ const create = asyncHandler(async (req, res) => {
 
 module.exports = {
   getAll,
+  getOpcoes,
   getById,
   create
 };

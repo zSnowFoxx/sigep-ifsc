@@ -9,6 +9,7 @@ import ConselhosLista from "./pages/ConselhosLista";
 import ConselhoDeClasse from "./pages/ConselhoDeClasse";
 import ImportarDados from "./pages/ImportarDados";
 import Encaminhamentos from "./pages/Encaminhamentos";
+import Logs from "./pages/Logs";
 
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -16,7 +17,7 @@ import Header from "./components/Header";
 import type { UserSession } from "./types/auth";
 import type { StudentRisk } from "./types/dashboard";
 import { fetchRiskStudents } from "./services/dashService";
-import { fetchSessionUser, clearSession } from "./services/authService";
+import { fetchSessionUser, logoutUser } from "./services/authService";
 import { SESSION_EXPIRED_EVENT } from "./services/session";
 
 export default function App() {
@@ -65,7 +66,7 @@ export default function App() {
 
   // O próximo login começa do zero: Dashboard, período ativo e sem filtros.
   const logout = () => {
-    clearSession();
+    logoutUser();
     setAuthenticated(false);
     setUserProfile(null);
     setShowPerfil(false);
@@ -157,6 +158,7 @@ export default function App() {
           setConselhoMode={setConselhoMode}
           setImportarOpen={setImportarOpen}
           setShowPerfil={setShowPerfil}
+          acessoAuditoria={userProfile?.acessoAuditoria ?? false}
           hidden={showPerfil || (activeNav === 1 && conselhoMode === "workspace")}
         />
 
@@ -220,6 +222,8 @@ export default function App() {
             )}
 
             {activeNav === 5 && <Cadastros />}
+
+            {activeNav === 6 && userProfile?.acessoAuditoria && <Logs />}
           </main>
         )}
       </div>

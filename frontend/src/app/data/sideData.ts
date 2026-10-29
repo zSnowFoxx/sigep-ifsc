@@ -5,6 +5,7 @@ import {
   Send,
   Upload,
   Database,
+  ShieldCheck,
 } from "lucide-react";
 import type { NavItem } from "../types/sidebar";
 
@@ -16,4 +17,5 @@ export const navItems: NavItem[] = [
   { icon: Send, label: "Encaminhamentos", active: false },
   { icon: Upload, label: "Importar Dados (SIGAA/Planilha)", active: false },
   { icon: Database, label: "Cadastros", active: false },
+  { icon: ShieldCheck, label: "Logs de Auditoria", active: false, auditoria: true },
 ];

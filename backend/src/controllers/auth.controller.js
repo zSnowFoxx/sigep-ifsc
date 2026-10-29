@@ -7,10 +7,14 @@ const ApiError = require('../utils/ApiError');
 const otpStore = require('../utils/otpStore');
 const { isForeignKeyViolation } = require('../utils/dbErrors');
 const { signToken } = require('../utils/jwt');
+const { registrarLog, podeConsultarAuditoria } = require('../utils/auditoria');
 
 const SALT_ROUNDS = 10;
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
+
+// O frontend mostra a tela de logs só para quem o backend deixa consultar.
+const comPermissoes = (profile) => ({ ...profile, acessoAuditoria: podeConsultarAuditoria(profile.perfil.nome) });
 
 // Envia o código de confirmação do e-mail para o autocadastro.
 const requestOtp = asyncHandler(async (req, res) => {
@@ -85,6 +89,7 @@ const register = asyncHandler(async (req, res) => {
     });
 
     otpStore.consume(email);
+    await registrarLog(req, { acao: 'INSERT', tabela: 'usuarios', registroId: user.id, novos: user, usuarioId: user.id });
     res.status(201).json({ success: true, data: user });
   } catch (error) {
     if (isForeignKeyViolation(error)) {
@@ -96,24 +101,46 @@ const register = asyncHandler(async (req, res) => {
 
 const INVALID_CREDENTIALS = 'E-mail ou senha incorretos';
 
+// Tentativas recusadas também vão para o log, com o e-mail informado (nunca a senha).
+async function registrarLoginRecusado(req, email, user, motivo) {
+  await registrarLog(req, {
+    acao: 'LOGIN_FALHA',
+    tabela: 'usuarios',
+    registroId: user?.id,
+    novos: { email, motivo },
+    usuarioId: user?.id ?? null
+  });
+}
+
 const login = asyncHandler(async (req, res) => {
-  const user = await userModel.findByEmail(normalizeEmail(req.body.email));
+  const email = normalizeEmail(req.body.email);
+  const user = await userModel.findByEmail(email);
 
   if (!user) {
+    await registrarLoginRecusado(req, email, null, 'E-mail não cadastrado');
     throw new ApiError(401, INVALID_CREDENTIALS);
   }
 
   if (!user.senha) {
+    await registrarLoginRecusado(req, email, user, 'Usuário sem senha cadastrada');
     throw new ApiError(401, "Usuário sem senha cadastrada. Utilize 'Esqueci minha senha' para criar uma");
   }
 
   const isPasswordValid = await bcrypt.compare(req.body.senha, user.senha);
   if (!isPasswordValid) {
+    await registrarLoginRecusado(req, email, user, 'Senha incorreta');
     throw new ApiError(401, INVALID_CREDENTIALS);
   }
 
   const profile = await userModel.findProfileBySiape(user.siape);
-  res.json({ success: true, data: { token: signToken(user), user: profile } });
+  await registrarLog(req, { acao: 'LOGIN', tabela: 'usuarios', registroId: user.id, usuarioId: user.id });
+  res.json({ success: true, data: { token: signToken(user), user: comPermissoes(profile) } });
+});
+
+// O token não é revogado (JWT sem estado): a saída só fica registrada no log.
+const logout = asyncHandler(async (req, res) => {
+  await registrarLog(req, { acao: 'LOGOUT', tabela: 'usuarios', registroId: req.user.id });
+  res.status(204).send();
 });
 
 // Perfil do usuário dono do token (restaura a sessão no frontend).
@@ -123,7 +150,7 @@ const me = asyncHandler(async (req, res) => {
     throw new ApiError(401, 'Usuário da sessão não encontrado');
   }
 
-  res.json({ success: true, data: profile });
+  res.json({ success: true, data: comPermissoes(profile) });
 });
 
 // Envia o código para redefinição de senha de um usuário já cadastrado.
@@ -152,6 +179,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
   await userModel.updatePassword(user.id, await bcrypt.hash(req.body.novaSenha, SALT_ROUNDS));
   otpStore.consume(email);
+  await registrarLog(req, { acao: 'REDEFINIR_SENHA', tabela: 'usuarios', registroId: user.id, usuarioId: user.id });
 
   res.json({ success: true, message: 'Senha redefinida com sucesso' });
 });
@@ -172,6 +200,7 @@ const changePassword = asyncHandler(async (req, res) => {
   }
 
   await userModel.updatePassword(user.id, await bcrypt.hash(req.body.novaSenha, SALT_ROUNDS));
+  await registrarLog(req, { acao: 'ALTERAR_SENHA', tabela: 'usuarios', registroId: user.id });
   res.json({ success: true, message: 'Senha alterada com sucesso' });
 });
 
@@ -180,6 +209,7 @@ module.exports = {
   verifyOtp,
   register,
   login,
+  logout,
   me,
   forgotPassword,
   resetPassword,

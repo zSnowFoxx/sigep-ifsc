@@ -11,6 +11,8 @@ export interface UserSession {
   role: Role;
   course?: string;
   disciplines?: string[];
+  // Definido pelo backend (AUDITORIA_PERFIS): libera a tela de logs.
+  acessoAuditoria?: boolean;
 }
 
 export type StoredUser = UserSession & { password: string };

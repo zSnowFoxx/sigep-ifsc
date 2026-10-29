@@ -5,7 +5,8 @@ import {
   Send,
   Upload,
   Database,
-  User
+  User,
+  ShieldCheck
 } from "lucide-react";
 import type { CommandActions, CommandItem } from "../types/header";
 
@@ -14,6 +15,7 @@ export const getCommandPalette = ({
   setConselhoMode,
   setImportarOpen,
   setShowPerfil,
+  acessoAuditoria,
 }: CommandActions): CommandItem[] => [
   {
     id: "dashboard",
@@ -87,6 +89,22 @@ export const getCommandPalette = ({
       setActiveNav(5);
     },
   },
+  ...(acessoAuditoria
+    ? [
+        {
+          id: "logs",
+          icon: ShieldCheck,
+          title: "Logs de Auditoria",
+          subtitle: "Consultar quem criou, alterou ou excluiu registros e os acessos ao sistema",
+          keywords: ["log", "logs", "auditoria", "histórico", "historico", "rastreio", "alterações", "alteracoes", "exclusões", "exclusoes", "acessos", "login"],
+          badge: "Ir para Página",
+          action: () => {
+            setShowPerfil(false);
+            setActiveNav(6);
+          },
+        },
+      ]
+    : []),
   {
     id: "perfil",
     icon: User,

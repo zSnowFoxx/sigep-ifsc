@@ -15,6 +15,7 @@ export interface CommandActions {
   setConselhoMode: (mode: "list" | "workspace") => void;
   setImportarOpen: (open: boolean) => void;
   setShowPerfil: (show: boolean) => void;
+  acessoAuditoria: boolean;
 }
 
 export interface Periodo {

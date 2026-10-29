@@ -428,8 +428,31 @@ CREATE TABLE IF NOT EXISTS logs_auditoria (
   endereco_ip      VARCHAR(45)     NULL,
   user_agent       VARCHAR(500)    NULL,
   PRIMARY KEY (id_log),
+  KEY idx_logs_auditoria_data_hora (data_hora),
+  KEY idx_logs_auditoria_registro (tabela_afetada, registro_id),
   CONSTRAINT fk_logs_auditoria_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL
 );
+
+-- Índices dos filtros da consulta de logs, para bancos criados antes deles (mesma checagem das FKs acima).
+SET @sql = IF(
+  (SELECT COUNT(*) FROM information_schema.STATISTICS
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'logs_auditoria' AND INDEX_NAME = 'idx_logs_auditoria_data_hora') = 0,
+  'CREATE INDEX idx_logs_auditoria_data_hora ON logs_auditoria (data_hora)',
+  'DO 0'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = IF(
+  (SELECT COUNT(*) FROM information_schema.STATISTICS
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'logs_auditoria' AND INDEX_NAME = 'idx_logs_auditoria_registro') = 0,
+  'CREATE INDEX idx_logs_auditoria_registro ON logs_auditoria (tabela_afetada, registro_id)',
+  'DO 0'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- =====================================================================
 -- 8. REGRAS MANTIDAS PELO BACKEND (o TiDB não suporta triggers/functions)
